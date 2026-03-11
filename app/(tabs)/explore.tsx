@@ -1,12 +1,31 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
+import { mockVans } from '../../constants/mockVans';
 
 export default function MapScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Burger Van Map</Text>
-      <Text style={styles.subtitle}>
-        Your live vendor map will go here next.
-      </Text>
+      <MapView
+        style={styles.map}
+        initialRegion={{
+          latitude: 51.5074,
+          longitude: -0.1278,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        }}
+      >
+        {mockVans.map((van) => (
+          <Marker
+            key={van.id}
+            coordinate={{
+              latitude: van.lat,
+              longitude: van.lng,
+            }}
+            title={van.name}
+            description={`${van.cuisine} • ⭐ ${van.rating}`}
+          />
+        ))}
+      </MapView>
     </View>
   );
 }
@@ -14,20 +33,8 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F4F2',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
   },
-  title: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: '#E53935',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#555',
-    textAlign: 'center',
+  map: {
+    flex: 1,
   },
 });
