@@ -1,13 +1,26 @@
-import { router } from "expo-router";
-import { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import MapView, { MapPressEvent, Marker } from "react-native-maps";
 
 export default function PickLocationScreen() {
+  const params = useLocalSearchParams();
+
   const [pin, setPin] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
+  useEffect(() => {
+    const lat = Number(params.lat);
+    const lng = Number(params.lng);
+
+    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+      setPin({
+        latitude: lat,
+        longitude: lng,
+      });
+    }
+  }, [params.lat, params.lng]);
 
   function handleMapPress(event: MapPressEvent) {
     const { latitude, longitude } = event.nativeEvent.coordinate;
@@ -22,6 +35,14 @@ export default function PickLocationScreen() {
       params: {
         lat: String(pin.latitude),
         lng: String(pin.longitude),
+        vanName: (params.vanName as string) ?? "",
+        vendorName: (params.vendorName as string) ?? "",
+        cuisine: (params.cuisine as string) ?? "",
+        menu: (params.menu as string) ?? "",
+        schedule: (params.schedule as string) ?? "",
+        claimId: (params.claimId as string) ?? "",
+        photo: (params.photo as string) ?? "",
+        foodCategories: (params.foodCategories as string) ?? "[]",
       },
     });
   }

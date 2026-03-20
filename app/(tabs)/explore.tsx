@@ -15,7 +15,9 @@ import {
   View,
 } from "react-native";
 import MapView, { MapPressEvent, Marker, Region } from "react-native-maps";
-import { mockVans, type Van } from "../../constants/mockVans";
+import { getSubscriptionFeatures } from "../../lib/subscriptionFeatures";
+import { getAllVendors } from "../../services/vendorService";
+import { type Van } from "../../types/van";
 
 type SpotPin = {
   latitude: number;
@@ -29,7 +31,7 @@ const DEFAULT_REGION: Region = {
   longitudeDelta: 0.05,
 };
 
-const CUSTOM_VANS_KEY = "bitebeacon_custom_vans";
+const SPOTTED_VANS_KEY = "bitebeacon_spotted_vans";
 
 export default function MapScreen() {
   const params = useLocalSearchParams();
@@ -41,9 +43,10 @@ export default function MapScreen() {
   const [spotCuisine, setSpotCuisine] = useState("");
   const [spotPhoto, setSpotPhoto] = useState<string | null>(null);
   const [spottedVans, setSpottedVans] = useState<Van[]>([]);
-  const [customVans, setCustomVans] = useState<Van[]>([]);
+  const [supabaseVans, setSupabaseVans] = useState<Van[]>([]);
   const [selectedSpotPin, setSelectedSpotPin] = useState<SpotPin | null>(null);
   const [selectedVan, setSelectedVan] = useState<Van | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState<"all" | "live" | "spotted">("all");
   const [userRegion, setUserRegion] = useState<Region>(DEFAULT_REGION);
   const [locationReady, setLocationReady] = useState(false);
 
@@ -53,7 +56,8 @@ export default function MapScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadCustomVans();
+      loadSupabaseVans();
+      loadSpottedVans();
     }, [])
   );
 
@@ -71,8 +75,35 @@ export default function MapScreen() {
       setTimeout(() => {
         mapRef.current?.animateToRegion(nextRegion, 1000);
       }, 400);
+
+      return;
     }
-  }, [params.lat, params.lng]);
+
+    if (!params.highlight) return;
+
+    const highlightedVendor = [...supabaseVans, ...spottedVans].find(
+      (van) => van.id === params.highlight
+    );
+
+    if (!highlightedVendor) return;
+
+    setSelectedVan(highlightedVendor);
+    setSpotMode(false);
+    setSelectedSpotPin(null);
+
+    const nextRegion: Region = {
+      latitude: highlightedVendor.lat,
+      longitude: highlightedVendor.lng,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
+    };
+
+    setUserRegion(nextRegion);
+
+    setTimeout(() => {
+      mapRef.current?.animateToRegion(nextRegion, 1000);
+    }, 400);
+  }, [params.lat, params.lng, params.highlight, supabaseVans, spottedVans]);
 
   async function requestUserLocation() {
     try {
@@ -84,6 +115,7 @@ export default function MapScreen() {
       }
 
       const current = await Location.getCurrentPositionAsync({});
+
       setUserRegion({
         latitude: current.coords.latitude,
         longitude: current.coords.longitude,
@@ -97,17 +129,69 @@ export default function MapScreen() {
     }
   }
 
-  async function loadCustomVans() {
+  async function loadSupabaseVans() {
     try {
-      const stored = await AsyncStorage.getItem(CUSTOM_VANS_KEY);
-      if (!stored) return;
-      setCustomVans(JSON.parse(stored));
-    } catch {}
+      const vendors = await getAllVendors();
+      setSupabaseVans(vendors);
+    } catch (error) {
+      console.log(
+        "Error loading vendors:",
+        error instanceof Error ? error.message : "Unknown error"
+      );
+      setSupabaseVans([]);
+    }
+  }
+
+  async function loadSpottedVans() {
+    try {
+      const stored = await AsyncStorage.getItem(SPOTTED_VANS_KEY);
+      if (!stored) {
+        setSpottedVans([]);
+        return;
+      }
+
+      const parsed: Van[] = JSON.parse(stored);
+      setSpottedVans(parsed);
+    } catch {
+      setSpottedVans([]);
+    }
   }
 
   const allVans = useMemo(() => {
-    return [...mockVans, ...customVans, ...spottedVans];
-  }, [customVans, spottedVans]);
+    return [...supabaseVans, ...spottedVans];
+  }, [supabaseVans, spottedVans]);
+
+  const filteredVans = useMemo(() => {
+    const baseVans =
+      selectedFilter === "live"
+        ? allVans.filter((van) => van.isLive && !van.temporary)
+        : selectedFilter === "spotted"
+          ? allVans.filter((van) => van.temporary)
+          : allVans;
+
+    return [...baseVans].sort((a, b) => {
+      const tierRank = { pro: 3, growth: 2, free: 1 };
+
+      const aRank = tierRank[a.subscriptionTier ?? "free"];
+      const bRank = tierRank[b.subscriptionTier ?? "free"];
+
+      if (aRank !== bRank) {
+        return bRank - aRank;
+      }
+
+      return b.rating - a.rating;
+    });
+  }, [allVans, selectedFilter]);
+
+  useEffect(() => {
+    if (!selectedVan) return;
+
+    const stillVisible = filteredVans.some((van) => van.id === selectedVan.id);
+
+    if (!stillVisible) {
+      setSelectedVan(null);
+    }
+  }, [filteredVans, selectedVan]);
 
   function handleMarkerPress(van: Van) {
     setSelectedVan(van);
@@ -175,7 +259,7 @@ export default function MapScreen() {
     }
   }
 
-  function submitSpotVan() {
+  async function submitSpotVan() {
     if (!spotName.trim()) {
       Alert.alert("Missing name", "Please enter the van name.");
       return;
@@ -199,31 +283,40 @@ export default function MapScreen() {
       menu: "Claim this burger van to add menu",
       schedule: "Claim to add schedule",
       isLive: false,
+      views: 0,
+      directions: 0,
     };
 
-    setSpottedVans((current) => [newVan, ...current]);
+    const updatedSpottedVans = [newVan, ...spottedVans];
+    setSpottedVans(updatedSpottedVans);
+
+    try {
+      await AsyncStorage.setItem(
+        SPOTTED_VANS_KEY,
+        JSON.stringify(updatedSpottedVans)
+      );
+    } catch {
+      Alert.alert("Error", "Could not save spotted van.");
+      return;
+    }
 
     cancelSpotFlow();
-
     Alert.alert("Success", "Temporary van added to map.");
   }
 
   function openVanPage(van: Van) {
+    if (van.temporary) {
+      Alert.alert(
+        "Community spotted van",
+        "This van has not been claimed by a vendor yet."
+      );
+      return;
+    }
+
     router.push({
       pathname: "/vendor/[id]",
       params: {
         id: van.id,
-        name: van.name,
-        cuisine: van.cuisine,
-        rating: String(van.rating),
-        temporary: van.temporary ? "true" : "false",
-        photo: van.photo ?? "",
-        vendorName: van.vendorName ?? "",
-        menu: van.menu ?? "",
-        schedule: van.schedule ?? "",
-        lat: String(van.lat),
-        lng: String(van.lng),
-        isLive: van.isLive ? "true" : "false",
       },
     });
   }
@@ -242,12 +335,30 @@ export default function MapScreen() {
           showsUserLocation
           onPress={handleMapPress}
         >
-          {allVans.map((van) => (
+          {filteredVans.map((van) => (
             <Marker
               key={van.id}
               coordinate={{ latitude: van.lat, longitude: van.lng }}
               pinColor={
-                van.temporary ? "orange" : van.isLive ? "green" : "gray"
+                van.temporary
+                  ? "orange"
+                  : van.subscriptionTier === "pro"
+                    ? "#FF7A00"
+                    : getSubscriptionFeatures(van.subscriptionTier).liveStatus
+                      ? van.isLive
+                        ? "green"
+                        : "gray"
+                      : "gray"
+              }
+              title={van.subscriptionTier === "pro" ? `⭐ ${van.name}` : van.name}
+              description={
+                van.temporary
+                  ? "Community spotted van"
+                  : getSubscriptionFeatures(van.subscriptionTier).liveStatus
+                    ? van.isLive
+                      ? `${van.cuisine} • LIVE now`
+                      : `${van.cuisine} • Currently offline`
+                    : van.cuisine
               }
               onPress={() => handleMarkerPress(van)}
             />
@@ -263,6 +374,68 @@ export default function MapScreen() {
         </View>
       )}
 
+      <View style={styles.filterBar}>
+        <Pressable
+          style={[
+            styles.filterChip,
+            selectedFilter === "all" && styles.filterChipActive,
+          ]}
+          onPress={() => {
+            setSelectedFilter("all");
+            setSelectedVan(null);
+          }}
+        >
+          <Text
+            style={[
+              styles.filterChipText,
+              selectedFilter === "all" && styles.filterChipTextActive,
+            ]}
+          >
+            All
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={[
+            styles.filterChip,
+            selectedFilter === "live" && styles.filterChipActive,
+          ]}
+          onPress={() => {
+            setSelectedFilter("live");
+            setSelectedVan(null);
+          }}
+        >
+          <Text
+            style={[
+              styles.filterChipText,
+              selectedFilter === "live" && styles.filterChipTextActive,
+            ]}
+          >
+            Live
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={[
+            styles.filterChip,
+            selectedFilter === "spotted" && styles.filterChipActive,
+          ]}
+          onPress={() => {
+            setSelectedFilter("spotted");
+            setSelectedVan(null);
+          }}
+        >
+          <Text
+            style={[
+              styles.filterChipText,
+              selectedFilter === "spotted" && styles.filterChipTextActive,
+            ]}
+          >
+            Spotted
+          </Text>
+        </Pressable>
+      </View>
+
       <Pressable style={styles.recenterButton} onPress={recenterMap}>
         <Text style={styles.recenterButtonText}>📍</Text>
       </Pressable>
@@ -273,31 +446,67 @@ export default function MapScreen() {
             style={styles.bottomCard}
             onPress={() => openVanPage(selectedVan)}
           >
-            {selectedVan.photo ? (
+            {getSubscriptionFeatures(selectedVan.subscriptionTier).images &&
+              selectedVan.photo ? (
               <Image
                 source={{ uri: selectedVan.photo }}
                 style={styles.bottomCardImage}
               />
             ) : null}
 
-            <Text style={styles.bottomCardTitle}>{selectedVan.name}</Text>
+            <View style={styles.bottomCardTopRow}>
+              <View style={styles.bottomCardTitleRow}>
+                <Text style={styles.bottomCardTitle}>{selectedVan.name}</Text>
+
+                {selectedVan.subscriptionTier === "pro" ? (
+                  <View style={styles.bottomCardFeaturedBadge}>
+                    <Text style={styles.bottomCardFeaturedBadgeText}>FEATURED</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              <View
+                style={[
+                  styles.statusPill,
+                  selectedVan.temporary
+                    ? styles.statusTemporary
+                    : getSubscriptionFeatures(selectedVan.subscriptionTier).liveStatus
+                      ? selectedVan.isLive
+                        ? styles.statusLive
+                        : styles.statusOffline
+                      : styles.statusOffline,
+                ]}
+              >
+                <Text style={styles.statusPillText}>
+                  {selectedVan.temporary
+                    ? "SPOTTED"
+                    : getSubscriptionFeatures(selectedVan.subscriptionTier).liveStatus
+                      ? selectedVan.isLive
+                        ? "LIVE"
+                        : "OFFLINE"
+                      : "LISTED"}
+                </Text>
+              </View>
+            </View>
+
             <Text style={styles.bottomCardMeta}>{selectedVan.cuisine}</Text>
+
+            {selectedVan.vendorName ? (
+              <Text style={styles.bottomCardVendor}>
+                {selectedVan.vendorName}
+              </Text>
+            ) : null}
+
             <Text style={styles.bottomCardHint}>
-              Tap card to open vendor page
+              {selectedVan.temporary
+                ? "Tap to learn about this spotted van"
+                : "Tap to open vendor details"}
             </Text>
           </Pressable>
         </View>
       ) : null}
 
       <View style={styles.buttonWrap}>
-        <Pressable
-          style={styles.secondaryActionButton}
-          onPress={() => router.push("/vendor/register")}
-        >
-          <Text style={styles.secondaryActionButtonText}>
-            Register Your Van
-          </Text>
-        </Pressable>
 
         <Pressable style={styles.primaryButton} onPress={startSpotMode}>
           <Text style={styles.primaryButtonText}>Spot a Van</Text>
@@ -383,7 +592,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 16,
     right: 16,
-    bottom: 170,
+    bottom: 100,
   },
 
   bottomCard: {
@@ -507,5 +716,90 @@ const styles = StyleSheet.create({
 
   cancelButtonText: {
     fontWeight: "700",
+  },
+  bottomCardTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+
+  bottomCardFeaturedBadge: {
+    backgroundColor: "#FF7A00",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+
+  bottomCardFeaturedBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "800",
+  },
+
+  bottomCardTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
+  },
+
+  bottomCardVendor: {
+    fontSize: 14,
+    color: "#444",
+    marginTop: 4,
+  },
+
+  statusPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+
+  statusPillText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  statusLive: {
+    backgroundColor: "#1DB954",
+  },
+
+  statusOffline: {
+    backgroundColor: "#888888",
+  },
+
+  statusTemporary: {
+    backgroundColor: "#FF7A00",
+  },
+  filterBar: {
+    position: "absolute",
+    top: 60,
+    left: 16,
+    right: 16,
+    flexDirection: "row",
+    gap: 10,
+    zIndex: 10,
+  },
+
+  filterChip: {
+    backgroundColor: "rgba(255,255,255,0.92)",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+
+  filterChipActive: {
+    backgroundColor: "#0B2A5B",
+  },
+
+  filterChipText: {
+    color: "#0B2A5B",
+    fontWeight: "700",
+  },
+
+  filterChipTextActive: {
+    color: "#FFFFFF",
   },
 });

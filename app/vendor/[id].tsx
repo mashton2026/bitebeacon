@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import {
@@ -11,74 +10,89 @@ import {
   Text,
   View,
 } from "react-native";
-import { mockVans, type Van } from "../../constants/mockVans";
-
-const CUSTOM_VANS_KEY = "bitebeacon_custom_vans";
+import { getSubscriptionFeatures } from "../../lib/subscriptionFeatures";
+import { supabase } from "../../lib/supabase";
+import {
+  addFavourite,
+  getCurrentUserId,
+  isVendorFavourite,
+  removeFavourite,
+} from "../../services/favouritesService";
+import {
+  getVendorById,
+  incrementVendorDirections,
+  setVendorLiveStatus,
+} from "../../services/vendorService";
+import { type Van } from "../../types/van";
 
 export default function VendorScreen() {
   const params = useLocalSearchParams();
   const id = params.id as string;
 
   const [van, setVan] = useState<Van | null>(null);
+  const [isSavingFavourite, setIsSavingFavourite] = useState(false);
+  const [isFavourite, setIsFavourite] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
-      loadVan();
+      async function loadScreen() {
+        await loadCurrentUser();
+        await loadVan();
+        await checkIfFavourite();
+      }
+
+      loadScreen();
     }, [id])
   );
 
+  async function loadCurrentUser() {
+    const { data, error } = await supabase.auth.getUser();
+
+    if (error || !data.user) {
+      setCurrentUserId(null);
+      return;
+    }
+
+    setCurrentUserId(data.user.id);
+  }
+
   async function loadVan() {
     try {
-      const stored = await AsyncStorage.getItem(CUSTOM_VANS_KEY);
-      const customVans: Van[] = stored ? JSON.parse(stored) : [];
+      const vendor = await getVendorById(id);
 
-      const customMatch = customVans.find((item) => item.id === id);
-      const mockMatch = mockVans.find((item) => item.id === id);
-
-      if (customMatch) {
-        const updatedVans = customVans.map((item) =>
-          item.id === id
-            ? { ...item, views: (item.views ?? 0) + 1 }
-            : item
-        );
-
-        await AsyncStorage.setItem(CUSTOM_VANS_KEY, JSON.stringify(updatedVans));
-
-        const updatedMatch =
-          updatedVans.find((item) => item.id === id) ?? customMatch;
-
-        setVan(updatedMatch);
+      if (!vendor) {
+        setVan(null);
         return;
       }
 
-      if (mockMatch) {
-        setVan(mockMatch);
-        return;
-      }
-
-      if (params.name) {
-        setVan({
-          id,
-          name: (params.name as string) ?? "Unknown vendor",
-          cuisine: (params.cuisine as string) ?? "",
-          vendorName: (params.vendorName as string) ?? "",
-          menu: (params.menu as string) ?? "",
-          schedule: (params.schedule as string) ?? "",
-          rating: Number(params.rating ?? 0),
-          lat: Number(params.lat ?? 0),
-          lng: Number(params.lng ?? 0),
-          temporary: params.temporary === "true",
-          photo: (params.photo as string) || null,
-          isLive: params.isLive === "true",
-          views: 0,
-          directions: 0,
-        });
-        return;
-      }
-
+      setVan(vendor);
+    } catch (error) {
+      console.log(
+        "Error loading vendor:",
+        error instanceof Error ? error.message : "Unknown error"
+      );
       setVan(null);
-    } catch {
-      setVan(null);
+    }
+  }
+
+  async function checkIfFavourite() {
+    try {
+      const userId = await getCurrentUserId();
+
+      if (!userId) {
+        setIsFavourite(false);
+        return;
+      }
+
+      const favourite = await isVendorFavourite(userId, id);
+      setIsFavourite(favourite);
+    } catch (error) {
+      console.log(
+        "Error checking favourite:",
+        error instanceof Error ? error.message : "Unknown error"
+      );
+      setIsFavourite(false);
     }
   }
 
@@ -87,57 +101,83 @@ export default function VendorScreen() {
 
     const newStatus = !van.isLive;
 
-    if (van.id.startsWith("custom-")) {
-      try {
-        const stored = await AsyncStorage.getItem(CUSTOM_VANS_KEY);
-        const vans: Van[] = stored ? JSON.parse(stored) : [];
+    try {
+      await setVendorLiveStatus(van.id, newStatus);
 
-        const updated = vans.map((item) =>
-          item.id === van.id ? { ...item, isLive: newStatus } : item
-        );
+      setVan({ ...van, isLive: newStatus });
 
-        await AsyncStorage.setItem(CUSTOM_VANS_KEY, JSON.stringify(updated));
-
-        const updatedVan = updated.find((item) => item.id === van.id) ?? van;
-        setVan(updatedVan);
-
-        Alert.alert(newStatus ? "Vendor is now LIVE" : "Vendor is now OFFLINE");
-      } catch {
-        Alert.alert("Error updating vendor status");
-      }
-
-      return;
+      Alert.alert(newStatus ? "Vendor is now LIVE" : "Vendor is now OFFLINE");
+    } catch (error) {
+      Alert.alert(
+        "Error updating vendor status",
+        error instanceof Error ? error.message : "Unknown error"
+      );
     }
-
-    Alert.alert(
-      "Editing locked",
-      "This looks like a mock vendor. Only registered custom vendors can be edited."
-    );
   }
 
   async function openDirections() {
     if (!van) return;
 
-    if (van.id.startsWith("custom-")) {
-      try {
-        const stored = await AsyncStorage.getItem(CUSTOM_VANS_KEY);
-        const vans: Van[] = stored ? JSON.parse(stored) : [];
+    try {
+      const nextDirections = await incrementVendorDirections(
+        van.id,
+        van.directions ?? 0
+      );
 
-        const updated = vans.map((item) =>
-          item.id === van.id
-            ? { ...item, directions: (item.directions ?? 0) + 1 }
-            : item
-        );
+      setVan({ ...van, directions: nextDirections });
 
-        await AsyncStorage.setItem(CUSTOM_VANS_KEY, JSON.stringify(updated));
-
-        const updatedVan = updated.find((item) => item.id === van.id) ?? van;
-        setVan(updatedVan);
-      } catch { }
+      const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${van.lat},${van.lng}`;
+      Linking.openURL(mapsUrl);
+    } catch (error) {
+      console.log(
+        "Error updating directions:",
+        error instanceof Error ? error.message : "Unknown error"
+      );
     }
+  }
 
-    const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${van.lat},${van.lng}`;
-    Linking.openURL(mapsUrl);
+  async function toggleFavourite() {
+    if (!van) return;
+
+    setIsSavingFavourite(true);
+
+    try {
+      const userId = await getCurrentUserId();
+
+      if (!userId) {
+        Alert.alert(
+          "Login required",
+          "Please log in or create an account to save favourites."
+        );
+        return;
+      }
+
+      if (isFavourite) {
+        await removeFavourite(userId, van.id);
+        setIsFavourite(false);
+        Alert.alert("Removed", "This vendor has been removed from your favourites.");
+        return;
+      }
+
+      const alreadyFavourite = await isVendorFavourite(userId, van.id);
+
+      if (alreadyFavourite) {
+        setIsFavourite(true);
+        Alert.alert("Already saved", "This vendor is already in your favourites.");
+        return;
+      }
+
+      await addFavourite(userId, van.id);
+      setIsFavourite(true);
+      Alert.alert("Saved", "This vendor has been added to your favourites.");
+    } catch (error) {
+      Alert.alert(
+        isFavourite ? "Remove failed" : "Save failed",
+        error instanceof Error ? error.message : "Unknown error"
+      );
+    } finally {
+      setIsSavingFavourite(false);
+    }
   }
 
   if (!van) {
@@ -152,14 +192,20 @@ export default function VendorScreen() {
     );
   }
 
-  const canManage = van.id.startsWith("custom-");
-  const canClaim = String(params.temporary) === "true";
+  const isOwner = !!currentUserId && van.owner_id === currentUserId;
+  const features = getSubscriptionFeatures(van.subscriptionTier);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>
-        {van.temporary ? `📍 ${van.name}` : van.name}
-      </Text>
+      <View style={styles.titleRow}>
+        <Text style={styles.title}>{van.name}</Text>
+
+        {van.subscriptionTier === "pro" ? (
+          <View style={styles.featuredBadge}>
+            <Text style={styles.featuredBadgeText}>FEATURED</Text>
+          </View>
+        ) : null}
+      </View>
 
       <View style={styles.statusRow}>
         <Text style={styles.meta}>{van.cuisine}</Text>
@@ -167,99 +213,120 @@ export default function VendorScreen() {
         <Text
           style={[
             styles.statusBadge,
-            van.temporary
-              ? styles.statusOrange
-              : van.isLive
+            features.liveStatus
+              ? van.isLive
                 ? styles.statusGreen
-                : styles.statusGray,
+                : styles.statusGray
+              : styles.statusGray,
           ]}
         >
-          {van.temporary ? "SPOTTED" : van.isLive ? "LIVE" : "OFFLINE"}
+          {features.liveStatus ? (van.isLive ? "LIVE" : "OFFLINE") : "LISTED"}
         </Text>
       </View>
 
-      {van.photo ? <Image source={{ uri: van.photo }} style={styles.image} /> : null}
+      {features.images && van.photo ? (
+        <Image source={{ uri: van.photo }} style={styles.image} />
+      ) : null}
 
+      {isOwner ? (
+        <View style={styles.ownerNotice}>
+          <Text style={styles.ownerNoticeText}>
+            You are viewing your own listing.
+          </Text>
+        </View>
+      ) : null}
+      {van.subscriptionTier === "growth" ? (
+        <View style={styles.planHighlightCard}>
+          <Text style={styles.planHighlightTitle}>Growth Vendor</Text>
+          <Text style={styles.planHighlightText}>
+            This vendor has unlocked richer listing features on BiteBeacon.
+          </Text>
+        </View>
+      ) : van.subscriptionTier === "pro" ? (
+        <View style={styles.planHighlightCard}>
+          <Text style={styles.planHighlightTitle}>Featured Vendor</Text>
+          <Text style={styles.planHighlightText}>
+            This vendor is part of BiteBeacon Pro and receives premium visibility.
+          </Text>
+        </View>
+      ) : null}
+      {features.reviews && van.vendorMessage ? (
+        <View style={styles.announcementCard}>
+          <Text style={styles.announcementTitle}>Today’s Update</Text>
+          <Text style={styles.announcementText}>{van.vendorMessage}</Text>
+        </View>
+      ) : null}
       <Text style={styles.sectionTitle}>Vendor</Text>
       <View style={styles.infoCard}>
-        <Text style={styles.text}>{van.vendorName || "Unknown vendor"}</Text>
+        <Text style={styles.text}>{van.vendorName}</Text>
       </View>
 
       <Text style={styles.sectionTitle}>Menu</Text>
       <View style={styles.infoCard}>
-        <Text style={styles.text}>{van.menu || "Menu coming soon"}</Text>
+        <Text style={styles.text}>{van.menu}</Text>
       </View>
 
       <Text style={styles.sectionTitle}>Schedule</Text>
       <View style={styles.infoCard}>
-        <Text style={styles.text}>{van.schedule || "Schedule coming soon"}</Text>
+        <Text style={styles.text}>{van.schedule}</Text>
       </View>
 
-      <Text style={styles.sectionTitle}>Stats</Text>
+      {isOwner ? (
+        <>
+          {features.liveStatus ? (
+            <Pressable
+              style={[
+                styles.liveButton,
+                van.isLive ? styles.liveActive : styles.liveInactive,
+              ]}
+              onPress={toggleLive}
+            >
+              <Text style={styles.liveText}>
+                {van.isLive ? "LIVE NOW" : "GO LIVE"}
+              </Text>
+            </Pressable>
+          ) : null}
 
-      <View style={styles.statsCard}>
-        <View style={styles.statsRow}>
-          <Text style={styles.statsLabel}>Views</Text>
-          <Text style={styles.statsValue}>{van.views ?? 0}</Text>
-        </View>
+          <Pressable style={styles.manageButton} onPress={openDirections}>
+            <Text style={styles.manageButtonText}>Get Directions</Text>
+          </Pressable>
 
-        <View style={styles.statsRow}>
-          <Text style={styles.statsLabel}>Directions</Text>
-          <Text style={styles.statsValue}>{van.directions ?? 0}</Text>
-        </View>
-      </View>
-      <Pressable
-        style={[
-          styles.liveButton,
-          van.isLive ? styles.liveActive : styles.liveInactive,
-        ]}
-        onPress={toggleLive}
-      >
-        <Text style={styles.liveText}>
-          {van.isLive ? "LIVE NOW" : "GO LIVE"}
-        </Text>
-      </Pressable>
+          <Pressable
+            style={styles.manageButton}
+            onPress={() =>
+              router.push({
+                pathname: "/vendor/dashboard",
+                params: { id: van.id },
+              })
+            }
+          >
+            <Text style={styles.manageButtonText}>Manage Listing</Text>
+          </Pressable>
+        </>
+      ) : (
+        <>
+          <Pressable style={styles.manageButton} onPress={openDirections}>
+            <Text style={styles.manageButtonText}>Get Directions</Text>
+          </Pressable>
 
-      <Pressable style={styles.manageButton} onPress={openDirections}>
-        <Text style={styles.manageButtonText}>Get Directions</Text>
-      </Pressable>
-
-      {canManage ? (
-        <Pressable
-          style={styles.manageButton}
-          onPress={() =>
-            router.push({
-              pathname: "/vendor/dashboard",
-              params: { id: van.id },
-            })
-          }
-        >
-          <Text style={styles.manageButtonText}>Manage Listing</Text>
-        </Pressable>
-      ) : null}
-
-      {canClaim ? (
-        <Pressable
-          style={styles.manageButton}
-          onPress={() =>
-            router.push({
-              pathname: "/vendor/register",
-              params: {
-                claimId: van.id,
-                vanName: van.name,
-                cuisine: van.cuisine,
-                menu: van.menu ?? "",
-                schedule: van.schedule ?? "",
-                photo: van.photo ?? "",
-                lat: String(van.lat),
-                lng: String(van.lng),
-              },
-            })
-          }
-        >
-          <Text style={styles.manageButtonText}>Claim This Van</Text>
-        </Pressable>
-      ) : null}
+          <Pressable
+            style={[
+              styles.manageButton,
+              isSavingFavourite && styles.disabledButton,
+            ]}
+            onPress={toggleFavourite}
+            disabled={isSavingFavourite}
+          >
+            <Text style={styles.manageButtonText}>
+              {isSavingFavourite
+                ? "Updating..."
+                : isFavourite
+                  ? "★ Saved to Favourites"
+                  : "☆ Save to Favourites"}
+            </Text>
+          </Pressable>
+        </>
+      )}
 
       <Pressable style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backText}>Back</Text>
@@ -282,8 +349,27 @@ const styles = StyleSheet.create({
   notFound: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#0B2A5B",
     marginBottom: 20,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 10,
+  },
+
+  featuredBadge: {
+    backgroundColor: "#FF7A00",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+
+  featuredBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "800",
   },
 
   title: {
@@ -304,7 +390,6 @@ const styles = StyleSheet.create({
     height: 220,
     borderRadius: 18,
     marginBottom: 20,
-    backgroundColor: "#EAEAEA",
   },
 
   sectionTitle: {
@@ -312,14 +397,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginTop: 18,
     marginBottom: 8,
-    color: "#0B2A5B",
   },
 
   text: {
     fontSize: 15,
-    color: "#444",
     lineHeight: 22,
-    marginBottom: 4,
   },
 
   liveButton: {
@@ -339,7 +421,6 @@ const styles = StyleSheet.create({
 
   liveText: {
     color: "#FFFFFF",
-    fontSize: 16,
     fontWeight: "700",
   },
 
@@ -350,10 +431,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#0B2A5B",
   },
+  disabledButton: {
+    opacity: 0.7,
+  },
 
   manageButtonText: {
     color: "#FFFFFF",
-    fontSize: 16,
     fontWeight: "700",
   },
 
@@ -367,24 +450,20 @@ const styles = StyleSheet.create({
 
   backText: {
     fontWeight: "700",
-    color: "#222222",
   },
+
   statusRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: 20,
-    gap: 12,
   },
 
   statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "800",
-    overflow: "hidden",
+    color: "#fff",
+    fontWeight: "700",
   },
 
   statusGreen: {
@@ -392,47 +471,68 @@ const styles = StyleSheet.create({
   },
 
   statusGray: {
-    backgroundColor: "#8C8C8C",
+    backgroundColor: "#888",
   },
 
-  statusOrange: {
-    backgroundColor: "#F39C12",
-  },
-  statsCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    padding: 16,
+  announcementCard: {
+    backgroundColor: "#FFF8E1",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#D9D9D9",
-    marginTop: 6,
+    borderColor: "#FFD54F",
   },
 
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#EFEFEF",
-  },
-
-  statsLabel: {
-    fontSize: 14,
-    color: "#5F6368",
-    fontWeight: "600",
-  },
-
-  statsValue: {
-    fontSize: 16,
-    color: "#0B2A5B",
+  announcementTitle: {
+    fontSize: 15,
     fontWeight: "800",
+    color: "#8A4B00",
+    marginBottom: 6,
   },
+
+  announcementText: {
+    fontSize: 14,
+    color: "#6D4C00",
+    lineHeight: 20,
+  },
+
+  planHighlightCard: {
+    backgroundColor: "#FFF3E0",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#FFD8A8",
+  },
+
+  planHighlightTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#8A4B00",
+    marginBottom: 4,
+  },
+
+  planHighlightText: {
+    fontSize: 14,
+    color: "#8A4B00",
+    lineHeight: 20,
+  },
+
   infoCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 18,
     padding: 16,
-    borderWidth: 1,
-    borderColor: "#D9D9D9",
     marginTop: 4,
+  },
+  ownerNotice: {
+    backgroundColor: "#E8F0FE",
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 8,
+  },
+
+  ownerNoticeText: {
+    color: "#0B2A5B",
+    fontWeight: "600",
   },
 });

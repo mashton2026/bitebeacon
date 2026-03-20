@@ -1,19 +1,4 @@
-export type Van = {
-  id: string;
-  name: string;
-  lat: number;
-  lng: number;
-  rating: number;
-  cuisine: string;
-  temporary?: boolean;
-  photo?: string | null;
-  vendorName?: string;
-  menu?: string;
-  schedule?: string;
-  isLive: boolean;
-  views?: number;
-  directions?: number;
-};
+import { type Van } from "../types/van";
 
 export const mockVans: Van[] = [
   {
@@ -26,7 +11,7 @@ export const mockVans: Van[] = [
     vendorName: "Big Dave",
     menu: "Classic burger, cheeseburger, fries",
     schedule: "Mon-Fri 11:00-15:00",
-    isLive: true
+    isLive: true,
   },
   {
     id: "2",
@@ -38,7 +23,7 @@ export const mockVans: Van[] = [
     vendorName: "Smash Patty Co",
     menu: "Double smash, loaded fries, soft drinks",
     schedule: "Tue-Sat 12:00-19:00",
-    isLive: true
+    isLive: true,
   },
   {
     id: "3",
@@ -50,7 +35,6 @@ export const mockVans: Van[] = [
     vendorName: "Street Grill",
     menu: "BBQ burger, ribs, wings",
     schedule: "Wed-Sun 13:00-20:00",
-    isLive: true
-
+    isLive: true,
   },
 ];
