@@ -139,6 +139,20 @@ function matchesSearchQuery(van: Van, query: string) {
   );
 }
 
+function getMarkerColor(van: Van) {
+  if (van.isLive) return "#1DB954";
+
+  if (van.listingSource === "user_spotted") {
+    if ((van.confirmationCount ?? 0) >= 2) {
+      return "#FF7A00";
+    }
+
+    return "#3B82F6";
+  }
+
+  return "#E53935";
+}
+
 export default function MapScreen() {
   const params = useLocalSearchParams();
   const mapRef = useRef<any>(null);
@@ -185,6 +199,10 @@ export default function MapScreen() {
   useEffect(() => {
     requestUserLocation();
   }, []);
+
+  useEffect(() => {
+    loadSupabaseVans(true);
+  }, [params.refresh]);
 
   useEffect(() => {
     async function checkHint() {
@@ -598,9 +616,9 @@ export default function MapScreen() {
       cancelSpotFlow();
 
       Alert.alert(
-  "Spot submitted 🔥",
-  "Your spotted van has been submitted for confirmation. If it is confirmed and later claimed, eligible spotters can earn scout points."
-);
+        "Spot submitted 🔥",
+        "Your spotted van has been submitted for confirmation. If it is confirmed and later claimed, eligible spotters can earn scout points."
+      );
 
     } catch (error) {
       Alert.alert(
@@ -655,13 +673,7 @@ export default function MapScreen() {
               key={van.id}
               coordinate={{ latitude: van.lat, longitude: van.lng }}
               onPress={() => handleMarkerPress(van)}
-              pinColor={
-                van.listingSource === "user_spotted"
-                  ? "#FF7A00"
-                  : van.isLive
-                    ? "#1DB954"
-                    : "#E53935"
-              }
+              pinColor={getMarkerColor(van)}
             />
           );
         })}
@@ -801,8 +813,13 @@ export default function MapScreen() {
             </View>
 
             <View style={styles.legendItem}>
+              <View style={[styles.legendDot, styles.legendDotSpottedPending]} />
+              <Text style={styles.legendText}>Spotted - newly reported</Text>
+            </View>
+
+            <View style={styles.legendItem}>
               <View style={[styles.legendDot, styles.legendDotSpotted]} />
-              <Text style={styles.legendText}>Community Spotted</Text>
+              <Text style={styles.legendText}>Spotted - community confirmed</Text>
             </View>
 
             <View style={styles.legendItemLast}>
@@ -910,8 +927,8 @@ export default function MapScreen() {
 
                   <Text style={styles.bottomCardTrustText}>
                     {selectedVan.listingSource === "user_spotted"
-                      ? "Community spotted listing"
-                      : "Vendor-managed listing"}
+                      ? "Spotted by the community (unverified)"
+                      : "Managed by vendor (verified listing)"}
                   </Text>
                 </View>
               </View>
@@ -1261,6 +1278,10 @@ const styles = StyleSheet.create({
 
   legendDotLive: {
     backgroundColor: "#1DB954",
+  },
+
+  legendDotSpottedPending: {
+    backgroundColor: "#3B82F6",
   },
 
   legendDotSpotted: {

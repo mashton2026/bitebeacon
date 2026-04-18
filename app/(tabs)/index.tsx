@@ -106,6 +106,8 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       if (!hasLoadedInitialData.current) return;
+
+      setVisibleCount(20);
       loadCustomVans();
       loadSupabaseVans();
     }, [])

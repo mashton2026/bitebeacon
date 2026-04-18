@@ -68,7 +68,7 @@ export default function OnboardingScreen() {
     router.replace("/welcome");
   }
 
-  function next() {
+  async function next() {
     if (index < slides.length - 1) {
       const nextIndex = index + 1;
       setIndex(nextIndex);
@@ -78,11 +78,12 @@ export default function OnboardingScreen() {
       });
       return;
     }
-    finish();
+
+    await finish();
   }
 
-  function skip() {
-    finish();
+  async function skip() {
+    await finish();
   }
 
   function handleMomentumEnd(

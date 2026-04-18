@@ -1,6 +1,6 @@
 import { supabase } from "../lib/supabase";
 import { type Van } from "../types/van";
-import { getVendorByOwnerId } from "./vendorService";
+import { getAnyVendorByOwnerId, getVendorByOwnerId } from "./vendorService";
 
 export type AuthUser = {
   id: string;
@@ -50,6 +50,30 @@ export async function getCurrentUserVendor(): Promise<Van | null> {
   }
 
   return await getVendorByOwnerId(user.id);
+}
+
+export async function getUserVendorStatus(userId: string): Promise<{
+  hasVendor: boolean;
+  isSuspended: boolean;
+}> {
+  if (!userId) {
+    return { hasVendor: false, isSuspended: false };
+  }
+
+  try {
+    const vendor = await getAnyVendorByOwnerId(userId);
+
+    if (!vendor) {
+      return { hasVendor: false, isSuspended: false };
+    }
+
+    return {
+      hasVendor: true,
+      isSuspended: !!vendor.isSuspended,
+    };
+  } catch {
+    return { hasVendor: false, isSuspended: false };
+  }
 }
 
 export async function isCurrentUserVendor(): Promise<boolean> {

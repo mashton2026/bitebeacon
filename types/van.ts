@@ -32,6 +32,7 @@ export type Van = {
   owner_id?: string | null;
   subscriptionTier?: SubscriptionTier;
   foodCategories?: string[];
+  confirmationCount?: number;
   isSuspended?: boolean;
   suspensionReason?: string | null;
   suspendedAt?: string | null;

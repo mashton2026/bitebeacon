@@ -65,35 +65,37 @@ export async function getAllVendors(): Promise<Van[]> {
 
   const vendors = data ?? [];
 
+  // Get spotted vendor IDs
   const spottedVendorIds = vendors
     .filter((vendor) => vendor.listing_source === "user_spotted")
     .map((vendor) => String(vendor.id));
 
-  if (spottedVendorIds.length === 0) {
-    return mapVendorRowsToVans(vendors);
+  let confirmationCounts = new Map<string, number>();
+
+  // Only fetch confirmations if needed
+  if (spottedVendorIds.length > 0) {
+    const { data: confirmations, error: confirmationsError } = await supabase
+      .from("vendor_confirmations")
+      .select("vendor_id");
+
+    if (confirmationsError) throw new Error(confirmationsError.message);
+
+    for (const confirmation of confirmations ?? []) {
+      const vendorId = String(confirmation.vendor_id);
+      confirmationCounts.set(
+        vendorId,
+        (confirmationCounts.get(vendorId) ?? 0) + 1
+      );
+    }
   }
 
-  const { data: confirmations, error: confirmationsError } = await supabase
-    .from("vendor_confirmations")
-    .select("vendor_id");
+  const mapped = mapVendorRowsToVans(vendors);
 
-  if (confirmationsError) throw new Error(confirmationsError.message);
-
-  const confirmationCounts = new Map<string, number>();
-
-  for (const confirmation of confirmations ?? []) {
-    const vendorId = String(confirmation.vendor_id);
-    confirmationCounts.set(vendorId, (confirmationCounts.get(vendorId) ?? 0) + 1);
-  }
-
-  const filteredVendors = vendors.filter((vendor) => {
-    if (vendor.listing_source !== "user_spotted") return true;
-
-    const confirmationCount = confirmationCounts.get(String(vendor.id)) ?? 0;
-    return confirmationCount >= 2;
-  });
-
-  return mapVendorRowsToVans(filteredVendors);
+  // Attach confirmationCount to ALL vendors safely
+  return mapped.map((vendor) => ({
+    ...vendor,
+    confirmationCount: confirmationCounts.get(String(vendor.id)) ?? 0,
+  }));
 }
 
 export async function getAllVendorsForAdmin(): Promise<Van[]> {
@@ -130,6 +132,22 @@ export async function getVendorByOwnerId(ownerId: string): Promise<Van | null> {
     .select("*")
     .eq("owner_id", ownerId)
     .eq("is_suspended", false)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+
+  return mapVendorRowToVan(data);
+}
+
+export async function getAnyVendorByOwnerId(ownerId: string): Promise<Van | null> {
+  if (!ownerId?.trim()) return null;
+
+  const { data, error } = await supabase
+    .from("vendors")
+    .select("*")
+    .eq("owner_id", ownerId)
     .limit(1)
     .maybeSingle();
 

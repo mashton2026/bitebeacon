@@ -80,17 +80,23 @@ export default function BurgerVanCard({
         <View style={styles.leftBadges}>
           {subscriptionTier === "pro" ? (
             <View style={[styles.badge, styles.featuredBadge]}>
-              <Text style={styles.badgeText}>FEATURED</Text>
+              <Text style={styles.badgeText} numberOfLines={1}>
+                FEATURED
+              </Text>
             </View>
           ) : subscriptionTier === "growth" ? (
             <View style={[styles.badge, styles.growthBadge]}>
-              <Text style={styles.badgeText}>GROWTH</Text>
+              <Text style={styles.badgeText} numberOfLines={1}>
+                GROWTH
+              </Text>
             </View>
           ) : null}
 
           {hasVendorMessage ? (
             <View style={[styles.badge, styles.dealBadge]}>
-              <Text style={styles.badgeText}>DEAL</Text>
+              <Text style={styles.badgeText} numberOfLines={1}>
+                DEAL
+              </Text>
             </View>
           ) : null}
         </View>
@@ -177,18 +183,30 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: 10,
+    minHeight: 52,
   },
+
   leftBadges: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    flex: 1,
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 6,
+    flexShrink: 1,
   },
   badge: {
+    minWidth: 68,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
   },
+  badgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+
   featuredBadge: {
     backgroundColor: theme.colors.primary,
   },
@@ -198,11 +216,7 @@ const styles = StyleSheet.create({
   dealBadge: {
     backgroundColor: theme.colors.success,
   },
-  badgeText: {
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontWeight: "800",
-  },
+
   statusPill: {
     paddingHorizontal: 10,
     paddingVertical: 6,

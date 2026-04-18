@@ -12,10 +12,13 @@ export type SubscriptionFeatures = {
   trendingBoost: boolean;
 };
 
+// 🔥 LAUNCH PHASE SWITCH
+const ENABLE_FREE_LIVE = true;
+
 const subscriptionFeatureMap: Record<SubscriptionTier, SubscriptionFeatures> = {
   free: {
     images: false,
-    liveStatus: false,
+    liveStatus: ENABLE_FREE_LIVE, // 👈 controlled here
     analytics: false,
     reviews: false,
     priorityPlacement: false,
@@ -54,7 +57,9 @@ const subscriptionTierRank: Record<SubscriptionTier, number> = {
   pro: 2,
 };
 
-function normalizeSubscriptionTier(tier?: SubscriptionTier | string | null): SubscriptionTier {
+function normalizeSubscriptionTier(
+  tier?: SubscriptionTier | string | null
+): SubscriptionTier {
   return tier === "growth" || tier === "pro" ? tier : "free";
 }
 

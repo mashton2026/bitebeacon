@@ -9,9 +9,8 @@ export default function IndexScreen() {
 
     async function checkOnboarding() {
       try {
-        
-        await AsyncStorage.removeItem("seenOnboarding");
-        
+
+
         const seenOnboarding = await AsyncStorage.getItem("seenOnboarding");
 
         if (!isMounted) return;

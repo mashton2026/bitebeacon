@@ -19,7 +19,7 @@ import { getSubscriptionFeatures } from "../../lib/subscriptionFeatures";
 import { supabase } from "../../lib/supabase";
 import {
   getCurrentUser,
-  getCurrentUserVendor,
+  getUserVendorStatus,
   signOutCurrentUser,
 } from "../../services/authService";
 import {
@@ -386,11 +386,23 @@ export default function VendorDashboardScreen() {
     useCallback(() => {
       async function checkAccess() {
         try {
-          const vendor = await getCurrentUserVendor();
+          const user = await getCurrentUser();
 
-          if (!vendor) {
+          if (!user) {
             router.replace("/vendor/register");
+            return;
           }
+
+          const vendorStatus = await getUserVendorStatus(user.id);
+
+          if (!vendorStatus.hasVendor) {
+            router.replace("/vendor/register");
+            return;
+          }
+
+          // If the user does have a vendor, do not redirect here.
+          // Suspended vendors should fall through to the dashboard's
+          // proper access-denied handling inside loadDashboard().
         } catch {
           router.replace("/vendor/register");
         }
@@ -576,10 +588,10 @@ export default function VendorDashboardScreen() {
       setVendorMessage(vendor.vendorMessage ?? "");
       setIsLive(vendor.isLive);
       setFoodCategories(vendor.foodCategories ?? []);
-      setInstagram((vendor as any).instagram ?? "");
-      setFacebook((vendor as any).facebook ?? "");
-      setWebsite((vendor as any).website ?? "");
-      setWhat3words((vendor as any).what3words ?? "");
+      setInstagram(vendor.instagramUrl ?? "");
+      setFacebook(vendor.facebookUrl ?? "");
+      setWebsite(vendor.websiteUrl ?? "");
+      setWhat3words(vendor.what3words ?? "");
       setFoodCategorySearch("");
       setPhotos(nextPhotos);
       setLogoUri(assetVendor.logoUrl ?? null);
@@ -814,8 +826,23 @@ export default function VendorDashboardScreen() {
   async function handleLiveToggle(newStatus: boolean) {
     if (!van) return;
 
+    const features = getSubscriptionFeatures(van.subscriptionTier);
+
+    // 🔒 HARD GUARD (prevents bypassing UI)
+    if (!features.liveStatus) {
+      Alert.alert(
+        "Upgrade required",
+        "Live status is not available on your current plan."
+      );
+      return;
+    }
+
     try {
-      await supabase.from("vendors").update({ is_live: newStatus }).eq("id", van.id);
+      await supabase
+        .from("vendors")
+        .update({ is_live: newStatus })
+        .eq("id", van.id);
+
       setIsLive(newStatus);
     } catch (error) {
       Alert.alert(
@@ -931,10 +958,14 @@ export default function VendorDashboardScreen() {
           menu_pdf_name: features.images ? nextMenuPdfName : null,
           is_live: isLive,
           food_categories: foodCategories,
-          website: website.trim() || null,
-          instagram: instagram.trim() || null,
-          facebook: facebook.trim() || null,
-          what3words: what3words.trim() || null,
+          website_url:
+            van.subscriptionTier === "free" ? null : website.trim() || null,
+          instagram_url:
+            van.subscriptionTier === "free" ? null : instagram.trim() || null,
+          facebook_url:
+            van.subscriptionTier === "free" ? null : facebook.trim() || null,
+          what3words:
+            van.subscriptionTier === "free" ? null : what3words.trim() || null,
           lat,
           lng,
         })
@@ -962,6 +993,14 @@ export default function VendorDashboardScreen() {
         vendorMessage: features.reviews ? vendorMessage.trim() : "",
         isLive: isLive,
         foodCategories,
+        instagramUrl:
+          van.subscriptionTier === "free" ? null : instagram.trim() || null,
+        facebookUrl:
+          van.subscriptionTier === "free" ? null : facebook.trim() || null,
+        websiteUrl:
+          van.subscriptionTier === "free" ? null : website.trim() || null,
+        what3words:
+          van.subscriptionTier === "free" ? null : what3words.trim() || null,
         photo: features.images ? nextPhotos[0] ?? null : null,
         photos: features.images ? nextPhotos : [],
         logoUrl: features.images ? nextLogoUri : null,
@@ -1029,9 +1068,7 @@ export default function VendorDashboardScreen() {
 
   async function manageSubscriptionFromDashboard() {
     try {
-      const vendor = await getCurrentUserVendor();
-
-      if (!vendor?.stripe_customer_id) {
+      if (!van?.stripe_customer_id) {
         Alert.alert(
           "Unavailable",
           "No active subscription found for this vendor."
@@ -1043,7 +1080,7 @@ export default function VendorDashboardScreen() {
         "create-portal-session",
         {
           body: {
-            vendorId: vendor.id,
+            vendorId: van.id,
           },
         }
       );

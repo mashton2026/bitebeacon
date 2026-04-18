@@ -105,7 +105,6 @@ export default function VendorLoginScreen() {
       }
 
       const user = await getCurrentUser();
-
       if (!user) {
         Alert.alert("Error", "Could not load vendor account.");
         return;
@@ -115,10 +114,14 @@ export default function VendorLoginScreen() {
 
       if (vendor) {
         if (vendor.isSuspended) {
+          await supabase.auth.signOut();
+
           Alert.alert(
             "Account suspended",
-            "This vendor account has been suspended. Please contact BiteBeacon support."
+            "This vendor account has been suspended. Please contact support at support@bitebeacon.uk."
           );
+
+          router.replace("/welcome");
           return;
         }
 
@@ -130,6 +133,7 @@ export default function VendorLoginScreen() {
       }
 
       const claims = await getMyVendorClaims(user.id);
+
       if (claims.length > 0) {
         router.replace("/vendor/dashboard");
         return;

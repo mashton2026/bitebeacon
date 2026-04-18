@@ -14,6 +14,7 @@ import {
   getCurrentUser,
   getCurrentUserScoutPoints,
   getCurrentUserVendor,
+  getUserVendorStatus,
   signOutCurrentUser,
 } from "../../services/authService";
 
@@ -24,6 +25,7 @@ export default function AccountScreen() {
   const [scoutPoints, setScoutPoints] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isSuspended, setIsSuspended] = useState(false);
   const [accountSummaryLoading, setAccountSummaryLoading] = useState(true);
 
   useFocusEffect(
@@ -52,11 +54,28 @@ export default function AccountScreen() {
 
       setEmail(user.email ?? null);
 
-      const [adminStatus, points, vendor] = await Promise.all([
+      const [adminStatus, points, vendor, vendorStatus] = await Promise.all([
         isCurrentUserAdmin().catch(() => false),
         getCurrentUserScoutPoints().catch(() => 0),
         getCurrentUserVendor().catch(() => null),
+        getUserVendorStatus(user.id).catch(() => ({
+          hasVendor: false,
+          isSuspended: false,
+        })),
       ]);
+
+      setIsAdmin(adminStatus);
+      setScoutPoints(points);
+
+      // 🚨 HARD LOCK CHECK
+      if (vendorStatus.isSuspended) {
+        setIsSuspended(true);
+        setIsVendor(false);
+        setVendorId(null);
+        setAccountSummaryLoading(false);
+        setLoading(false);
+        return;
+      }
 
       setIsAdmin(adminStatus);
       setScoutPoints(points);
@@ -94,6 +113,28 @@ export default function AccountScreen() {
         error instanceof Error ? error.message : "Unknown error"
       );
     }
+  }
+
+  if (isSuspended) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.title}>Account Suspended</Text>
+
+        <Text style={styles.subtitle}>
+          Your vendor account has been suspended.
+        </Text>
+
+        <View style={styles.loadingCard}>
+          <Text style={styles.loadingCardTitle}>Access Restricted</Text>
+          <Text style={styles.loadingCardText}>
+            This account has been temporarily disabled. Please contact BiteBeacon
+            support if you believe this is a mistake.
+          </Text>
+        </View>
+
+        <LogoutButton onPress={handleLogout} />
+      </View>
+    );
   }
 
   if (loading) {

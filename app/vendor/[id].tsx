@@ -38,6 +38,7 @@ import {
   refreshVendorRating,
   setVendorLiveStatus,
   upsertVendorRating,
+  adminDeleteVendor,
 } from "../../services/vendorService";
 import { type Van } from "../../types/van";
 
@@ -351,6 +352,9 @@ export default function VendorScreen() {
       const userId = await getCurrentUserId();
       let nextDirections: number | null = null;
 
+      // 🔒 Anti-gaming rule:
+      // only logged-in users can count a direction interaction,
+      // and only once per 24 hours
       if (userId) {
         const canCount = await canCountVendorInteraction(
           van.id,
@@ -363,8 +367,6 @@ export default function VendorScreen() {
           nextDirections = await incrementVendorDirections(van.id);
           await recordVendorInteraction(van.id, userId, "direction");
         }
-      } else {
-        nextDirections = await incrementVendorDirections(van.id);
       }
 
       if (nextDirections !== null) {
@@ -514,6 +516,37 @@ export default function VendorScreen() {
       pathname: "/vendor/claim",
       params: { id: van.id },
     });
+  }
+
+  async function handleAdminDelete() {
+    if (!van) return;
+
+    Alert.alert(
+      "Delete spotted van",
+      "Are you sure you want to permanently delete this spotted listing?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await adminDeleteVendor(van.id);
+              Alert.alert("Deleted", "The spotted van has been removed.");
+              router.replace({
+                pathname: "/(tabs)/explore",
+                params: { refresh: "1" },
+              });
+            } catch (error) {
+              Alert.alert(
+                "Delete failed",
+                error instanceof Error ? error.message : "Unknown error"
+              );
+            }
+          },
+        },
+      ]
+    );
   }
 
   if (loading) {
@@ -710,8 +743,8 @@ export default function VendorScreen() {
         <View style={styles.noticeCardOrange}>
           <Text style={styles.noticeTitleOrange}>Community Spotted</Text>
           <Text style={styles.noticeTextOrange}>
-            This listing is visible to users but not yet controlled by a vendor.
-            Claim this van to take ownership and unlock full listing features.
+            This listing was spotted by the community and is not yet verified by the
+            vendor. Details may change once the vendor claims and manages this listing.
           </Text>
 
           {getExpiryText(van.expiresAt) ? (
@@ -726,7 +759,8 @@ export default function VendorScreen() {
         <View style={styles.noticeCardGreen}>
           <Text style={styles.noticeTitleGreen}>Vendor Managed</Text>
           <Text style={styles.noticeTextGreen}>
-            This listing is managed directly by the vendor through BiteBeacon.
+            This listing is managed directly by the vendor through BiteBeacon and is a
+            verified vendor-managed listing.
           </Text>
         </View>
       ) : null}
@@ -979,6 +1013,10 @@ export default function VendorScreen() {
 
               <Pressable style={styles.orangeButton} onPress={openClaimScreen}>
                 <Text style={styles.orangeButtonText}>Claim This Van</Text>
+              </Pressable>
+
+              <Pressable style={styles.reportButton} onPress={handleAdminDelete}>
+                <Text style={styles.reportButtonText}>Delete Spotted Van (Admin)</Text>
               </Pressable>
 
               <Pressable
