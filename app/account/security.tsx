@@ -184,6 +184,10 @@ export default function SecurityScreen() {
         "Deletion request submitted",
         "Your request has been recorded and will be reviewed. You may be contacted if additional verification is required."
       );
+
+      await supabase.auth.signOut();
+      router.replace("/welcome");
+      
     } catch (error) {
       Alert.alert(
         "Request failed",
@@ -267,10 +271,9 @@ export default function SecurityScreen() {
 
       <Text style={styles.dangerTitle}>Account Deletion</Text>
       <Text style={styles.dangerText}>
-        This sends a deletion request for review. For safety, account deletion is
-        not instant inside the app. In some cases, BiteBeacon may retain limited
-        data where required for legal, security, fraud-prevention, billing,
-        dispute-resolution, or platform integrity reasons.
+        You can request permanent account deletion. Your account will be deleted after verification.
+        In some cases, BiteBeacon may retain limited data where required for legal, security, fraud-prevention,
+        billing, dispute-resolution, or platform integrity reasons.
       </Text>
 
       <TextInput

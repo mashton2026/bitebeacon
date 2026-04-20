@@ -112,7 +112,7 @@ export default function PickLocationScreen() {
     setPin({ latitude, longitude });
   }
 
-  function confirmLocation() {
+  async function confirmLocation() {
     if (!pin) {
       Alert.alert(
         "Select a location",
@@ -130,6 +130,7 @@ export default function PickLocationScreen() {
           id: getSingleParam(params.id),
           lat: String(pin.latitude),
           lng: String(pin.longitude),
+          locationUpdated: "true",
           name: getSingleParam(params.name),
           vendorName: getSingleParam(params.vendorName),
           cuisine: getSingleParam(params.cuisine),

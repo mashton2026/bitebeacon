@@ -20,6 +20,7 @@ import {
 import { type Van } from "../../types/van";
 
 export default function AdminVendorsScreen() {
+  const [visibleCount, setVisibleCount] = useState(5);
   const [vendors, setVendors] = useState<Van[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,12 +28,15 @@ export default function AdminVendorsScreen() {
   const [processingVendorId, setProcessingVendorId] = useState<string | null>(
     null
   );
+  const [expandedVendorId, setExpandedVendorId] = useState<string | null>(null);
   const [suspensionReasons, setSuspensionReasons] = useState<
     Record<string, string>
   >({});
 
+
   useFocusEffect(
     useCallback(() => {
+      setVisibleCount(5); // 👈 RESET HERE
       loadVendors();
     }, [])
   );
@@ -184,13 +188,51 @@ export default function AdminVendorsScreen() {
   function renderVendor({ item }: { item: Van }) {
     const isProcessing = processingVendorId === item.id;
     const isAnyProcessing = processingVendorId !== null;
+    const isOpen = expandedVendorId === item.id;
 
     return (
       <View style={styles.card}>
-        <View style={styles.topRow}>
-          <View style={styles.textBlock}>
-            <Text style={styles.vendorName}>{item.name}</Text>
+        {/* 🔹 HEADER (always visible) */}
+        <Pressable
+          onPress={() =>
+            setExpandedVendorId((current) =>
+              current === item.id ? null : item.id
+            )
+          }
+        >
+          <View style={styles.topRow}>
+            <View style={styles.textBlock}>
+              <Text style={styles.vendorName}>{item.name}</Text>
 
+              <Text style={styles.vendorMeta}>
+                {item.vendorName || "No vendor name"} • {item.cuisine}
+              </Text>
+            </View>
+
+            <View
+              style={[
+                styles.statusBadge,
+                item.isSuspended
+                  ? styles.statusSuspended
+                  : item.isApproved
+                    ? styles.statusActive
+                    : styles.statusPending,
+              ]}
+            >
+              <Text style={styles.statusBadgeText}>
+                {item.isSuspended
+                  ? "SUSPENDED"
+                  : item.isApproved
+                    ? "ACTIVE"
+                    : "PENDING"}
+              </Text>
+            </View>
+          </View>
+        </Pressable>
+
+        {/* 🔻 EVERYTHING BELOW ONLY SHOWS WHEN OPEN */}
+        {isOpen && (
+          <>
             <Pressable
               disabled={isAnyProcessing}
               onPress={() =>
@@ -210,122 +252,162 @@ export default function AdminVendorsScreen() {
               </Text>
             </Pressable>
 
-            <Text style={styles.vendorMeta}>
-              {item.vendorName || "No vendor name"} • {item.cuisine}
+            <Text style={styles.detailText}>
+              Tier: {(item.subscriptionTier ?? "free").toUpperCase()}
             </Text>
-          </View>
 
-          <View
-            style={[
-              styles.statusBadge,
-              item.isSuspended
-                ? styles.statusSuspended
-                : item.isApproved
-                  ? styles.statusActive
-                  : styles.statusPending,
-            ]}
-          >
-            <Text style={styles.statusBadgeText}>
-              {item.isSuspended
-                ? "SUSPENDED"
-                : item.isApproved
-                  ? "ACTIVE"
-                  : "PENDING"}
+            <Text style={styles.detailText}>
+              Owner: {item.owner_id ? "Assigned" : "Unclaimed"}
             </Text>
-          </View>
-        </View>
 
-        <Text style={styles.detailText}>
-          Tier: {(item.subscriptionTier ?? "free").toUpperCase()}
-        </Text>
+            {item.instagramUrl ? (
+              <Text style={styles.detailText}>
+                Instagram: {item.instagramUrl}
+              </Text>
+            ) : null}
 
-        <Text style={styles.detailText}>
-          Owner: {item.owner_id ? "Assigned" : "Unclaimed"}
-        </Text>
+            {item.facebookUrl ? (
+              <Text style={styles.detailText}>
+                Facebook: {item.facebookUrl}
+              </Text>
+            ) : null}
 
-        {item.instagramUrl ? (
-          <Text style={styles.detailText}>Instagram: {item.instagramUrl}</Text>
-        ) : null}
+            {item.websiteUrl ? (
+              <Text style={styles.detailText}>
+                Website: {item.websiteUrl}
+              </Text>
+            ) : null}
 
-        {item.facebookUrl ? (
-          <Text style={styles.detailText}>Facebook: {item.facebookUrl}</Text>
-        ) : null}
+            {!item.isApproved ? (
+              <Pressable
+                style={[
+                  styles.actionButton,
+                  styles.approveButton,
+                  isAnyProcessing && styles.buttonDisabled,
+                ]}
+                onPress={() =>
+                  Alert.alert(
+                    "Approve vendor?",
+                    "This will make the vendor visible on the map.",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Approve",
+                        onPress: () => handleApprove(item),
+                      },
+                    ]
+                  )
+                }
+                disabled={isAnyProcessing}
+              >
+                <Text style={styles.actionButtonText}>
+                  {processingVendorId === item.id
+                    ? "Working..."
+                    : "Approve Vendor"}
+                </Text>
+              </Pressable>
+            ) : null}
 
-        {item.websiteUrl ? (
-          <Text style={styles.detailText}>Website: {item.websiteUrl}</Text>
-        ) : null}
+            {item.isSuspended && item.suspensionReason ? (
+              <>
+                <Text style={styles.noteLabel}>Suspension reason</Text>
+                <Text style={styles.noteText}>
+                  {item.suspensionReason}
+                </Text>
+              </>
+            ) : null}
 
-        {!item.isApproved ? (
-          <Pressable
-            style={[
-              styles.actionButton,
-              styles.approveButton,
-              processingVendorId !== null && styles.buttonDisabled,
-            ]}
-            onPress={() =>
-              Alert.alert(
-                "Approve vendor?",
-                "This will make the vendor visible on the map.",
-                [
-                  { text: "Cancel", style: "cancel" },
-                  {
-                    text: "Approve",
-                    onPress: () => handleApprove(item),
-                  },
-                ]
-              )
-            }
-            disabled={processingVendorId !== null}
-          >
-            <Text style={styles.actionButtonText}>
-              {processingVendorId === item.id ? "Working..." : "Approve Vendor"}
-            </Text>
-          </Pressable>
-        ) : null}
+            {!item.isSuspended ? (
+              <>
+                <Text style={styles.noteLabel}>Suspension reason</Text>
 
-        {item.isSuspended && item.suspensionReason ? (
-          <>
-            <Text style={styles.noteLabel}>Suspension reason</Text>
-            <Text style={styles.noteText}>{item.suspensionReason}</Text>
-          </>
-        ) : null}
+                <TextInput
+                  style={styles.input}
+                  placeholder="Add suspension reason"
+                  placeholderTextColor="#7A7A7A"
+                  value={suspensionReasons[item.id] ?? ""}
+                  onChangeText={(text) =>
+                    setSuspensionReasons((current) => ({
+                      ...current,
+                      [item.id]: text,
+                    }))
+                  }
+                  editable={!isAnyProcessing}
+                  maxLength={300}
+                  multiline
+                />
 
-        {!item.isSuspended ? (
-          <>
-            <Text style={styles.noteLabel}>Suspension reason</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Add suspension reason"
-              placeholderTextColor="#7A7A7A"
-              value={suspensionReasons[item.id] ?? ""}
-              onChangeText={(text) =>
-                setSuspensionReasons((current) => ({
-                  ...current,
-                  [item.id]: text,
-                }))
-              }
-              editable={!isAnyProcessing}
-              maxLength={300}
-              multiline
-            />
+                <Pressable
+                  style={[
+                    styles.actionButton,
+                    styles.suspendButton,
+                    isAnyProcessing && styles.buttonDisabled,
+                  ]}
+                  onPress={() =>
+                    Alert.alert(
+                      "Suspend vendor?",
+                      "This will suspend the vendor listing.",
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "Suspend",
+                          style: "destructive",
+                          onPress: () => handleSuspend(item),
+                        },
+                      ]
+                    )
+                  }
+                  disabled={isAnyProcessing}
+                >
+                  <Text style={styles.actionButtonText}>
+                    {isProcessing ? "Working..." : "Suspend Vendor"}
+                  </Text>
+                </Pressable>
+              </>
+            ) : (
+              <Pressable
+                style={[
+                  styles.actionButton,
+                  styles.unsuspendButton,
+                  isAnyProcessing && styles.buttonDisabled,
+                ]}
+                onPress={() =>
+                  Alert.alert(
+                    "Unsuspend vendor?",
+                    "This will restore this vendor listing.",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Restore",
+                        onPress: () => handleUnsuspend(item),
+                      },
+                    ]
+                  )
+                }
+                disabled={isAnyProcessing}
+              >
+                <Text style={styles.actionButtonText}>
+                  {isProcessing ? "Working..." : "Unsuspend Vendor"}
+                </Text>
+              </Pressable>
+            )}
 
             <Pressable
               style={[
                 styles.actionButton,
-                styles.suspendButton,
+                styles.deleteButton,
                 isAnyProcessing && styles.buttonDisabled,
               ]}
               onPress={() =>
                 Alert.alert(
-                  "Suspend vendor?",
-                  "This will suspend the vendor listing.",
+                  "Delete vendor?",
+                  "This will permanently delete this vendor.",
                   [
                     { text: "Cancel", style: "cancel" },
                     {
-                      text: "Suspend",
+                      text: "Delete",
                       style: "destructive",
-                      onPress: () => handleSuspend(item),
+                      onPress: () => handleDelete(item),
                     },
                   ]
                 )
@@ -333,64 +415,11 @@ export default function AdminVendorsScreen() {
               disabled={isAnyProcessing}
             >
               <Text style={styles.actionButtonText}>
-                {isProcessing ? "Working..." : "Suspend Vendor"}
+                {isProcessing ? "Working..." : "Delete Vendor"}
               </Text>
             </Pressable>
           </>
-        ) : (
-          <Pressable
-            style={[
-              styles.actionButton,
-              styles.unsuspendButton,
-              isAnyProcessing && styles.buttonDisabled,
-            ]}
-            onPress={() =>
-              Alert.alert(
-                "Unsuspend vendor?",
-                "This will restore this vendor listing.",
-                [
-                  { text: "Cancel", style: "cancel" },
-                  {
-                    text: "Restore",
-                    onPress: () => handleUnsuspend(item),
-                  },
-                ]
-              )
-            }
-            disabled={isAnyProcessing}
-          >
-            <Text style={styles.actionButtonText}>
-              {isProcessing ? "Working..." : "Unsuspend Vendor"}
-            </Text>
-          </Pressable>
         )}
-
-        <Pressable
-          style={[
-            styles.actionButton,
-            styles.deleteButton,
-            isAnyProcessing && styles.buttonDisabled,
-          ]}
-          onPress={() =>
-            Alert.alert(
-              "Delete vendor?",
-              "This will permanently delete this vendor. This cannot be undone.",
-              [
-                { text: "Cancel", style: "cancel" },
-                {
-                  text: "Delete",
-                  style: "destructive",
-                  onPress: () => handleDelete(item),
-                },
-              ]
-            )
-          }
-          disabled={isAnyProcessing}
-        >
-          <Text style={styles.actionButtonText}>
-            {isProcessing ? "Working..." : "Delete Vendor"}
-          </Text>
-        </Pressable>
       </View>
     );
   }
@@ -398,7 +427,7 @@ export default function AdminVendorsScreen() {
   return (
     <View style={styles.container}>
       <FlatList
-        data={filteredVendors}
+        data={filteredVendors.slice(0, visibleCount)}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
@@ -449,9 +478,20 @@ export default function AdminVendorsScreen() {
           </Text>
         }
         ListFooterComponent={
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backButtonText}>Back</Text>
-          </Pressable>
+          <>
+            {visibleCount < filteredVendors.length && (
+              <Pressable
+                style={styles.loadMoreButton}
+                onPress={() => setVisibleCount((prev) => prev + 5)}
+              >
+                <Text style={styles.loadMoreText}>Load More</Text>
+              </Pressable>
+            )}
+
+            <Pressable style={styles.backButton} onPress={() => router.back()}>
+              <Text style={styles.backButtonText}>Back</Text>
+            </Pressable>
+          </>
         }
       />
     </View>
@@ -652,5 +692,18 @@ const styles = StyleSheet.create({
   approveButton: {
     backgroundColor: "#FF7A00",
     marginTop: 10,
+  },
+
+  loadMoreButton: {
+    backgroundColor: "#444",
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  loadMoreText: {
+    color: "#FFF",
+    fontWeight: "800",
   },
 });

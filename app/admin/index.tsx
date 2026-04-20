@@ -27,7 +27,6 @@ export default function AdminPanelScreen() {
 
   async function loadAdminData(): Promise<void> {
     setIsLoading(true);
-
     try {
       const [user, adminStatus, allVendors] = await Promise.all([
         getCurrentUser(),
@@ -50,22 +49,20 @@ export default function AdminPanelScreen() {
   const summary = useMemo(() => {
     return {
       totalVendors: vendors.length,
-      liveVendors: vendors.filter((vendor) => vendor.isLive).length,
-      claimedVendors: vendors.filter((vendor) => !!vendor.owner_id).length,
-      spottedVans: vendors.filter((vendor) => vendor.temporary).length,
-      suspendedVendors: vendors.filter((vendor) => vendor.isSuspended).length,
+      liveVendors: vendors.filter((v) => v.isLive).length,
+      claimedVendors: vendors.filter((v) => !!v.owner_id).length,
+      spottedVans: vendors.filter((v) => v.temporary).length,
+      suspendedVendors: vendors.filter((v) => v.isSuspended).length,
       freeVendors: vendors.filter(
-        (vendor) => (vendor.subscriptionTier ?? "free") === "free"
+        (v) => (v.subscriptionTier ?? "free") === "free"
       ).length,
-      growthVendors: vendors.filter(
-        (vendor) => vendor.subscriptionTier === "growth"
-      ).length,
-      proVendors: vendors.filter(
-        (vendor) => vendor.subscriptionTier === "pro"
-      ).length,
+      growthVendors: vendors.filter((v) => v.subscriptionTier === "growth")
+        .length,
+      proVendors: vendors.filter((v) => v.subscriptionTier === "pro").length,
     };
   }, [vendors]);
 
+  // 🔄 LOADING STATE
   if (isLoading) {
     return (
       <View style={styles.container}>
@@ -74,13 +71,18 @@ export default function AdminPanelScreen() {
         <Text style={styles.subtitle}>
           Loading admin tools and platform summary...
         </Text>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
+
+        <Pressable
+          style={styles.backButton}
+          onPress={() => router.replace("/(tabs)")}
+        >
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>
     );
   }
 
+  // 🔒 NOT ADMIN
   if (!isAdmin) {
     return (
       <View style={styles.container}>
@@ -89,13 +91,18 @@ export default function AdminPanelScreen() {
         <Text style={styles.subtitle}>
           This area is only available to BiteBeacon admin accounts.
         </Text>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
+
+        <Pressable
+          style={styles.backButton}
+          onPress={() => router.replace("/(tabs)")}
+        >
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>
     );
   }
 
+  // ✅ MAIN ADMIN UI
   return (
     <ScrollView
       style={styles.container}
@@ -104,13 +111,16 @@ export default function AdminPanelScreen() {
     >
       <Text style={styles.kicker}>ADMIN</Text>
       <Text style={styles.title}>Control Centre</Text>
+
       <Text style={styles.subtitle}>
         Monitor vendors, claims, moderation, and subscription control from one
         place.
       </Text>
 
       <Text style={styles.helperText}>
-        {currentEmail ? `Signed in as ${currentEmail}` : "Admin session active"}
+        {currentEmail
+          ? `Signed in as ${currentEmail}`
+          : "Admin session active"}
       </Text>
 
       <Text style={styles.sectionTitle}>Platform Summary</Text>
@@ -209,7 +219,11 @@ export default function AdminPanelScreen() {
         </Text>
       </Pressable>
 
-      <Pressable style={styles.backButton} onPress={() => router.back()}>
+      {/* ✅ FIXED BACK BUTTON */}
+      <Pressable
+        style={styles.backButton}
+        onPress={() => router.replace("/(tabs)")}
+      >
         <Text style={styles.backButtonText}>Back</Text>
       </Pressable>
     </ScrollView>
@@ -269,7 +283,6 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 14,
     color: "rgba(255,255,255,0.65)",
-    marginBottom: 4,
   },
   statValue: {
     fontSize: 24,
@@ -285,12 +298,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: theme.colors.textOnDark,
-    marginBottom: 6,
   },
   rowText: {
     fontSize: 14,
     color: "rgba(255,255,255,0.7)",
-    lineHeight: 20,
   },
   backButton: {
     marginTop: 28,

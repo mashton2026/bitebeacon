@@ -34,6 +34,10 @@ type VendorRow = {
   stripe_customer_id?: string | null;
   stripe_subscription_id?: string | null;
   subscription_status?: string | null;
+  instagram_url?: string | null;
+  facebook_url?: string | null;
+  website_url?: string | null;
+  what3words?: string | null;
 };
 
 function toSafeNumber(value: number | string | null | undefined): number {
@@ -51,7 +55,9 @@ function toNullableString(value: string | null | undefined): string | null {
 
 function toSafeStringArray(value: string[] | null | undefined): string[] {
   if (!Array.isArray(value)) return [];
-  return value.filter((item): item is string => typeof item === "string" && item.length > 0);
+  return value.filter(
+    (item): item is string => typeof item === "string" && item.length > 0
+  );
 }
 
 function toSafeSubscriptionTier(
@@ -64,8 +70,10 @@ function toSafeSubscriptionTier(
 
 export function mapVendorRowToVan(row: VendorRow): Van {
   const safePhoto = toNullableString(row.photo);
-  const safePhotos = toSafeStringArray(row.photos);
-  const mergedPhotos = safePhotos.length > 0 ? safePhotos : safePhoto ? [safePhoto] : [];
+  const safePhotos =
+    toSafeStringArray(row.photos);
+  const mergedPhotos =
+    safePhotos.length > 0 ? safePhotos : safePhoto ? [safePhoto] : [];
 
   return {
     id: String(row.id),
@@ -104,6 +112,10 @@ export function mapVendorRowToVan(row: VendorRow): Van {
     stripe_customer_id: toNullableString(row.stripe_customer_id),
     stripe_subscription_id: toNullableString(row.stripe_subscription_id),
     subscription_status: toNullableString(row.subscription_status),
+    instagramUrl: toNullableString(row.instagram_url),
+    facebookUrl: toNullableString(row.facebook_url),
+    websiteUrl: toNullableString(row.website_url),
+    what3words: toNullableString(row.what3words),
   };
 }
 

@@ -2,6 +2,7 @@ import * as Location from "expo-location";
 import { mapVendorRowToVan, mapVendorRowsToVans } from "../lib/mapVendor";
 import { supabase } from "../lib/supabase";
 import { type Van } from "../types/van";
+import { isCurrentUserAdmin } from "./adminService";
 
 type CreateVendorInput = {
   id: string;
@@ -485,6 +486,16 @@ export async function adminRemoveVendorPhoto(
 }
 
 export async function adminDeleteVendor(vendorId: string) {
+  if (!vendorId?.trim()) {
+    throw new Error("Vendor id is required.");
+  }
+
+  const isAdmin = await isCurrentUserAdmin();
+
+  if (!isAdmin) {
+    throw new Error("Admin access required.");
+  }
+
   const { error } = await supabase.rpc("admin_delete_vendor", {
     p_vendor_id: vendorId,
   });

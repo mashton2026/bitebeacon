@@ -19,8 +19,7 @@ import { getSubscriptionFeatures } from "../../lib/subscriptionFeatures";
 import { supabase } from "../../lib/supabase";
 import {
   getCurrentUser,
-  getUserVendorStatus,
-  signOutCurrentUser,
+  signOutCurrentUser
 } from "../../services/authService";
 import {
   getVendorMenuPdfSignedUrl,
@@ -296,7 +295,7 @@ export default function VendorDashboardScreen() {
   const params = useLocalSearchParams();
   const scrollRef = useRef<ScrollView | null>(null);
   const statusUpdateInputRef = useRef<TextInput | null>(null);
-
+  const hasShownLocationAlert = useRef(false);
   const [loading, setLoading] = useState(true);
   const [accessChecked, setAccessChecked] = useState(false);
   const [van, setVan] = useState<Van | null>(null);
@@ -393,16 +392,16 @@ export default function VendorDashboardScreen() {
             return;
           }
 
-          const vendorStatus = await getUserVendorStatus(user.id);
+          const vendor = await getVendorByOwnerId(user.id);
 
-          if (!vendorStatus.hasVendor) {
-            router.replace("/vendor/register");
+          if (!vendor) {
+            router.replace("/(tabs)");
             return;
           }
 
-          // If the user does have a vendor, do not redirect here.
-          // Suspended vendors should fall through to the dashboard's
-          // proper access-denied handling inside loadDashboard().
+          // Do NOT block suspended vendors here
+          // Let loadDashboard handle that state cleanly
+
         } catch {
           router.replace("/vendor/register");
         }
@@ -440,6 +439,15 @@ export default function VendorDashboardScreen() {
       if (!Number.isNaN(nextLat) && !Number.isNaN(nextLng)) {
         setLat(nextLat);
         setLng(nextLng);
+
+        if (params.locationUpdated === "true" && !hasShownLocationAlert.current) {
+          hasShownLocationAlert.current = true;
+
+          Alert.alert(
+            "Location updated",
+            "Your new pin is ready. Tap Save Changes to update it on the map."
+          );
+        }
       }
     }
 
@@ -466,6 +474,7 @@ export default function VendorDashboardScreen() {
     params.foodCategories,
     params.lat,
     params.lng,
+    params.locationUpdated, // 👈 add it here
   ]);
 
   async function loadAdvancedInsights(vendorId: string, tier: string) {
@@ -612,8 +621,12 @@ export default function VendorDashboardScreen() {
       })();
 
       setMenuPdfStoragePath(assetVendor.menuPdfUrl ?? null);
-      setLat(vendor.lat);
-      setLng(vendor.lng);
+
+      const paramLat = typeof params.lat === "string" ? Number(params.lat) : NaN;
+      const paramLng = typeof params.lng === "string" ? Number(params.lng) : NaN;
+
+      setLat(Number.isNaN(paramLat) ? vendor.lat : paramLat);
+      setLng(Number.isNaN(paramLng) ? vendor.lng : paramLng);
 
       setAccessChecked(true);
 

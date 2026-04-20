@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { theme } from "../../constants/theme";
 import { supabase } from "../../lib/supabase";
+import { isCurrentUserAdmin } from "../../services/adminService";
 import { getCurrentUser } from "../../services/authService";
 import { getMyVendorClaims } from "../../services/vendorClaimService";
 import { getVendorByOwnerId } from "../../services/vendorService";
@@ -110,17 +111,23 @@ export default function VendorLoginScreen() {
         return;
       }
 
+      const isAdmin = await isCurrentUserAdmin();
+
+      // ✅ ADMIN GOES TO MAIN APP (NOT ADMIN PANEL)
+      if (isAdmin) {
+        router.replace("/(tabs)");
+        return;
+      }
+
       const vendor = await getVendorByOwnerId(user.id);
 
       if (vendor) {
         if (vendor.isSuspended) {
           await supabase.auth.signOut();
-
           Alert.alert(
             "Account suspended",
-            "This vendor account has been suspended. Please contact support at support@bitebeacon.uk."
+            "This vendor account has been suspended."
           );
-
           router.replace("/welcome");
           return;
         }
@@ -135,10 +142,11 @@ export default function VendorLoginScreen() {
       const claims = await getMyVendorClaims(user.id);
 
       if (claims.length > 0) {
-        router.replace("/vendor/dashboard");
+        router.replace("/home");
         return;
       }
 
+      // ❌ only sign out if truly not allowed
       await supabase.auth.signOut();
 
       Alert.alert(
