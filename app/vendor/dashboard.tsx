@@ -693,7 +693,9 @@ export default function VendorDashboardScreen() {
   async function pickLogo() {
     if (!van) return;
 
-    if (van.subscriptionTier === "free") {
+    const features = getSubscriptionFeatures(van.subscriptionTier);
+
+    if (!features.images) {
       Alert.alert(
         "Growth plan required",
         "Upgrade to Growth or above to upload your logo."
@@ -812,7 +814,7 @@ export default function VendorDashboardScreen() {
 
     const features = getSubscriptionFeatures(van.subscriptionTier);
 
-    if (!features.liveStatus) {
+    if (!features.locationUpdates) {
       router.push("/vendor/upgrade");
       return;
     }
@@ -971,14 +973,10 @@ export default function VendorDashboardScreen() {
           menu_pdf_name: features.images ? nextMenuPdfName : null,
           is_live: isLive,
           food_categories: foodCategories,
-          website_url:
-            van.subscriptionTier === "free" ? null : website.trim() || null,
-          instagram_url:
-            van.subscriptionTier === "free" ? null : instagram.trim() || null,
-          facebook_url:
-            van.subscriptionTier === "free" ? null : facebook.trim() || null,
-          what3words:
-            van.subscriptionTier === "free" ? null : what3words.trim() || null,
+          website_url: features.socialLinks ? website.trim() || null : null,
+          instagram_url: features.socialLinks ? instagram.trim() || null : null,
+          facebook_url: features.socialLinks ? facebook.trim() || null : null,
+          what3words: features.socialLinks ? what3words.trim() || null : null,
           lat,
           lng,
         })
@@ -1006,14 +1004,10 @@ export default function VendorDashboardScreen() {
         vendorMessage: features.reviews ? vendorMessage.trim() : "",
         isLive: isLive,
         foodCategories,
-        instagramUrl:
-          van.subscriptionTier === "free" ? null : instagram.trim() || null,
-        facebookUrl:
-          van.subscriptionTier === "free" ? null : facebook.trim() || null,
-        websiteUrl:
-          van.subscriptionTier === "free" ? null : website.trim() || null,
-        what3words:
-          van.subscriptionTier === "free" ? null : what3words.trim() || null,
+        instagramUrl: features.socialLinks ? instagram.trim() || null : null,
+        facebookUrl: features.socialLinks ? facebook.trim() || null : null,
+        websiteUrl: features.socialLinks ? website.trim() || null : null,
+        what3words: features.socialLinks ? what3words.trim() || null : null,
         photo: features.images ? nextPhotos[0] ?? null : null,
         photos: features.images ? nextPhotos : [],
         logoUrl: features.images ? nextLogoUri : null,
@@ -1834,7 +1828,7 @@ export default function VendorDashboardScreen() {
             </Pressable>
           )}
 
-          {features.liveStatus ? (
+          {features.locationUpdates ? (
             <Pressable
               style={[styles.quickActionButton, styles.quickActionSecondary]}
               onPress={updateLocation}
@@ -2115,7 +2109,7 @@ export default function VendorDashboardScreen() {
         onToggle={() => toggleSection("branding")}
       >
         <View style={styles.cardBox}>
-          {van.subscriptionTier === "free" ? (
+          {!features.images ? (
             <View style={styles.inlineLockedCard}>
               <Text style={styles.inlineLockedTitle}>Growth required</Text>
               <Text style={styles.inlineLockedText}>
@@ -2416,7 +2410,7 @@ export default function VendorDashboardScreen() {
           <View style={styles.healthRow}>
             <Text style={styles.healthLabel}>Logo</Text>
             <Text style={styles.healthValue}>
-              {van.subscriptionTier === "free"
+              {!features.images
                 ? "Growth required"
                 : hasLogo
                   ? "Added"
@@ -2589,7 +2583,7 @@ export default function VendorDashboardScreen() {
 
           <Text style={styles.label}>Instagram</Text>
 
-          {van.subscriptionTier === "free" ? (
+          {!features.socialLinks ? (
             <View style={styles.inlineLockedCard}>
               <Text style={styles.inlineLockedTitle}>Growth feature</Text>
               <Text style={styles.inlineLockedText}>
@@ -2608,7 +2602,7 @@ export default function VendorDashboardScreen() {
 
           <Text style={styles.label}>Facebook</Text>
 
-          {van.subscriptionTier === "free" ? (
+          {!features.socialLinks ? (
             <View style={styles.inlineLockedCard}>
               <Text style={styles.inlineLockedTitle}>Growth feature</Text>
               <Text style={styles.inlineLockedText}>
@@ -2627,7 +2621,7 @@ export default function VendorDashboardScreen() {
 
           <Text style={styles.label}>Website</Text>
 
-          {van.subscriptionTier === "free" ? (
+          {!features.socialLinks ? (
             <View style={styles.inlineLockedCard}>
               <Text style={styles.inlineLockedTitle}>Growth feature</Text>
               <Text style={styles.inlineLockedText}>
@@ -2646,7 +2640,7 @@ export default function VendorDashboardScreen() {
 
           <Text style={styles.label}>what3words location</Text>
 
-          {van.subscriptionTier === "free" ? (
+          {!features.socialLinks ? (
             <View style={styles.inlineLockedCard}>
               <Text style={styles.inlineLockedTitle}>Growth feature</Text>
               <Text style={styles.inlineLockedText}>

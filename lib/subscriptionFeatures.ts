@@ -3,6 +3,8 @@ import { type SubscriptionTier } from "../types/van";
 export type SubscriptionFeatures = {
   images: boolean;
   liveStatus: boolean;
+  locationUpdates: boolean;
+  socialLinks: boolean;
   analytics: boolean;
   reviews: boolean;
   priorityPlacement: boolean;
@@ -12,13 +14,15 @@ export type SubscriptionFeatures = {
   trendingBoost: boolean;
 };
 
-// 🔥 LAUNCH PHASE SWITCH
+// LAUNCH PHASE SWITCH
 const ENABLE_FREE_LIVE = true;
 
 const subscriptionFeatureMap: Record<SubscriptionTier, SubscriptionFeatures> = {
   free: {
     images: false,
-    liveStatus: ENABLE_FREE_LIVE, // 👈 controlled here
+    liveStatus: ENABLE_FREE_LIVE,
+    locationUpdates: false,
+    socialLinks: false,
     analytics: false,
     reviews: false,
     priorityPlacement: false,
@@ -30,6 +34,8 @@ const subscriptionFeatureMap: Record<SubscriptionTier, SubscriptionFeatures> = {
   growth: {
     images: true,
     liveStatus: true,
+    locationUpdates: true,
+    socialLinks: true,
     analytics: true,
     reviews: true,
     priorityPlacement: false,
@@ -41,6 +47,8 @@ const subscriptionFeatureMap: Record<SubscriptionTier, SubscriptionFeatures> = {
   pro: {
     images: true,
     liveStatus: true,
+    locationUpdates: true,
+    socialLinks: true,
     analytics: true,
     reviews: true,
     priorityPlacement: true,
