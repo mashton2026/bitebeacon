@@ -13,10 +13,11 @@
       "backgroundColor": "#0D1B2A"
     },
     "android": {
-      "package": "com.bitebeacon.app",
-      "versionCode": 1,
+      "package": "com.bitebeacon.mobileapp",
+      "versionCode": 2,
       "softwareKeyboardLayoutMode": "pan",
       "blockedPermissions": [
+        "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.READ_EXTERNAL_STORAGE"
@@ -36,8 +37,7 @@
       "buildNumber": "1",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Allow BiteBeacon to access your location",
-        "NSPhotoLibraryUsageDescription": "Allow BiteBeacon to access your photos",
-        "NSCameraUsageDescription": "Allow BiteBeacon to access your camera"
+        "NSPhotoLibraryUsageDescription": "Allow BiteBeacon to access your photos"
       }
     },
     "web": {
@@ -55,10 +55,14 @@
       "./plugins/withCleanIosPermissions"
     ],
     "extra": {
-      "router": {}
+      "router": {},
+      "eas": {
+        "projectId": "b92945e7-ca07-4b2f-9567-058e72392b68"
+      }
     },
     "androidStatusBar": {
       "backgroundColor": "#0D1B2A"
-    }
+    },
+    "owner": "bitebeacon"
   }
 }
