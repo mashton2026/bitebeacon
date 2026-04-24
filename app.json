@@ -14,8 +14,13 @@
     },
     "android": {
       "package": "com.bitebeacon.mobileapp",
-      "versionCode": 7,
+      "versionCode": 8,
       "softwareKeyboardLayoutMode": "pan",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDBObUzNJSKL3ortOuNEDJK9pQhtqIufho"
+        }
+      },
       "blockedPermissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
