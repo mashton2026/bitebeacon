@@ -187,8 +187,8 @@ export default function MapScreen() {
 
     mapRef.current?.animateToRegion(
       {
-        latitude: topVendor.lat,
-        longitude: topVendor.lng,
+        latitude: Number(topVendor.lat),
+        longitude: Number(topVendor.lng),
         latitudeDelta: 0.02,
         longitudeDelta: 0.02,
       },
@@ -257,8 +257,8 @@ export default function MapScreen() {
     setSelectedSpotPin(null);
 
     const nextRegion: Region = {
-      latitude: highlightedVendor.lat,
-      longitude: highlightedVendor.lng,
+      latitude: Number(highlightedVendor.lat),
+      longitude: Number(highlightedVendor.lng),
       latitudeDelta: 0.01,
       longitudeDelta: 0.01,
     };
@@ -474,8 +474,8 @@ export default function MapScreen() {
 
     mapRef.current?.animateToRegion(
       {
-        latitude: van.lat,
-        longitude: van.lng,
+        latitude: Number(van.lat),
+        longitude: Number(van.lng),
         latitudeDelta: 0.02,
         longitudeDelta: 0.02,
       },
@@ -667,28 +667,24 @@ export default function MapScreen() {
           setShowMapLoadingOverlay(false);
         }}
       >
-        {filteredVans
-          .filter((van) => {
-            return (
-              typeof van.lat === "number" &&
-              typeof van.lng === "number" &&
-              !Number.isNaN(van.lat) &&
-              !Number.isNaN(van.lng)
-            );
-          })
-          .map((van) => {
-            return (
-              <Marker
-                key={van.id}
-                coordinate={{
-                  latitude: van.lat,
-                  longitude: van.lng,
-                }}
-                onPress={() => handleMarkerPress(van)}
-                pinColor={getMarkerColor(van)}
-              />
-            );
-          })}
+        {filteredVans.map((van) => {
+          const lat = Number(van.lat);
+          const lng = Number(van.lng);
+
+          if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+
+          return (
+            <Marker
+              key={van.id}
+              coordinate={{
+                latitude: lat,
+                longitude: lng,
+              }}
+              onPress={() => handleMarkerPress(van)}
+              pinColor={getMarkerColor(van)}
+            />
+          );
+        })}
 
         {selectedSpotPin ? (
           <Marker coordinate={selectedSpotPin} pinColor="#FF7A00" />
