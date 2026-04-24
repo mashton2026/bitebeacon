@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.bitebeacon.mobileapp",
-      "versionCode": 4,
+      "versionCode": 7,
       "softwareKeyboardLayoutMode": "pan",
       "blockedPermissions": [
         "android.permission.CAMERA",

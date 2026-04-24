@@ -667,16 +667,28 @@ export default function MapScreen() {
           setShowMapLoadingOverlay(false);
         }}
       >
-        {filteredVans.map((van) => {
-          return (
-            <Marker
-              key={van.id}
-              coordinate={{ latitude: van.lat, longitude: van.lng }}
-              onPress={() => handleMarkerPress(van)}
-              pinColor={getMarkerColor(van)}
-            />
-          );
-        })}
+        {filteredVans
+          .filter((van) => {
+            return (
+              typeof van.lat === "number" &&
+              typeof van.lng === "number" &&
+              !Number.isNaN(van.lat) &&
+              !Number.isNaN(van.lng)
+            );
+          })
+          .map((van) => {
+            return (
+              <Marker
+                key={van.id}
+                coordinate={{
+                  latitude: van.lat,
+                  longitude: van.lng,
+                }}
+                onPress={() => handleMarkerPress(van)}
+                pinColor={getMarkerColor(van)}
+              />
+            );
+          })}
 
         {selectedSpotPin ? (
           <Marker coordinate={selectedSpotPin} pinColor="#FF7A00" />
