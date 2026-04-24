@@ -6,7 +6,7 @@ import {
 } from "@react-navigation/native";
 import { StripeProvider } from "@stripe/stripe-react-native";
 import * as Linking from "expo-linking";
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import "react-native-reanimated";
@@ -26,7 +26,13 @@ export default function RootLayout() {
 
       if (error) {
         console.log("Auth error:", error.message);
+        router.replace("/auth/user-login");
+        return;
       }
+
+      setTimeout(() => {
+        router.replace("/(tabs)");
+      }, 300);
     };
 
     // App opened from email link
