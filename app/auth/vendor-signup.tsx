@@ -61,6 +61,9 @@ export default function VendorSignupScreen() {
       const { error } = await supabase.auth.signUp({
         email: trimmedEmail,
         password,
+        options: {
+          emailRedirectTo: "bitebeacon://auth/callback",
+        },
       });
 
       if (error) {
