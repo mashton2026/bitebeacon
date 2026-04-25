@@ -1,8 +1,11 @@
 import { Tabs } from "expo-router";
 import React from "react";
 import { Image } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
@@ -14,9 +17,9 @@ export default function TabLayout() {
           backgroundColor: "#0B2A5B",
           borderTopWidth: 2,
           borderTopColor: "#FF7A00",
-          height: 84,
-          paddingTop: 10,
-          paddingBottom: 14,
+          height: 70 + insets.bottom,
+          paddingTop: 8,
+          paddingBottom: Math.max(insets.bottom, 10),
         },
         tabBarShowLabel: false,
       }}
@@ -28,7 +31,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <Image
               source={require("../../assets/icons/home.png")}
-              style={{ width: 60, height: 60, tintColor: color }}
+              style={{ width: 56, height: 56, tintColor: color }}
               resizeMode="contain"
             />
           ),
@@ -41,7 +44,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <Image
               source={require("../../assets/icons/explore.png")}
-              style={{ width: 60, height: 60, tintColor: color }}
+              style={{ width: 56, height: 56, tintColor: color }}
               resizeMode="contain"
             />
           ),
@@ -54,7 +57,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <Image
               source={require("../../assets/icons/favourites.png")}
-              style={{ width: 60, height: 60, tintColor: color }}
+              style={{ width: 56, height: 56, tintColor: color }}
               resizeMode="contain"
             />
           ),
@@ -67,7 +70,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <Image
               source={require("../../assets/icons/account.png")}
-              style={{ width: 60, height: 60, tintColor: color }}
+              style={{ width: 56, height: 56, tintColor: color }}
               resizeMode="contain"
             />
           ),

@@ -17,6 +17,7 @@ import {
   View,
 } from "react-native";
 import MapView, { MapPressEvent, Marker, Region } from "react-native-maps";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { getSubscriptionFeatures } from "../../lib/subscriptionFeatures";
 import { getCurrentUser } from "../../services/authService";
@@ -154,6 +155,7 @@ function getMarkerColor(van: Van) {
 }
 
 export default function MapScreen() {
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const mapRef = useRef<any>(null);
   const hasAnimatedToUserLocation = useRef(false);
@@ -867,7 +869,10 @@ export default function MapScreen() {
         </View>
       ) : null}
 
-      <Pressable style={styles.recenterButton} onPress={recenterMap}>
+      <Pressable
+        style={[styles.recenterButton, { bottom: insets.bottom + 240 }]}
+        onPress={recenterMap}
+      >
         <Text style={styles.recenterButtonText}>📍</Text>
       </Pressable>
 
@@ -999,7 +1004,7 @@ export default function MapScreen() {
       ) : null}
 
       {showMapHint ? (
-        <View style={styles.mapHintWrap}>
+        <View style={[styles.mapHintWrap, { bottom: insets.bottom + 90 }]}>
           <Text style={styles.mapHintText}>
             Tap “Spot a Van” to add a new vendor to the map 📍
           </Text>
@@ -1010,7 +1015,7 @@ export default function MapScreen() {
         </View>
       ) : null}
 
-      <View style={styles.buttonWrap}>
+      <View style={[styles.buttonWrap, { bottom: insets.bottom + 20 }]}>
         <Pressable style={styles.primaryButton} onPress={startSpotMode}>
           <Text style={styles.primaryButtonText}>Spot a Van</Text>
         </Pressable>
@@ -1367,7 +1372,6 @@ const styles = StyleSheet.create({
   recenterButton: {
     position: "absolute",
     right: 16,
-    bottom: 218,
     width: 50,
     height: 50,
     borderRadius: 25,
@@ -1391,7 +1395,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 20,
     right: 20,
-    bottom: 24,
     gap: 10,
   },
 
@@ -1683,7 +1686,6 @@ const styles = StyleSheet.create({
 
   mapHintWrap: {
     position: "absolute",
-    bottom: 110,
     left: 20,
     right: 20,
     backgroundColor: "rgba(11,42,91,0.96)",
