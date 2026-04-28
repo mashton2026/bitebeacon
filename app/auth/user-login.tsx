@@ -38,6 +38,9 @@ export default function UserLoginScreen() {
       const { error } = await supabase.auth.resend({
         type: "signup",
         email: trimmedEmail,
+        options: {
+          emailRedirectTo: "bitebeacon://auth/callback",
+        },
       });
 
       if (error) {
@@ -82,20 +85,21 @@ export default function UserLoginScreen() {
         password,
       });
 
+      if (error) {
+        Alert.alert("Login failed", error.message);
+        return;
+      }
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
       if (user && !user.email_confirmed_at) {
+        await supabase.auth.signOut();
         Alert.alert(
           "Email not confirmed",
-          "Please confirm your email before logging in. Check your inbox or resend the confirmation email."
+          "Please confirm your email before logging in."
         );
-        return;
-      }
-
-      if (error) {
-        Alert.alert("Login failed", error.message);
         return;
       }
 

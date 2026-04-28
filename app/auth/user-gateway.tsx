@@ -16,8 +16,7 @@ export default function UserGatewayScreen() {
       const { error } = await supabase.auth.signOut();
 
       if (error) {
-        Alert.alert("Guest mode failed", error.message);
-        return;
+        console.log("Signout error:", error.message);
       }
 
       router.replace("/(tabs)");

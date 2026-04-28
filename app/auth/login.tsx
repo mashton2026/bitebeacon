@@ -145,7 +145,7 @@ export default function VendorLoginScreen() {
       const claims = await getMyVendorClaims(user.id);
 
       if (claims.length > 0) {
-        router.replace("/home");
+        router.replace("/(tabs)");
         return;
       }
 

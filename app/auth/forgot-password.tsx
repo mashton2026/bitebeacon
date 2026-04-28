@@ -33,7 +33,9 @@ export default function ForgotPasswordScreen() {
         setIsSending(true);
 
         try {
-            const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail);
+            const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+                redirectTo: "bitebeacon://auth/callback",
+            });
 
             if (error) {
                 Alert.alert("Reset failed", error.message);
