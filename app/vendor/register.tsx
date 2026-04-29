@@ -1,5 +1,4 @@
 import { router } from "expo-router";
-
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -19,6 +18,7 @@ import MapView, {
   type MapPressEvent,
   type Region,
 } from "react-native-maps";
+import { supabase } from "../../lib/supabase";
 
 import { getCurrentUser } from "../../services/authService";
 import { createVendor } from "../../services/vendorService";
@@ -52,8 +52,25 @@ export default function RegisterVendorScreen() {
 
   const [isSaving, setIsSaving] = useState(false);
 
+  async function checkVendorAccess() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user || !user.email_confirmed_at) {
+      await supabase.auth.signOut();
+      router.replace("/auth/login");
+      return false;
+    }
+
+    return true;
+  }
+
   useEffect(() => {
     isMountedRef.current = true;
+
+    checkVendorAccess();
+
     return () => {
       isMountedRef.current = false;
     };
@@ -72,6 +89,10 @@ export default function RegisterVendorScreen() {
   async function handleCreateVendor() {
     // 🔒 HARD GUARD (prevents double submit)
     if (isSaving) return;
+
+    const allowed = await checkVendorAccess();
+
+    if (!allowed) return;
 
     try {
       if (

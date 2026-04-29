@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
+import { supabase } from "../../lib/supabase";
 import { useEffect, useRef, useState } from "react";
 import {
     Alert,
@@ -37,16 +38,38 @@ export default function ClaimVendorScreen() {
 
     const isActiveRef = useRef(true);
 
+    async function checkVendorAccess() {
+        const {
+            data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user || !user.email_confirmed_at) {
+            await supabase.auth.signOut();
+            router.replace("/auth/login");
+            return false;
+        }
+
+        return true;
+    }
+
     useEffect(() => {
         isActiveRef.current = true;
 
-        if (!spottedVendorId) {
-            Alert.alert("Invalid request", "Missing vendor ID.");
-            router.back();
-            return;
+        async function init() {
+            const allowed = await checkVendorAccess();
+
+            if (!allowed) return;
+
+            if (!spottedVendorId) {
+                Alert.alert("Invalid request", "Missing vendor ID.");
+                router.back();
+                return;
+            }
+
+            loadClaimDefaults();
         }
 
-        loadClaimDefaults();
+        init();
 
         return () => {
             isActiveRef.current = false;

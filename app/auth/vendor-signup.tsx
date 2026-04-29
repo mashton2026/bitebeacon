@@ -13,7 +13,6 @@ import {
 } from "react-native";
 import { theme } from "../../constants/theme";
 import { supabase } from "../../lib/supabase";
-import { getCurrentUser } from "../../services/authService";
 
 export default function VendorSignupScreen() {
   const [email, setEmail] = useState("");
@@ -62,7 +61,7 @@ export default function VendorSignupScreen() {
         email: trimmedEmail,
         password,
         options: {
-          emailRedirectTo: "bitebeacon://auth/callback",
+          emailRedirectTo: "bitebeacon://auth/callback?type=vendor",
         },
       });
 
@@ -71,20 +70,15 @@ export default function VendorSignupScreen() {
         return;
       }
 
-      const user = await getCurrentUser();
+      Alert.alert(
+        "Check your email 📩",
+        "We’ve sent you a confirmation link. Please check your inbox and spam. You must confirm your email before setting up your vendor listing."
+      );
 
-      // If email confirmation is ON → user will be null
-      if (!user) {
-        Alert.alert(
-          "Check your email 📩",
-          "We’ve sent you a confirmation link. Please check your inbox (and spam) to activate your account before logging in."
-        );
-        router.replace("/auth/login");
-        return;
-      }
+      await supabase.auth.signOut();
 
-      // If email confirmation is OFF (fallback)
-      router.replace("/vendor/claim-select");
+      router.replace("/auth/login");
+      return;
     } catch (error) {
       Alert.alert(
         "Sign up failed",

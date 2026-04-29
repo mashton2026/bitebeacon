@@ -149,7 +149,6 @@ export default function VendorLoginScreen() {
         return;
       }
 
-      // ❌ only sign out if truly not allowed
       await supabase.auth.signOut();
 
       Alert.alert(

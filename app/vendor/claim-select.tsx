@@ -1,4 +1,5 @@
 import * as Location from "expo-location";
+import { supabase } from "../../lib/supabase";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -13,6 +14,7 @@ import { getAllVendors } from "../../services/vendorService";
 import { type Van } from "../../types/van";
 
 export default function ClaimSelectScreen() {
+
   const [spottedVans, setSpottedVans] = useState<Van[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -24,10 +26,28 @@ export default function ClaimSelectScreen() {
 
   const isActiveRef = useRef(true);
 
+  async function checkVendorAccess() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user || !user.email_confirmed_at) {
+      await supabase.auth.signOut();
+      router.replace("/auth/login");
+      return;
+    }
+  }
+
   useFocusEffect(
     useCallback(() => {
       isActiveRef.current = true;
-      loadSpottedVans();
+
+      async function init() {
+        await checkVendorAccess(); // 🚨 BLOCK FIRST
+        await loadSpottedVans();   // ✅ only runs if allowed
+      }
+
+      init();
 
       return () => {
         isActiveRef.current = false;
@@ -37,7 +57,6 @@ export default function ClaimSelectScreen() {
 
   useEffect(() => {
     loadUserLocation();
-
     return () => {
       isActiveRef.current = false;
     };
