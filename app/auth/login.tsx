@@ -43,7 +43,7 @@ export default function VendorLoginScreen() {
         type: "signup",
         email: trimmedEmail,
         options: {
-          emailRedirectTo: "bitebeacon://auth/callback",
+          emailRedirectTo: "bitebeacon://auth/callback?type=vendor",
         },
       });
 
@@ -143,18 +143,12 @@ export default function VendorLoginScreen() {
       }
 
       const claims = await getMyVendorClaims(user.id);
-
       if (claims.length > 0) {
-        router.replace("/(tabs)");
+        router.replace("/vendor/claim-select");
         return;
       }
 
-      await supabase.auth.signOut();
-
-      Alert.alert(
-        "Vendor account required",
-        "These login details are not linked to a vendor account. Please use the customer login or create a vendor account."
-      );
+      router.replace("/vendor/claim-select");
       return;
     } catch (error) {
       Alert.alert(

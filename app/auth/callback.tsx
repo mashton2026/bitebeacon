@@ -5,18 +5,23 @@ import { supabase } from "../../lib/supabase";
 import { getVendorByOwnerId } from "../../services/vendorService";
 
 export default function AuthCallback() {
-    const { type } = useLocalSearchParams();
+    const { type, code } = useLocalSearchParams();
 
     useEffect(() => {
+        let handled = false;
+
         async function handleAuth() {
+            if (handled) return;
+            handled = true;
+
+            if (typeof code === "string") {
+                await supabase.auth.exchangeCodeForSession(code);
+            }
+
             const { data, error } = await supabase.auth.getSession();
 
             if (error || !data.session) {
-                if (type === "vendor") {
-                    router.replace("/auth/login");
-                } else {
-                    router.replace("/auth/user-login");
-                }
+                router.replace(type === "vendor" ? "/auth/login" : "/auth/user-login");
                 return;
             }
 
@@ -41,7 +46,7 @@ export default function AuthCallback() {
         }
 
         handleAuth();
-    }, [type]);
+    }, [type, code]);
 
     return (
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
