@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.bitebeacon.mobileapp",
-      "versionCode": 14,
+      "versionCode": 16,
       "softwareKeyboardLayoutMode": "pan",
       "config": {
         "googleMaps": {
