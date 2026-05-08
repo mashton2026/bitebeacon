@@ -38,9 +38,6 @@ export default function RegisterVendorScreen() {
   const [cuisine, setCuisine] = useState("");
   const [menu, setMenu] = useState("");
   const [schedule, setSchedule] = useState("");
-  const [instagramUrl, setInstagramUrl] = useState("");
-  const [facebookUrl, setFacebookUrl] = useState("");
-  const [websiteUrl, setWebsiteUrl] = useState("");
   const [what3words, setWhat3words] = useState("");
 
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
@@ -140,9 +137,6 @@ export default function RegisterVendorScreen() {
         subscriptionTier: "free",
         foodCategories: [],
         what3words: what3words.trim() || null,
-        instagramUrl: instagramUrl.trim() || undefined,
-        facebookUrl: facebookUrl.trim() || undefined,
-        websiteUrl: websiteUrl.trim() || undefined,
       });
 
       if (!isMountedRef.current) return;
@@ -245,30 +239,6 @@ export default function RegisterVendorScreen() {
               placeholderTextColor="#7A7A7A"
               value={what3words}
               onChangeText={setWhat3words}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Instagram link"
-              placeholderTextColor="#7A7A7A"
-              value={instagramUrl}
-              onChangeText={setInstagramUrl}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Facebook link"
-              placeholderTextColor="#7A7A7A"
-              value={facebookUrl}
-              onChangeText={setFacebookUrl}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Website link"
-              placeholderTextColor="#7A7A7A"
-              value={websiteUrl}
-              onChangeText={setWebsiteUrl}
             />
           </View>
 

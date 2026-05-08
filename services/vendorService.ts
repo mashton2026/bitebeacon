@@ -58,6 +58,7 @@ export async function getAllVendors(): Promise<Van[]> {
     .from("vendors")
     .select("*")
     .eq("is_suspended", false)
+    .eq("isApproved", true)
     .or(
       "listing_source.eq.admin_seeded,and(listing_source.eq.user_spotted,expires_at.is.null),and(listing_source.eq.user_spotted,expires_at.gte.now())"
     );
@@ -117,6 +118,7 @@ export async function getVendorById(id: string): Promise<Van | null> {
     .select("*")
     .eq("id", id)
     .eq("is_suspended", false)
+    .eq("isApproved", true)
     .maybeSingle();
 
   if (error) throw new Error(error.message);
