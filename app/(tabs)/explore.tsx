@@ -1003,7 +1003,7 @@ export default function MapScreen() {
         </Animated.View>
       ) : null}
 
-      {showMapHint ? (
+      {showMapHint && !selectedVan && !spotMode ? (
         <View style={[styles.mapHintWrap, { bottom: insets.bottom + 90 }]}>
           <Text style={styles.mapHintText}>
             Tap “Spot a Van” to add a new vendor to the map 📍
