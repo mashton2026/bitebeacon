@@ -662,6 +662,14 @@ export default function VendorDashboardScreen() {
       return;
     }
 
+    if (photos.length >= 5) {
+      Alert.alert(
+        "Photo limit reached",
+        "You can upload up to 5 listing photos for now."
+      );
+      return;
+    }
+
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
@@ -674,10 +682,10 @@ export default function VendorDashboardScreen() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
-      quality: 0.7,
+      quality: 0.6,
       allowsEditing: false,
       allowsMultipleSelection: true,
-      selectionLimit: 8,
+      selectionLimit: Math.max(0, 5 - photos.length),
     });
 
     if (result.canceled) return;
@@ -686,7 +694,7 @@ export default function VendorDashboardScreen() {
 
     setPhotos((current) => {
       const merged = [...current, ...selectedUris];
-      return Array.from(new Set(merged)).slice(0, 8);
+      return Array.from(new Set(merged)).slice(0, 5);
     });
   }
 
@@ -762,6 +770,14 @@ export default function VendorDashboardScreen() {
       if (result.canceled) return;
 
       const file = result.assets[0];
+
+      if (file.size && file.size > 5 * 1024 * 1024) {
+        Alert.alert(
+          "File too large",
+          "Menu PDFs must be under 5MB."
+        );
+        return;
+      }
 
       setMenuPdfName(file.name ?? "menu.pdf");
       setMenuPdfUri(file.uri);
@@ -915,7 +931,7 @@ export default function VendorDashboardScreen() {
             ? await uploadVendorPhotos(user.id, uniqueLocalPhotos)
             : [];
 
-        nextPhotos = [...existingRemotePhotos, ...uploadedPhotoUrls].slice(0, 8);
+        nextPhotos = [...existingRemotePhotos, ...uploadedPhotoUrls].slice(0, 5);
 
         if (logoUri) {
           const isExistingStoredLogo = !!logoPath && !isLocalFileUri(logoUri);
@@ -2436,7 +2452,7 @@ export default function VendorDashboardScreen() {
         <View style={styles.cardBox}>
           <Text style={styles.assetSectionTitle}>Photo Gallery</Text>
           <Text style={styles.assetSectionText}>
-            Add multiple photos to improve your listing. The first photo becomes
+            Add up to 5 photos to improve your listing. The first photo becomes
             the main image for now.
           </Text>
 
@@ -2771,6 +2787,11 @@ export default function VendorDashboardScreen() {
               onValueChange={(value) => handleLiveToggle(value)}
             />
           </View>
+
+          <Text style={styles.liveFutureNotice}>
+            LIVE status is currently included free during launch.
+            After launch, LIVE visibility will require Growth.
+          </Text>
 
           <Pressable
             style={[styles.primaryButton, isSaving && { opacity: 0.7 }]}
@@ -4233,5 +4254,14 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginTop: 12,
     backgroundColor: SOFT_BG,
+  },
+
+  liveFutureNotice: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.72)",
+    lineHeight: 18,
+    marginTop: -8,
+    marginBottom: 16,
+    fontWeight: "600",
   },
 });

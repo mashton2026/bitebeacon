@@ -180,6 +180,11 @@ export default function UpgradeScreen() {
         Unlock more power, visibility, and growth on BiteBeacon.
       </Text>
 
+      <Text style={styles.liveNotice}>
+        LIVE status is currently free during the BiteBeacon launch period.
+        After launch, LIVE visibility will become a Growth feature.
+      </Text>
+
       <View style={styles.card}>
         <Text style={styles.planTitle}>Growth</Text>
         <Text style={styles.planPrice}>£9.99 / month</Text>
@@ -269,6 +274,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#FF7A00",
     marginBottom: 10,
+  },
+  liveNotice: {
+    fontSize: 13,
+    color: "#FFD1A6",
+    lineHeight: 18,
+    marginBottom: 20,
+    fontWeight: "700",
   },
   button: {
     marginTop: 10,

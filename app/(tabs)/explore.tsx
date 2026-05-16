@@ -144,7 +144,7 @@ function getMarkerColor(van: Van) {
   if (van.isLive) return "#1DB954";
 
   if (van.listingSource === "user_spotted") {
-    if ((van.confirmationCount ?? 0) >= 2) {
+    if ((van.confirmationCount ?? 0) >= 1) {
       return "#FF7A00";
     }
 
@@ -618,8 +618,8 @@ export default function MapScreen() {
       cancelSpotFlow();
 
       Alert.alert(
-        "Spot submitted 🔥",
-        "Your spotted van has been submitted for confirmation. If it is confirmed and later claimed, eligible spotters can earn scout points."
+        "Spot added 🔥",
+        "Your spotted van has been added to the map.\n\nIf you know the owner, let them know they can claim their listing on BiteBeacon.\n\nIf the listing is later claimed, eligible spotter can earn scout points."
       );
 
     } catch (error) {
@@ -824,12 +824,12 @@ export default function MapScreen() {
 
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, styles.legendDotSpottedPending]} />
-              <Text style={styles.legendText}>Spotted - newly reported</Text>
+              <Text style={styles.legendText}>Spotted - new sighting</Text>
             </View>
 
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, styles.legendDotSpotted]} />
-              <Text style={styles.legendText}>Spotted - community confirmed</Text>
+              <Text style={styles.legendText}>Spotted - active sighting</Text>
             </View>
 
             <View style={styles.legendItemLast}>
