@@ -29,7 +29,14 @@ type SpotPin = {
   longitude: number;
 };
 
-type FilterType = "all" | "live" | "spotted";
+type FilterType =
+  | "all"
+  | "live"
+  | "spotted"
+  | "food_van"
+  | "restaurant_takeaway"
+  | "event_vendor"
+  | "market_stall";
 
 const DEFAULT_REGION: Region = {
   latitude: 50.266,
@@ -165,6 +172,9 @@ export default function MapScreen() {
   const [spotMode, setSpotMode] = useState(false);
   const [spotName, setSpotName] = useState("");
   const [spotCuisine, setSpotCuisine] = useState("");
+  const [spotVendorType, setSpotVendorType] = useState<
+    "food_van" | "restaurant_takeaway" | "event_vendor" | "market_stall"
+  >("food_van");
   const [supabaseVans, setSupabaseVans] = useState<Van[]>([]);
   const [selectedSpotPin, setSelectedSpotPin] = useState<SpotPin | null>(null);
   const [selectedVan, setSelectedVan] = useState<Van | null>(null);
@@ -408,12 +418,18 @@ export default function MapScreen() {
   const filteredVans = useMemo(() => {
     const baseVans =
       selectedFilter === "live"
-        ? supabaseVans.filter(
-          (van) => van.isLive && !van.temporary
-        )
+        ? supabaseVans.filter((van) => van.isLive && !van.temporary)
         : selectedFilter === "spotted"
           ? supabaseVans.filter((van) => van.temporary)
-          : supabaseVans;
+          : selectedFilter === "food_van"
+            ? supabaseVans.filter((van) => van.vendorType === "food_van")
+            : selectedFilter === "restaurant_takeaway"
+              ? supabaseVans.filter((van) => van.vendorType === "restaurant_takeaway")
+              : selectedFilter === "event_vendor"
+                ? supabaseVans.filter((van) => van.vendorType === "event_vendor")
+                : selectedFilter === "market_stall"
+                  ? supabaseVans.filter((van) => van.vendorType === "market_stall")
+                  : supabaseVans;
 
     const searchedVans = searchQuery.trim()
       ? baseVans.filter((van) => matchesSearchQuery(van, searchQuery))
@@ -534,6 +550,7 @@ export default function MapScreen() {
     setSpotVisible(false);
     setSpotName("");
     setSpotCuisine("");
+    setSpotVendorType("food_van");
     setSelectedSpotPin(null);
   }
 
@@ -585,6 +602,7 @@ export default function MapScreen() {
       directions: 0,
       owner_id: null,
       subscriptionTier: "free",
+      vendorType: spotVendorType,
       foodCategories: [],
     };
 
@@ -610,7 +628,7 @@ export default function MapScreen() {
         subscriptionTier: "free",
         foodCategories: [],
         spottedBy: user.id,
-        isApproved: true,
+        isApproved: false,
       });
 
       await loadSupabaseVans(true);
@@ -618,8 +636,8 @@ export default function MapScreen() {
       cancelSpotFlow();
 
       Alert.alert(
-        "Spot added 🔥",
-        "Your spotted van has been added to the map.\n\nIf you know the owner, let them know they can claim their listing on BiteBeacon.\n\nIf the listing is later claimed, eligible spotter can earn scout points."
+        "Vendor submitted 🔥",
+        "Your spotted vendor has been submitted for admin approval.\n\nOnce approved, it will appear on the BiteBeacon map for the community to discover.\n\nThanks for helping grow BiteBeacon."
       );
 
     } catch (error) {
@@ -759,6 +777,89 @@ export default function MapScreen() {
                 ]}
               >
                 Spotted
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.filterChip,
+                selectedFilter === "food_van" && styles.filterChipActive,
+              ]}
+              onPress={() => {
+                setSelectedFilter("food_van");
+                setSelectedVan(null);
+              }}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  selectedFilter === "food_van" && styles.filterChipTextActive,
+                ]}
+              >
+                🚚 Vans
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={[
+                styles.filterChip,
+                selectedFilter === "restaurant_takeaway" &&
+                styles.filterChipActive,
+              ]}
+              onPress={() => {
+                setSelectedFilter("restaurant_takeaway");
+                setSelectedVan(null);
+              }}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  selectedFilter === "restaurant_takeaway" &&
+                  styles.filterChipTextActive,
+                ]}
+              >
+                🍔 Restaurants
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={[
+                styles.filterChip,
+                selectedFilter === "event_vendor" && styles.filterChipActive,
+              ]}
+              onPress={() => {
+                setSelectedFilter("event_vendor");
+                setSelectedVan(null);
+              }}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  selectedFilter === "event_vendor" &&
+                  styles.filterChipTextActive,
+                ]}
+              >
+                🎪 Events
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={[
+                styles.filterChip,
+                selectedFilter === "market_stall" && styles.filterChipActive,
+              ]}
+              onPress={() => {
+                setSelectedFilter("market_stall");
+                setSelectedVan(null);
+              }}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  selectedFilter === "market_stall" &&
+                  styles.filterChipTextActive,
+                ]}
+              >
+                🛍️ Markets
               </Text>
             </Pressable>
           </View>
@@ -906,7 +1007,7 @@ export default function MapScreen() {
                     {selectedVan.owner_id && !selectedVan.temporary ? (
                       <View style={styles.bottomCardFeaturedBadge}>
                         <Text style={styles.bottomCardFeaturedBadgeText}>
-                          VERIFIED
+                          CLAIMED
                         </Text>
                       </View>
                     ) : null}
@@ -928,15 +1029,19 @@ export default function MapScreen() {
                     ) : null}
                   </View>
 
-                  {selectedVan.subscriptionTier === "free" &&
-                    !selectedVan.temporary &&
-                    selectedVan.owner_id ? (
-                    <Text style={styles.bottomCardUpgradeHint}>
-                      Upgrade to Growth or Pro for stronger visibility.
-                    </Text>
-                  ) : null}
+                  <Text style={styles.bottomCardMeta}>
+                    {selectedVan.cuisine}
+                  </Text>
 
-                  <Text style={styles.bottomCardMeta}>{selectedVan.cuisine}</Text>
+                  <Text style={styles.bottomCardTrustText}>
+                    {selectedVan.vendorType === "food_van"
+                      ? "🚚 Food Van"
+                      : selectedVan.vendorType === "restaurant_takeaway"
+                        ? "🍔 Restaurant / Takeaway"
+                        : selectedVan.vendorType === "event_vendor"
+                          ? "🎪 Event Vendor"
+                          : "🛍️ Market Stall"}
+                  </Text>
 
                   <Text style={styles.bottomCardTrustText}>
                     {selectedVan.listingSource === "user_spotted"
@@ -1031,7 +1136,7 @@ export default function MapScreen() {
           <KeyboardAvoidingView
             style={styles.modalKeyboardWrap}
             behavior={Platform.OS === "ios" ? "padding" : "height"}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 24 : 0}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 40}
           >
             <View style={styles.modalCard}>
               <ScrollView
@@ -1053,6 +1158,53 @@ export default function MapScreen() {
                   onChangeText={setSpotName}
                   returnKeyType="next"
                 />
+
+                <Text style={styles.label}>Business Type</Text>
+
+                <View style={styles.typeRow}>
+                  <Pressable
+                    style={[
+                      styles.typeButton,
+                      spotVendorType === "food_van" && styles.typeButtonActive,
+                    ]}
+                    onPress={() => setSpotVendorType("food_van")}
+                  >
+                    <Text style={styles.typeButtonText}>🚚 Food Van</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={[
+                      styles.typeButton,
+                      spotVendorType === "restaurant_takeaway" &&
+                      styles.typeButtonActive,
+                    ]}
+                    onPress={() => setSpotVendorType("restaurant_takeaway")}
+                  >
+                    <Text style={styles.typeButtonText}>🍔 Restaurant</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={[
+                      styles.typeButton,
+                      spotVendorType === "event_vendor" &&
+                      styles.typeButtonActive,
+                    ]}
+                    onPress={() => setSpotVendorType("event_vendor")}
+                  >
+                    <Text style={styles.typeButtonText}>🎪 Event</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={[
+                      styles.typeButton,
+                      spotVendorType === "market_stall" &&
+                      styles.typeButtonActive,
+                    ]}
+                    onPress={() => setSpotVendorType("market_stall")}
+                  >
+                    <Text style={styles.typeButtonText}>🛍️ Market</Text>
+                  </Pressable>
+                </View>
 
                 <TextInput
                   style={styles.input}
@@ -1080,6 +1232,40 @@ export default function MapScreen() {
 }
 
 const styles = StyleSheet.create({
+
+  label: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0B2A5B",
+    marginBottom: 8,
+  },
+
+  typeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 12,
+  },
+
+  typeButton: {
+    backgroundColor: "#EEF2F7",
+    borderWidth: 2,
+    borderColor: "#FF7A00",
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
+
+  typeButtonActive: {
+    backgroundColor: "#0B2A5B",
+  },
+
+  typeButtonText: {
+    color: "#0B2A5B",
+    fontWeight: "800",
+    fontSize: 12,
+  },
+
   permissionButton: {
     marginTop: 10,
     backgroundColor: "#FFFFFF",

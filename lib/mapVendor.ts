@@ -1,4 +1,4 @@
-import { type SubscriptionTier, type Van } from "../types/van";
+import { type SubscriptionTier, type VendorType, type Van } from "../types/van";
 
 type VendorRow = {
   id: string | number;
@@ -27,6 +27,7 @@ type VendorRow = {
   directions?: number | null;
   owner_id?: string | null;
   subscription_tier?: SubscriptionTier | null;
+  vendor_type?: VendorType | null;
   food_categories?: string[] | null;
   is_suspended?: boolean | null;
   suspension_reason?: string | null;
@@ -105,6 +106,7 @@ export function mapVendorRowToVan(row: VendorRow): Van {
         : 0,
     owner_id: toNullableString(row.owner_id),
     subscriptionTier: toSafeSubscriptionTier(row.subscription_tier),
+    vendorType: row.vendor_type ?? "food_van",
     foodCategories: toSafeStringArray(row.food_categories),
     isSuspended: row.is_suspended ?? false,
     suspensionReason: toNullableString(row.suspension_reason),

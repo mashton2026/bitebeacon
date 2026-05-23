@@ -34,6 +34,7 @@ type CreateVendorInput = {
   directions?: number;
   rating?: number;
   subscriptionTier?: "free" | "growth" | "pro";
+  vendorType?: "food_van" | "restaurant_takeaway" | "event_vendor" | "market_stall";
   foodCategories?: string[];
 };
 
@@ -225,6 +226,7 @@ export async function createVendor(input: CreateVendorInput): Promise<void> {
       views: input.views ?? 0,
       directions: input.directions ?? 0,
       subscription_tier: input.subscriptionTier ?? "free",
+      vendor_type: input.vendorType ?? "food_van",
       food_categories: input.foodCategories ?? [],
       what3words: input.what3words ?? null,
       instagram_url: input.instagramUrl ?? null,

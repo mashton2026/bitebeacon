@@ -1,5 +1,11 @@
 export type SubscriptionTier = "free" | "growth" | "pro";
 
+export type VendorType =
+  | "food_van"
+  | "restaurant_takeaway"
+  | "event_vendor"
+  | "market_stall";
+
 export type Van = {
   id: string;
   name: string;
@@ -31,6 +37,7 @@ export type Van = {
   directions?: number;
   owner_id?: string | null;
   subscriptionTier?: SubscriptionTier;
+  vendorType?: VendorType;
   foodCategories?: string[];
   confirmationCount?: number;
   isSuspended?: boolean;

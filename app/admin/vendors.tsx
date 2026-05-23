@@ -24,7 +24,9 @@ export default function AdminVendorsScreen() {
   const [vendors, setVendors] = useState<Van[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "suspended">("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "pending" | "active" | "suspended"
+  >("all");
   const [processingVendorId, setProcessingVendorId] = useState<string | null>(
     null
   );
@@ -77,7 +79,8 @@ export default function AdminVendorsScreen() {
   const vendorCounts = useMemo(() => {
     return {
       all: vendors.length,
-      active: vendors.filter((v) => !v.isSuspended).length,
+      pending: vendors.filter((v) => !v.isApproved && !v.isSuspended).length,
+      active: vendors.filter((v) => v.isApproved && !v.isSuspended).length,
       suspended: vendors.filter((v) => v.isSuspended).length,
     };
   }, [vendors]);
@@ -94,7 +97,12 @@ export default function AdminVendorsScreen() {
 
       const matchesStatus =
         statusFilter === "all" ||
-        (statusFilter === "active" && !vendor.isSuspended) ||
+        (statusFilter === "pending" &&
+          !vendor.isApproved &&
+          !vendor.isSuspended) ||
+        (statusFilter === "active" &&
+          vendor.isApproved &&
+          !vendor.isSuspended) ||
         (statusFilter === "suspended" && vendor.isSuspended);
 
       return matchesSearch && matchesStatus;
@@ -441,7 +449,7 @@ export default function AdminVendorsScreen() {
             </Text>
 
             <View style={styles.filterRow}>
-              {(["all", "active", "suspended"] as const).map((filter) => (
+              {(["all", "pending", "active", "suspended"] as const).map((filter) => (
                 <Pressable
                   key={filter}
                   style={[
@@ -502,6 +510,7 @@ const styles = StyleSheet.create({
 
   filterRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
     marginBottom: 16,
   },
