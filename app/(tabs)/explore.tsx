@@ -181,6 +181,8 @@ export default function MapScreen() {
   const [selectedFilter, setSelectedFilter] = useState<FilterType>("all");
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
   const [userRegion, setUserRegion] = useState<Region>(DEFAULT_REGION);
   const [legendOpen, setLegendOpen] = useState(false);
   const [vendorsLoading, setVendorsLoading] = useState(true);
@@ -581,7 +583,7 @@ export default function MapScreen() {
     }
 
     const expiresAt = new Date(
-      Date.now() + 30 * 24 * 60 * 60 * 1000
+      Date.now() + 180 * 24 * 60 * 60 * 1000
     ).toISOString();
 
     const newVan: Van = {
@@ -678,9 +680,12 @@ export default function MapScreen() {
         ref={mapRef}
         style={styles.map}
         initialRegion={DEFAULT_REGION}
+        mapType={mapType}
         showsUserLocation
         showsMyLocationButton={false}
-        customMapStyle={BITEBEACON_MAP_STYLE}
+        customMapStyle={
+          mapType === "standard" ? BITEBEACON_MAP_STYLE : []
+        }
         onPress={handleMapPress}
         onMapReady={() => {
           setMapReady(true);
@@ -721,164 +726,125 @@ export default function MapScreen() {
         <View style={styles.topControlsRow}>
           <View style={styles.filterBar}>
             <Pressable
-              style={[
-                styles.filterChip,
-                selectedFilter === "all" && styles.filterChipActive,
-              ]}
-              onPress={() => {
-                setSelectedFilter("all");
-                setSelectedVan(null);
-              }}
+              style={[styles.filterChip, filtersOpen && styles.filterChipActive]}
+              onPress={() => setFiltersOpen((current) => !current)}
             >
               <Text
                 style={[
                   styles.filterChipText,
-                  selectedFilter === "all" && styles.filterChipTextActive,
+                  filtersOpen && styles.filterChipTextActive,
                 ]}
               >
-                All
+                Filters
+              </Text>
+            </Pressable>
+
+            {!legendOpen ? (
+              <Pressable
+                style={styles.legendButton}
+                onPress={() => setLegendOpen(true)}
+              >
+                <Text style={styles.legendButtonText}>Map Guide</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                style={styles.legendCard}
+                onPress={() => setLegendOpen(false)}
+              >
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendDot, styles.legendDotPro]} />
+                  <Text style={styles.legendText}>Pro Vendor</Text>
+                </View>
+
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendDot, styles.legendDotLive]} />
+                  <Text style={styles.legendText}>Live Now</Text>
+                </View>
+
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendDot, styles.legendDotSpottedPending]} />
+                  <Text style={styles.legendText}>Spotted - new sighting</Text>
+                </View>
+
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendDot, styles.legendDotSpotted]} />
+                  <Text style={styles.legendText}>Spotted - active sighting</Text>
+                </View>
+
+                <View style={styles.legendItemLast}>
+                  <View style={[styles.legendDot, styles.legendDotListed]} />
+                  <Text style={styles.legendText}>Listed / Offline</Text>
+                </View>
+              </Pressable>
+            )}
+          </View>
+
+          <View style={styles.mapActionButtons}>
+            <Pressable
+              style={styles.searchIconButton}
+              onPress={() => {
+                if (searchVisible) {
+                  closeSearch();
+                } else {
+                  setSearchVisible(true);
+                }
+              }}
+            >
+              <Text style={styles.searchIconText}>
+                {searchVisible ? "✕" : "🔍"}
               </Text>
             </Pressable>
 
             <Pressable
-              style={[
-                styles.filterChip,
-                selectedFilter === "live" && styles.filterChipActive,
-              ]}
-              onPress={() => {
-                setSelectedFilter("live");
-                setSelectedVan(null);
-              }}
+              style={styles.searchIconButton}
+              onPress={() =>
+                setMapType((current) =>
+                  current === "standard" ? "satellite" : "standard"
+                )
+              }
             >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  selectedFilter === "live" && styles.filterChipTextActive,
-                ]}
-              >
-                Live ({liveVendorCount})
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={[
-                styles.filterChip,
-                selectedFilter === "spotted" && styles.filterChipActive,
-              ]}
-              onPress={() => {
-                setSelectedFilter("spotted");
-                setSelectedVan(null);
-              }}
-            >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  selectedFilter === "spotted" && styles.filterChipTextActive,
-                ]}
-              >
-                Spotted
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.filterChip,
-                selectedFilter === "food_van" && styles.filterChipActive,
-              ]}
-              onPress={() => {
-                setSelectedFilter("food_van");
-                setSelectedVan(null);
-              }}
-            >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  selectedFilter === "food_van" && styles.filterChipTextActive,
-                ]}
-              >
-                🚚 Vans
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={[
-                styles.filterChip,
-                selectedFilter === "restaurant_takeaway" &&
-                styles.filterChipActive,
-              ]}
-              onPress={() => {
-                setSelectedFilter("restaurant_takeaway");
-                setSelectedVan(null);
-              }}
-            >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  selectedFilter === "restaurant_takeaway" &&
-                  styles.filterChipTextActive,
-                ]}
-              >
-                🍔 Restaurants
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={[
-                styles.filterChip,
-                selectedFilter === "event_vendor" && styles.filterChipActive,
-              ]}
-              onPress={() => {
-                setSelectedFilter("event_vendor");
-                setSelectedVan(null);
-              }}
-            >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  selectedFilter === "event_vendor" &&
-                  styles.filterChipTextActive,
-                ]}
-              >
-                🎪 Events
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={[
-                styles.filterChip,
-                selectedFilter === "market_stall" && styles.filterChipActive,
-              ]}
-              onPress={() => {
-                setSelectedFilter("market_stall");
-                setSelectedVan(null);
-              }}
-            >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  selectedFilter === "market_stall" &&
-                  styles.filterChipTextActive,
-                ]}
-              >
-                🛍️ Markets
+              <Text style={styles.searchIconText}>
+                {mapType === "standard" ? "🛰️" : "🗺️"}
               </Text>
             </Pressable>
           </View>
-
-          <Pressable
-            style={styles.searchIconButton}
-            onPress={() => {
-              if (searchVisible) {
-                closeSearch();
-              } else {
-                setSearchVisible(true);
-              }
-            }}
-          >
-            <Text style={styles.searchIconText}>
-              {searchVisible ? "✕" : "🔍"}
-            </Text>
-          </Pressable>
         </View>
+
+        {filtersOpen ? (
+          <View style={styles.extraFiltersRow}>
+            {[
+              { key: "all", label: "All" },
+              { key: "live", label: `Live (${liveVendorCount})` },
+              { key: "spotted", label: "Spotted" },
+              { key: "food_van", label: "🚚 Vans" },
+              { key: "restaurant_takeaway", label: "🍔 Restaurants" },
+              { key: "event_vendor", label: "🎪 Events" },
+              { key: "market_stall", label: "🛍️ Markets" },
+            ].map((filter) => (
+              <Pressable
+                key={filter.key}
+                style={[
+                  styles.filterChip,
+                  selectedFilter === filter.key && styles.filterChipActive,
+                ]}
+                onPress={() => {
+                  setSelectedFilter(filter.key as FilterType);
+                  setSelectedVan(null);
+                  setFiltersOpen(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    selectedFilter === filter.key && styles.filterChipTextActive,
+                  ]}
+                >
+                  {filter.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
 
         {searchVisible ? (
           <View style={styles.searchRow}>
@@ -901,44 +867,6 @@ export default function MapScreen() {
           </View>
         ) : null}
 
-        {!legendOpen ? (
-          <Pressable
-            style={styles.legendButton}
-            onPress={() => setLegendOpen(true)}
-          >
-            <Text style={styles.legendButtonText}>Map Guide</Text>
-          </Pressable>
-        ) : (
-          <Pressable
-            style={styles.legendCard}
-            onPress={() => setLegendOpen(false)}
-          >
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, styles.legendDotPro]} />
-              <Text style={styles.legendText}>Pro Vendor</Text>
-            </View>
-
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, styles.legendDotLive]} />
-              <Text style={styles.legendText}>Live Now</Text>
-            </View>
-
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, styles.legendDotSpottedPending]} />
-              <Text style={styles.legendText}>Spotted - new sighting</Text>
-            </View>
-
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, styles.legendDotSpotted]} />
-              <Text style={styles.legendText}>Spotted - active sighting</Text>
-            </View>
-
-            <View style={styles.legendItemLast}>
-              <View style={[styles.legendDot, styles.legendDotListed]} />
-              <Text style={styles.legendText}>Listed / Offline</Text>
-            </View>
-          </Pressable>
-        )}
       </View>
 
       {spotMode ? (
@@ -1319,6 +1247,10 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
 
+  mapActionButtons: {
+    gap: 10,
+  },
+
   topControlsRow: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -1332,6 +1264,13 @@ const styles = StyleSheet.create({
     gap: 10,
     flex: 1,
     flexWrap: "wrap",
+  },
+
+  extraFiltersRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 10,
   },
 
   searchRow: {
@@ -1428,6 +1367,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderWidth: 1.5,
     borderColor: "#FF7A00",
+    marginTop: -4,
   },
 
   legendButtonText: {
