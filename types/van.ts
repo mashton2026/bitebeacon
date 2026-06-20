@@ -33,6 +33,7 @@ export type Van = {
   what3words?: string | null;
   vendorMessage?: string;
   isLive: boolean;
+  liveUntil?: string | null;
   views?: number;
   directions?: number;
   owner_id?: string | null;

@@ -101,10 +101,18 @@ const BITEBEACON_MAP_STYLE = [
   },
 ];
 
+function isVendorLiveNow(van: Van) {
+  if (!van.isLive) return false;
+
+  if (!van.liveUntil) return true;
+
+  return new Date(van.liveUntil).getTime() > Date.now();
+}
+
 function getStatusLabel(van: Van) {
   if (van.listingSource === "user_spotted") return "SPOTTED";
   if (getSubscriptionFeatures(van.subscriptionTier).liveStatus) {
-    return van.isLive ? "LIVE" : "LISTED";
+    return isVendorLiveNow(van) ? "LIVE" : "LISTED";
   }
 
   return "LISTED";
@@ -148,7 +156,7 @@ function matchesSearchQuery(van: Van, query: string) {
 }
 
 function getMarkerColor(van: Van) {
-  if (van.isLive) return "#1DB954";
+  if (isVendorLiveNow(van)) return "#1DB954";
 
   if (van.listingSource === "user_spotted") {
     if ((van.confirmationCount ?? 0) >= 1) {
@@ -414,13 +422,13 @@ export default function MapScreen() {
   }
 
   const liveVendorCount = useMemo(() => {
-    return supabaseVans.filter((van) => van.isLive && !van.temporary).length;
+    return supabaseVans.filter((van) => isVendorLiveNow(van) && !van.temporary).length;
   }, [supabaseVans]);
 
   const filteredVans = useMemo(() => {
     const baseVans =
       selectedFilter === "live"
-        ? supabaseVans.filter((van) => van.isLive && !van.temporary)
+        ? supabaseVans.filter((van) => isVendorLiveNow(van) && !van.temporary)
         : selectedFilter === "spotted"
           ? supabaseVans.filter((van) => van.temporary)
           : selectedFilter === "food_van"
@@ -450,7 +458,7 @@ export default function MapScreen() {
         if (van.subscriptionTier === "pro") score += 1000;
         else if (van.subscriptionTier === "growth") score += 500;
 
-        if (van.isLive) score += 200;
+        if (isVendorLiveNow(van)) score += 200;
 
         score += (van.directions ?? 0) * 5;
         score += van.views ?? 0;
@@ -984,7 +992,7 @@ export default function MapScreen() {
                   styles.statusPill,
                   selectedVan.temporary
                     ? styles.statusTemporary
-                    : selectedVan.isLive
+                    : isVendorLiveNow(selectedVan)
                       ? styles.statusLive
                       : selectedVan.subscriptionTier === "pro"
                         ? styles.statusFeatured
@@ -996,7 +1004,7 @@ export default function MapScreen() {
                     styles.statusPillText,
                     selectedVan.subscriptionTier === "pro" &&
                     !selectedVan.temporary &&
-                    !selectedVan.isLive &&
+                    !isVendorLiveNow(selectedVan) &&
                     styles.statusPillTextFeatured,
                   ]}
                 >

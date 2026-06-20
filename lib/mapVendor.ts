@@ -1,4 +1,4 @@
-import { type SubscriptionTier, type VendorType, type Van } from "../types/van";
+import { type SubscriptionTier, type Van, type VendorType } from "../types/van";
 
 type VendorRow = {
   id: string | number;
@@ -22,6 +22,7 @@ type VendorRow = {
   menu_pdf_name?: string | null;
   vendor_message?: string | null;
   is_live?: boolean | null;
+  live_until?: string | null;
   isApproved?: boolean | null;
   views?: number | null;
   directions?: number | null;
@@ -98,6 +99,7 @@ export function mapVendorRowToVan(row: VendorRow): Van {
     menuPdfName: toNullableString(row.menu_pdf_name),
     vendorMessage: toSafeString(row.vendor_message),
     isLive: row.is_live ?? false,
+    liveUntil: toNullableString(row.live_until),
     isApproved: (row as any).isApproved ?? (row as any).isapproved ?? false,
     views: typeof row.views === "number" && Number.isFinite(row.views) ? row.views : 0,
     directions:

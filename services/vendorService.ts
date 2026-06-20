@@ -28,6 +28,7 @@ type CreateVendorInput = {
   listingSource?: "admin_seeded" | "user_spotted";
   expiresAt?: string;
   isLive?: boolean;
+  liveUntil?: string | null;
   owner_id?: string | null;
   spottedBy?: string | null;
   views?: number;
@@ -51,6 +52,7 @@ type UpdateVendorInput = {
   menuPdfUrl?: string | null;
   menuPdfName?: string | null;
   isLive?: boolean;
+  liveUntil?: string | null;
   foodCategories?: string[];
 };
 
@@ -67,6 +69,27 @@ export async function getAllVendors(): Promise<Van[]> {
   if (error) throw new Error(error.message);
 
   const vendors = data ?? [];
+
+  const now = new Date().toISOString();
+
+  const expiredLiveVendorIds = vendors
+    .filter(
+      (vendor) =>
+        vendor.is_live === true &&
+        vendor.live_until &&
+        vendor.live_until <= now
+    )
+    .map((vendor) => vendor.id);
+
+  if (expiredLiveVendorIds.length > 0) {
+    await supabase
+      .from("vendors")
+      .update({
+        is_live: false,
+        live_until: null,
+      })
+      .in("id", expiredLiveVendorIds);
+  }
 
   // Get spotted vendor IDs
   const spottedVendorIds = vendors
@@ -221,6 +244,7 @@ export async function createVendor(input: CreateVendorInput): Promise<void> {
       menu_pdf_url: input.menuPdfUrl ?? null,
       menu_pdf_name: input.menuPdfName ?? null,
       is_live: input.isLive ?? false,
+      live_until: input.liveUntil ?? null,
       owner_id: input.owner_id ?? null,
       spotted_by: input.spottedBy ?? null,
       views: input.views ?? 0,
@@ -312,6 +336,7 @@ export async function updateVendor(
   if (input.menuPdfUrl !== undefined) updates.menu_pdf_url = input.menuPdfUrl;
   if (input.menuPdfName !== undefined) updates.menu_pdf_name = input.menuPdfName;
   if (input.isLive !== undefined) updates.is_live = input.isLive;
+  if (input.liveUntil !== undefined) updates.live_until = input.liveUntil;
   if (input.foodCategories !== undefined) {
     updates.food_categories = input.foodCategories;
   }
@@ -353,7 +378,8 @@ export async function updateVendorSubscriptionTier(
 
 export async function setVendorLiveStatus(
   id: string,
-  isLive: boolean
+  isLive: boolean,
+  liveUntil?: string | null
 ): Promise<void> {
   if (!id?.trim()) {
     throw new Error("Vendor id is required.");
@@ -361,7 +387,10 @@ export async function setVendorLiveStatus(
 
   const { error } = await supabase
     .from("vendors")
-    .update({ is_live: isLive })
+    .update({
+      is_live: isLive,
+      live_until: isLive ? liveUntil ?? null : null,
+    })
     .eq("id", id);
 
   if (error) throw new Error(error.message);

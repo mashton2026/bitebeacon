@@ -294,6 +294,8 @@ function TierExplanationCard({
 export default function VendorDashboardScreen() {
   const params = useLocalSearchParams();
   const scrollRef = useRef<ScrollView | null>(null);
+  const editSectionY = useRef(0);
+  const liveDurationY = useRef(0);
   const statusUpdateInputRef = useRef<TextInput | null>(null);
   const hasShownLocationAlert = useRef(false);
   const [loading, setLoading] = useState(true);
@@ -309,6 +311,7 @@ export default function VendorDashboardScreen() {
   const [schedule, setSchedule] = useState("");
   const [vendorMessage, setVendorMessage] = useState("");
   const [isLive, setIsLive] = useState(false);
+  const [liveDurationHours, setLiveDurationHours] = useState<1 | 2 | 4 | 8>(4);
   const [foodCategories, setFoodCategories] = useState<string[]>([]);
   const [instagram, setInstagram] = useState("");
   const [facebook, setFacebook] = useState("");
@@ -817,12 +820,30 @@ export default function VendorDashboardScreen() {
     openSection("edit");
 
     setTimeout(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
+      scrollRef.current?.scrollTo({
+        y: Math.max(editSectionY.current - 20, 0),
+        animated: true,
+      });
 
       setTimeout(() => {
         statusUpdateInputRef.current?.focus();
       }, 350);
     }, 200);
+  }
+
+  function jumpToLiveDuration() {
+    openSection("edit");
+
+    if (!isLive) {
+      setIsLive(true);
+    }
+
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({
+        y: Math.max(editSectionY.current + liveDurationY.current - 80, 0),
+        animated: true,
+      });
+    }, 600);
   }
 
   function updateLocation() {
@@ -869,12 +890,22 @@ export default function VendorDashboardScreen() {
     }
 
     try {
+      const nextLiveUntil = newStatus ? van.liveUntil ?? null : null;
+
       await supabase
         .from("vendors")
-        .update({ is_live: newStatus })
+        .update({
+          is_live: newStatus,
+          live_until: nextLiveUntil,
+        })
         .eq("id", van.id);
 
       setIsLive(newStatus);
+      setVan({
+        ...van,
+        isLive: newStatus,
+        liveUntil: nextLiveUntil,
+      });
     } catch (error) {
       Alert.alert(
         "Error updating live status",
@@ -972,6 +1003,14 @@ export default function VendorDashboardScreen() {
         }
       }
 
+      let liveUntil: string | null = null;
+
+      if (isLive) {
+        const expiry = new Date();
+        expiry.setHours(expiry.getHours() + liveDurationHours);
+        liveUntil = expiry.toISOString();
+      }
+
       const { error } = await supabase
         .from("vendors")
         .update({
@@ -988,6 +1027,7 @@ export default function VendorDashboardScreen() {
           menu_pdf_url: features.images ? nextMenuPdfStoragePath : null,
           menu_pdf_name: features.images ? nextMenuPdfName : null,
           is_live: isLive,
+          live_until: liveUntil,
           food_categories: foodCategories,
           website_url: features.socialLinks ? website.trim() || null : null,
           instagram_url: features.socialLinks ? instagram.trim() || null : null,
@@ -1019,6 +1059,7 @@ export default function VendorDashboardScreen() {
         schedule: schedule.trim() || "Schedule coming soon",
         vendorMessage: features.reviews ? vendorMessage.trim() : "",
         isLive: isLive,
+        liveUntil: liveUntil,
         foodCategories,
         instagramUrl: features.socialLinks ? instagram.trim() || null : null,
         facebookUrl: features.socialLinks ? facebook.trim() || null : null,
@@ -1287,7 +1328,7 @@ export default function VendorDashboardScreen() {
       return {
         title: "Go LIVE now",
         body: "You are entering peak food hours. Turning LIVE on now increases your chances of being discovered.",
-        action: () => handleLiveToggle(true),
+        action: jumpToEditSection,
         cta: "Go Live",
       };
     }
@@ -1415,6 +1456,23 @@ export default function VendorDashboardScreen() {
       hasEnoughData: recentViews >= 10 || recentDirections >= 3,
     };
   }, [heatmapPoints, insights, van]);
+
+  const liveTimeRemaining = useMemo(() => {
+    if (!van?.liveUntil || !isLive) return null;
+
+    const now = Date.now();
+    const expiry = new Date(van.liveUntil).getTime();
+
+    const diffMs = expiry - now;
+
+    if (diffMs <= 0) return null;
+
+    const totalMinutes = Math.floor(diffMs / 60000);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    return `${hours}h ${minutes}m remaining`;
+  }, [van?.liveUntil, isLive]);
 
   useEffect(() => {
     if (!van) return;
@@ -1806,12 +1864,29 @@ export default function VendorDashboardScreen() {
 
         <View style={styles.quickActionsGrid}>
           <Pressable
-            style={[styles.quickActionButton, styles.quickActionPrimary]}
-            onPress={() => handleLiveToggle(!isLive)}
+            style={[
+              styles.quickActionButton,
+              isLive
+                ? styles.quickActionPrimary
+                : styles.quickActionSecondary,
+            ]}
+            onPress={() => {
+              if (isLive) {
+                handleLiveToggle(false);
+              } else {
+                jumpToLiveDuration();
+              }
+            }}
           >
             <Text style={styles.quickActionPrimaryText}>
               {isLive ? "Go Offline" : "Go Live"}
             </Text>
+
+            {isLive && liveTimeRemaining ? (
+              <Text style={styles.quickActionHintText}>{liveTimeRemaining}</Text>
+            ) : !isLive ? (
+              <Text style={styles.quickActionHintText}>Jump to timer</Text>
+            ) : null}
           </Pressable>
 
           <Pressable
@@ -1873,25 +1948,7 @@ export default function VendorDashboardScreen() {
             </Pressable>
           ) : null}
         </View>
-        {actionRecommendation ? (
-          <View style={styles.recommendationCard}>
-            <Text style={styles.recommendationTitle}>
-              {actionRecommendation.title}
-            </Text>
-            <Text style={styles.recommendationText}>
-              {actionRecommendation.body}
-            </Text>
-
-            <Pressable
-              style={styles.recommendationButton}
-              onPress={actionRecommendation.action}
-            >
-              <Text style={styles.recommendationButtonText}>
-                {actionRecommendation.cta}
-              </Text>
-            </Pressable>
-          </View>
-        ) : null}
+        
       </View>
 
       <DashboardAccordionSection
@@ -2551,273 +2608,311 @@ export default function VendorDashboardScreen() {
         </View>
       </DashboardAccordionSection>
 
-      <DashboardAccordionSection
-        title="Edit Listing"
-        subtitle="Update the details customers see on your public profile."
-        isOpen={openSections.edit}
-        onToggle={() => toggleSection("edit")}
+      <View
+        onLayout={(event) => {
+          editSectionY.current = event.nativeEvent.layout.y;
+        }}
       >
-        <View style={styles.cardBox}>
-          <Text style={styles.label}>Van name</Text>
-          <TextInput
-            style={styles.input}
-            value={name}
-            onChangeText={setName}
-            placeholder="Van name"
-            placeholderTextColor="#7A7A7A"
-          />
-
-          <Text style={styles.label}>Vendor name</Text>
-          <TextInput
-            style={styles.input}
-            value={vendorName}
-            onChangeText={setVendorName}
-            placeholder="Vendor name"
-            placeholderTextColor="#7A7A7A"
-          />
-
-          <Text style={styles.label}>Cuisine</Text>
-          <TextInput
-            style={styles.input}
-            value={cuisine}
-            onChangeText={setCuisine}
-            placeholder="Cuisine"
-            placeholderTextColor="#7A7A7A"
-          />
-
-          <Text style={styles.label}>Menu</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={menu}
-            onChangeText={setMenu}
-            placeholder="Menu"
-            placeholderTextColor="#7A7A7A"
-            multiline
-          />
-
-          <Text style={styles.label}>Schedule</Text>
-
-          <Text style={styles.label}>Instagram</Text>
-
-          {!features.socialLinks ? (
-            <View style={styles.inlineLockedCard}>
-              <Text style={styles.inlineLockedTitle}>Growth feature</Text>
-              <Text style={styles.inlineLockedText}>
-                Upgrade to Growth to add your Instagram and build customer trust.
-              </Text>
-            </View>
-          ) : (
+        <DashboardAccordionSection
+          title="Edit Listing"
+          subtitle="Update the details customers see on your public profile."
+          isOpen={openSections.edit}
+          onToggle={() => toggleSection("edit")}
+        >
+          <View style={styles.cardBox}>
+            <Text style={styles.label}>Van name</Text>
             <TextInput
               style={styles.input}
-              value={instagram}
-              onChangeText={setInstagram}
-              placeholder="https://instagram.com/yourpage"
+              value={name}
+              onChangeText={setName}
+              placeholder="Van name"
               placeholderTextColor="#7A7A7A"
             />
-          )}
 
-          <Text style={styles.label}>Facebook</Text>
-
-          {!features.socialLinks ? (
-            <View style={styles.inlineLockedCard}>
-              <Text style={styles.inlineLockedTitle}>Growth feature</Text>
-              <Text style={styles.inlineLockedText}>
-                Upgrade to Growth to add your Facebook page.
-              </Text>
-            </View>
-          ) : (
+            <Text style={styles.label}>Vendor name</Text>
             <TextInput
               style={styles.input}
-              value={facebook}
-              onChangeText={setFacebook}
-              placeholder="https://facebook.com/yourpage"
+              value={vendorName}
+              onChangeText={setVendorName}
+              placeholder="Vendor name"
               placeholderTextColor="#7A7A7A"
             />
-          )}
 
-          <Text style={styles.label}>Website</Text>
-
-          {!features.socialLinks ? (
-            <View style={styles.inlineLockedCard}>
-              <Text style={styles.inlineLockedTitle}>Growth feature</Text>
-              <Text style={styles.inlineLockedText}>
-                Upgrade to Growth to add your website link.
-              </Text>
-            </View>
-          ) : (
+            <Text style={styles.label}>Cuisine</Text>
             <TextInput
               style={styles.input}
-              value={website}
-              onChangeText={setWebsite}
-              placeholder="https://yourwebsite.com"
+              value={cuisine}
+              onChangeText={setCuisine}
+              placeholder="Cuisine"
               placeholderTextColor="#7A7A7A"
             />
-          )}
 
-          <Text style={styles.label}>what3words location</Text>
+            <Text style={styles.label}>Menu</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={menu}
+              onChangeText={setMenu}
+              placeholder="Menu"
+              placeholderTextColor="#7A7A7A"
+              multiline
+            />
 
-          {!features.socialLinks ? (
-            <View style={styles.inlineLockedCard}>
-              <Text style={styles.inlineLockedTitle}>Growth feature</Text>
-              <Text style={styles.inlineLockedText}>
-                Upgrade to Growth to add a precise what3words location.
-              </Text>
-            </View>
-          ) : (
+            <Text style={styles.label}>Schedule</Text>
+
+            <Text style={styles.label}>Instagram</Text>
+
+            {!features.socialLinks ? (
+              <View style={styles.inlineLockedCard}>
+                <Text style={styles.inlineLockedTitle}>Growth feature</Text>
+                <Text style={styles.inlineLockedText}>
+                  Upgrade to Growth to add your Instagram and build customer trust.
+                </Text>
+              </View>
+            ) : (
+              <TextInput
+                style={styles.input}
+                value={instagram}
+                onChangeText={setInstagram}
+                placeholder="https://instagram.com/yourpage"
+                placeholderTextColor="#7A7A7A"
+              />
+            )}
+
+            <Text style={styles.label}>Facebook</Text>
+
+            {!features.socialLinks ? (
+              <View style={styles.inlineLockedCard}>
+                <Text style={styles.inlineLockedTitle}>Growth feature</Text>
+                <Text style={styles.inlineLockedText}>
+                  Upgrade to Growth to add your Facebook page.
+                </Text>
+              </View>
+            ) : (
+              <TextInput
+                style={styles.input}
+                value={facebook}
+                onChangeText={setFacebook}
+                placeholder="https://facebook.com/yourpage"
+                placeholderTextColor="#7A7A7A"
+              />
+            )}
+
+            <Text style={styles.label}>Website</Text>
+
+            {!features.socialLinks ? (
+              <View style={styles.inlineLockedCard}>
+                <Text style={styles.inlineLockedTitle}>Growth feature</Text>
+                <Text style={styles.inlineLockedText}>
+                  Upgrade to Growth to add your website link.
+                </Text>
+              </View>
+            ) : (
+              <TextInput
+                style={styles.input}
+                value={website}
+                onChangeText={setWebsite}
+                placeholder="https://yourwebsite.com"
+                placeholderTextColor="#7A7A7A"
+              />
+            )}
+
+            <Text style={styles.label}>what3words location</Text>
+
+            {!features.socialLinks ? (
+              <View style={styles.inlineLockedCard}>
+                <Text style={styles.inlineLockedTitle}>Growth feature</Text>
+                <Text style={styles.inlineLockedText}>
+                  Upgrade to Growth to add a precise what3words location.
+                </Text>
+              </View>
+            ) : (
+              <TextInput
+                style={styles.input}
+                value={what3words}
+                onChangeText={setWhat3words}
+                placeholder="e.g. filled.count.soap"
+                placeholderTextColor="#7A7A7A"
+              />
+            )}
+
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={schedule}
+              onChangeText={setSchedule}
+              placeholder="Weekly schedule"
+              placeholderTextColor="#7A7A7A"
+              multiline
+            />
+
+            <Text style={styles.label}>Food categories</Text>
             <TextInput
               style={styles.input}
-              value={what3words}
-              onChangeText={setWhat3words}
-              placeholder="e.g. filled.count.soap"
+              value={foodCategorySearch}
+              onChangeText={setFoodCategorySearch}
+              placeholder="Search food categories"
               placeholderTextColor="#7A7A7A"
             />
-          )}
 
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={schedule}
-            onChangeText={setSchedule}
-            placeholder="Weekly schedule"
-            placeholderTextColor="#7A7A7A"
-            multiline
-          />
+            <View style={styles.checkboxGroup}>
+              {filteredFoodCategoryOptions.map((category) => {
+                const isSelected = foodCategories.includes(category);
 
-          <Text style={styles.label}>Food categories</Text>
-          <TextInput
-            style={styles.input}
-            value={foodCategorySearch}
-            onChangeText={setFoodCategorySearch}
-            placeholder="Search food categories"
-            placeholderTextColor="#7A7A7A"
-          />
-
-          <View style={styles.checkboxGroup}>
-            {filteredFoodCategoryOptions.map((category) => {
-              const isSelected = foodCategories.includes(category);
-
-              return (
-                <Pressable
-                  key={category}
-                  style={[
-                    styles.checkboxChip,
-                    isSelected && styles.checkboxChipSelected,
-                  ]}
-                  onPress={() => toggleFoodCategory(category)}
-                >
-                  <Text
+                return (
+                  <Pressable
+                    key={category}
                     style={[
-                      styles.checkboxChipText,
-                      isSelected && styles.checkboxChipTextSelected,
+                      styles.checkboxChip,
+                      isSelected && styles.checkboxChipSelected,
                     ]}
+                    onPress={() => toggleFoodCategory(category)}
                   >
-                    {isSelected ? "✓ " : ""}
-                    {category}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+                    <Text
+                      style={[
+                        styles.checkboxChipText,
+                        isSelected && styles.checkboxChipTextSelected,
+                      ]}
+                    >
+                      {isSelected ? "✓ " : ""}
+                      {category}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
 
-          {canAddCustomCategory ? (
+            {canAddCustomCategory ? (
+              <Pressable
+                style={styles.addCustomCategoryButton}
+                onPress={() => {
+                  const trimmedCategory = foodCategorySearch.trim();
+
+                  if (!trimmedCategory) return;
+
+                  setFoodCategories((current) => {
+                    const alreadyExists = current.some(
+                      (item) => item.toLowerCase() === trimmedCategory.toLowerCase()
+                    );
+
+                    if (alreadyExists) return current;
+
+                    return [...current, trimmedCategory];
+                  });
+
+                  setFoodCategorySearch("");
+                }}
+              >
+                <Text style={styles.addCustomCategoryButtonText}>
+                  Add "{foodCategorySearch.trim()}" as a cuisine
+                </Text>
+              </Pressable>
+            ) : null}
+
+            {foodCategorySearch.trim().length === 0 ? (
+              <Text style={styles.categorySearchEmptyText}>
+                Start typing to add your cuisine
+              </Text>
+            ) : filteredFoodCategoryOptions.length === 0 && !canAddCustomCategory ? (
+              <Text style={styles.categorySearchEmptyText}>
+                No matching categories found.
+              </Text>
+            ) : null}
+
+            {features.reviews ? (
+              <>
+                <Text style={styles.label}>Listing update</Text>
+                <View>
+                  <TextInput
+                    ref={statusUpdateInputRef}
+                    style={[styles.input, styles.textArea]}
+                    value={vendorMessage}
+                    onChangeText={setVendorMessage}
+                    placeholder="Post a short update customers will see on your listing"
+                    placeholderTextColor="#7A7A7A"
+                    multiline
+                    maxLength={140}
+                  />
+                </View>
+              </>
+            ) : (
+              <View style={styles.inlineLockedCard}>
+                <Text style={styles.inlineLockedTitle}>Growth plan required</Text>
+                <Text style={styles.inlineLockedText}>
+                  Upgrade to post daily status updates and offers.
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.liveRow}>
+              <Text style={styles.liveLabel}>Show as live now</Text>
+              <Switch
+                value={isLive}
+                onValueChange={(value) => handleLiveToggle(value)}
+              />
+            </View>
+
+            {isLive ? (
+              <View
+                style={styles.liveDurationWrap}
+                onLayout={(event) => {
+                  liveDurationY.current = event.nativeEvent.layout.y;
+                }}
+              >
+                <Text style={styles.liveDurationTitle}>Stay live for</Text>
+                <View style={styles.liveDurationOptions}>
+                  {[1, 2, 4, 8].map((hours) => (
+                    <Pressable
+                      key={hours}
+                      style={[
+                        styles.liveDurationChip,
+                        liveDurationHours === hours && styles.liveDurationChipActive,
+                      ]}
+                      onPress={() => setLiveDurationHours(hours as 1 | 2 | 4 | 8)}
+                    >
+                      <Text
+                        style={[
+                          styles.liveDurationChipText,
+                          liveDurationHours === hours && styles.liveDurationChipTextActive,
+                        ]}
+                      >
+                        {hours}h
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+
+            <Text style={styles.liveFutureNotice}>
+              LIVE status is currently included free during launch.
+              After launch, LIVE visibility will require Growth.
+            </Text>
+
             <Pressable
-              style={styles.addCustomCategoryButton}
+              style={[styles.primaryButton, isSaving && { opacity: 0.7 }]}
               onPress={() => {
-                const trimmedCategory = foodCategorySearch.trim();
-
-                if (!trimmedCategory) return;
-
-                setFoodCategories((current) => {
-                  const alreadyExists = current.some(
-                    (item) => item.toLowerCase() === trimmedCategory.toLowerCase()
-                  );
-
-                  if (alreadyExists) return current;
-
-                  return [...current, trimmedCategory];
-                });
-
-                setFoodCategorySearch("");
+                if (!isSaving) saveChanges();
               }}
+              disabled={isSaving}
             >
-              <Text style={styles.addCustomCategoryButtonText}>
-                Add "{foodCategorySearch.trim()}" as a cuisine
+              <Text style={styles.primaryButtonText}>
+                {isSaving ? "Saving Changes..." : "Save Changes"}
               </Text>
             </Pressable>
-          ) : null}
 
-          {foodCategorySearch.trim().length === 0 ? (
-            <Text style={styles.categorySearchEmptyText}>
-              Start typing to add your cuisine
-            </Text>
-          ) : filteredFoodCategoryOptions.length === 0 && !canAddCustomCategory ? (
-            <Text style={styles.categorySearchEmptyText}>
-              No matching categories found.
-            </Text>
-          ) : null}
-
-          {features.reviews ? (
-            <>
-              <Text style={styles.label}>Listing update</Text>
-              <View>
-                <TextInput
-                  ref={statusUpdateInputRef}
-                  style={[styles.input, styles.textArea]}
-                  value={vendorMessage}
-                  onChangeText={setVendorMessage}
-                  placeholder="Post a short update customers will see on your listing"
-                  placeholderTextColor="#7A7A7A"
-                  multiline
-                  maxLength={140}
-                />
-              </View>
-            </>
-          ) : (
-            <View style={styles.inlineLockedCard}>
-              <Text style={styles.inlineLockedTitle}>Growth plan required</Text>
-              <Text style={styles.inlineLockedText}>
-                Upgrade to post daily status updates and offers.
-              </Text>
-            </View>
-          )}
-
-          <View style={styles.liveRow}>
-            <Text style={styles.liveLabel}>Show as live now</Text>
-            <Switch
-              value={isLive}
-              onValueChange={(value) => handleLiveToggle(value)}
-            />
+            <Pressable
+              style={styles.softButton}
+              onPress={() =>
+                router.replace({
+                  pathname: "/vendor/[id]",
+                  params: { id: van.id },
+                })
+              }
+            >
+              <Text style={styles.softButtonText}>Back to Vendor Page</Text>
+            </Pressable>
           </View>
-
-          <Text style={styles.liveFutureNotice}>
-            LIVE status is currently included free during launch.
-            After launch, LIVE visibility will require Growth.
-          </Text>
-
-          <Pressable
-            style={[styles.primaryButton, isSaving && { opacity: 0.7 }]}
-            onPress={() => {
-              if (!isSaving) saveChanges();
-            }}
-            disabled={isSaving}
-          >
-            <Text style={styles.primaryButtonText}>
-              {isSaving ? "Saving Changes..." : "Save Changes"}
-            </Text>
-          </Pressable>
-
-          <Pressable
-            style={styles.softButton}
-            onPress={() =>
-              router.replace({
-                pathname: "/vendor/[id]",
-                params: { id: van.id },
-              })
-            }
-          >
-            <Text style={styles.softButtonText}>Back to Vendor Page</Text>
-          </Pressable>
-        </View>
-      </DashboardAccordionSection>
+        </DashboardAccordionSection>
+      </View>
 
       <DashboardAccordionSection
         title="Account Actions"
@@ -3377,6 +3472,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "800",
     textAlign: "center",
+  },
+
+  quickActionHintText: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 11,
+    fontWeight: "600",
+    textAlign: "center",
+    marginTop: 2,
   },
 
   quickActionSecondaryText: {
@@ -4263,5 +4366,45 @@ const styles = StyleSheet.create({
     marginTop: -8,
     marginBottom: 16,
     fontWeight: "600",
+  },
+
+  liveDurationWrap: {
+    marginBottom: 16,
+  },
+
+  liveDurationTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: DARK_TEXT,
+    marginBottom: 10,
+  },
+
+  liveDurationOptions: {
+    flexDirection: "row",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+
+  liveDurationChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: "#EEF2F7",
+    borderWidth: 1,
+    borderColor: "#D9D9D9",
+  },
+
+  liveDurationChipActive: {
+    backgroundColor: ORANGE,
+    borderColor: ORANGE,
+  },
+
+  liveDurationChipText: {
+    color: DARK_TEXT,
+    fontWeight: "700",
+  },
+
+  liveDurationChipTextActive: {
+    color: WHITE,
   },
 });
