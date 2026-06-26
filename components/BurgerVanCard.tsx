@@ -31,17 +31,11 @@ export default function BurgerVanCard({
   const safeName = name?.trim() || "Unnamed vendor";
   const safeCuisine = cuisine?.trim() || "Cuisine not provided";
 
-  const safeRating = useMemo(() => {
-    return Number.isFinite(rating) ? rating : 0;
-  }, [rating]);
-
   const safeDistanceText = useMemo(() => {
     if (distanceMiles === undefined || distanceMiles === null) return null;
     if (!Number.isFinite(distanceMiles)) return null;
     return `${distanceMiles.toFixed(1)} mi`;
   }, [distanceMiles]);
-
-  const hasVendorMessage = !!vendorMessage?.trim();
 
   const statusText = temporary
     ? "SPOTTED"
@@ -73,68 +67,23 @@ export default function BurgerVanCard({
         (isNavigating || !id) && styles.cardDisabled,
       ]}
     >
-      <View style={styles.glowOrb} />
-      <View style={styles.topAccentLine} />
+      <View style={styles.listContent}>
+        <View style={styles.listText}>
+          <Text style={styles.name} numberOfLines={1}>
+            {safeName}
+          </Text>
 
-      <View style={styles.headerRow}>
-        <View style={styles.leftBadges}>
-          {subscriptionTier === "pro" ? (
-            <View style={[styles.badge, styles.featuredBadge]}>
-              <Text style={styles.badgeText} numberOfLines={1}>
-                FEATURED
-              </Text>
-            </View>
-          ) : subscriptionTier === "growth" ? (
-            <View style={[styles.badge, styles.growthBadge]}>
-              <Text style={styles.badgeText} numberOfLines={1}>
-                GROWTH
-              </Text>
-            </View>
-          ) : null}
-
-          {hasVendorMessage ? (
-            <View style={[styles.badge, styles.dealBadge]}>
-              <Text style={styles.badgeText} numberOfLines={1}>
-                DEAL
-              </Text>
-            </View>
-          ) : null}
+          <Text style={styles.meta} numberOfLines={1}>
+            {safeCuisine}
+          </Text>
         </View>
 
-        <View
-          style={[
-            styles.statusPill,
-            temporary
-              ? styles.statusSpotted
-              : isLive
-                ? styles.statusLive
-                : styles.statusListed,
-          ]}
-        >
-          <Text style={styles.statusPillText}>{statusText}</Text>
-        </View>
-      </View>
-
-      <View style={styles.content}>
-        <Text style={styles.name} numberOfLines={1}>
-          {safeName}
-        </Text>
-
-        <Text style={styles.meta} numberOfLines={1}>
-          {safeCuisine}
-        </Text>
-
-        <View style={styles.footerRow}>
-          <View style={styles.infoPill}>
-            <Text style={styles.star}>★</Text>
-            <Text style={styles.infoPillText}>{safeRating.toFixed(1)}</Text>
-          </View>
-
+        <View style={styles.listRight}>
           {safeDistanceText ? (
-            <View style={styles.infoPill}>
-              <Text style={styles.infoPillText}>{safeDistanceText}</Text>
-            </View>
+            <Text style={styles.distanceText}>{safeDistanceText}</Text>
           ) : null}
+
+          <Text style={styles.statusText}>{statusText}</Text>
         </View>
       </View>
     </Pressable>
@@ -143,139 +92,62 @@ export default function BurgerVanCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#F9FBFF",
+    backgroundColor: "rgba(255,255,255,0.10)",
     borderRadius: 16,
-    marginBottom: 10,
-    overflow: "hidden",
-    position: "relative",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,122,0,0.35)",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  cardPressed: {
-    opacity: 0.97,
-    transform: [{ scale: 0.995 }],
-  },
-  cardDisabled: {
-    opacity: 0.92,
-  },
-  glowOrb: {
-    position: "absolute",
-    top: -24,
-    right: -18,
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: "rgba(255,122,0,0.10)",
-  },
-  topAccentLine: {
-    height: 5,
-    backgroundColor: theme.colors.primary,
-  },
-  headerRow: {
-    paddingTop: 10,
-    paddingHorizontal: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 10,
-    minHeight: 52,
-  },
-
-  leftBadges: {
-    flexDirection: "column",
-    alignItems: "flex-start",
-    gap: 6,
-    flexShrink: 1,
-  },
-  badge: {
-    minWidth: 68,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  badgeText: {
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontWeight: "800",
-    textAlign: "center",
-  },
-
-  featuredBadge: {
-    backgroundColor: theme.colors.primary,
-  },
-  growthBadge: {
-    backgroundColor: theme.colors.background,
-  },
-  dealBadge: {
-    backgroundColor: theme.colors.success,
-  },
-
-  statusPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-  statusLive: {
-    backgroundColor: "rgba(29,185,84,0.14)",
-  },
-  statusListed: {
-    backgroundColor: "rgba(11,42,91,0.10)",
-  },
-  statusSpotted: {
-    backgroundColor: "rgba(255,122,0,0.14)",
-  },
-  statusPillText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: theme.colors.background,
-  },
-  content: {
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 12,
-  },
-  name: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: theme.colors.background,
-    marginBottom: 6,
-  },
-  meta: {
-    fontSize: 12,
-    color: theme.colors.muted,
     marginBottom: 8,
-  },
-  footerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 10,
-  },
-  infoPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(11,42,91,0.08)",
+    borderColor: "rgba(255,255,255,0.12)",
   },
-  star: {
-    fontSize: 14,
-    color: theme.colors.secondary,
-    marginRight: 6,
+
+  cardPressed: {
+    opacity: 0.95,
   },
-  infoPillText: {
+
+  cardDisabled: {
+    opacity: 0.85,
+  },
+
+  listContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+
+  listText: {
+    flex: 1,
+    paddingRight: 12,
+  },
+
+  name: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "900",
+  },
+
+  meta: {
+    color: "rgba(255,255,255,0.62)",
     fontSize: 12,
-    fontWeight: "700",
-    color: theme.colors.background,
+    fontWeight: "600",
+    marginTop: 3,
+  },
+
+  listRight: {
+    alignItems: "flex-end",
+  },
+
+  distanceText: {
+    color: theme.colors.secondary,
+    fontSize: 13,
+    fontWeight: "900",
+  },
+
+  statusText: {
+    color: "rgba(255,255,255,0.62)",
+    fontSize: 10,
+    fontWeight: "900",
+    marginTop: 4,
   },
 });

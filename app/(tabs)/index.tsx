@@ -13,6 +13,9 @@ import {
   TextInput,
   View,
 } from "react-native";
+import AppUpdateBanner from "../../components/AppUpdateBanner";
+import MapTextureBackground from "../../components/MapTextureBackground";
+import { getAppSettings, type AppSettings } from "../../services/appSettingsService";
 
 import BurgerVanCard from "../../components/BurgerVanCard";
 import { theme } from "../../constants/theme";
@@ -80,6 +83,7 @@ export default function HomeScreen() {
     longitude: number;
   } | null>(null);
   const [vendorsLoading, setVendorsLoading] = useState(true);
+  const [appSettings, setAppSettings] = useState<AppSettings | null>(null);
 
   const hasLoadedInitialData = useRef(false);
   const aboutFade = useRef(new Animated.Value(0)).current;
@@ -87,6 +91,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     requestUserLocation();
+    loadAppSettings();
     loadInitialData();
 
     Animated.parallel([
@@ -112,6 +117,11 @@ export default function HomeScreen() {
       loadSupabaseVans();
     }, [])
   );
+
+  async function loadAppSettings() {
+    const settings = await getAppSettings();
+    setAppSettings(settings);
+  }
 
   async function loadInitialData() {
     setVendorsLoading(true);
@@ -314,7 +324,11 @@ export default function HomeScreen() {
 
   const featuredProVans = useMemo(() => {
     return [...visibleVans]
-      .filter((van) => van.subscriptionTier === "pro")
+      .filter(
+        (van) =>
+          van.subscriptionTier === "pro" &&
+          van.listingSource !== "user_spotted"
+      )
       .sort((a, b) => {
         if (userLocation) {
           const distanceA = distanceMap.get(a.id) ?? Number.MAX_SAFE_INTEGER;
@@ -326,6 +340,22 @@ export default function HomeScreen() {
         }
 
         return b.rating - a.rating;
+      })
+      .slice(0, 3);
+  }, [visibleVans, userLocation, distanceMap]);
+
+  const recentlySpottedVans = useMemo(() => {
+    return [...visibleVans]
+      .filter((van) => van.listingSource === "user_spotted")
+      .sort((a, b) => {
+        if (userLocation) {
+          const distanceA = distanceMap.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+          const distanceB = distanceMap.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+
+          return distanceA - distanceB;
+        }
+
+        return a.name.localeCompare(b.name);
       })
       .slice(0, 4);
   }, [visibleVans, userLocation, distanceMap]);
@@ -377,31 +407,28 @@ export default function HomeScreen() {
     return (
       <Pressable
         key={`featured-${van.id}`}
-        style={styles.featuredCard}
+        style={styles.featuredRow}
         onPress={() => router.push(`/vendor/${van.id}`)}
       >
-        <View style={styles.featuredCardGlow} />
-        <View style={styles.featuredCardHeader}>
-          <Text style={styles.featuredCardBadge}>FEATURED</Text>
+        <View style={styles.featuredRowLeft}>
+          <Text style={styles.featuredRowName} numberOfLines={1}>
+            {van.name}
+          </Text>
+
+          <Text style={styles.featuredRowCuisine} numberOfLines={1}>
+            {van.cuisine}
+          </Text>
+        </View>
+
+        <View style={styles.featuredRowRight}>
           {vendorDistance !== null ? (
-            <Text style={styles.featuredCardDistance}>
+            <Text style={styles.featuredRowDistance}>
               {vendorDistance.toFixed(1)} mi
             </Text>
           ) : null}
-        </View>
 
-        <Text style={styles.featuredCardTitle} numberOfLines={1}>
-          {van.name}
-        </Text>
-
-        <Text style={styles.featuredCardMeta} numberOfLines={1}>
-          {van.cuisine}
-        </Text>
-
-        <View style={styles.featuredCardFooter}>
-          <Text style={styles.featuredCardRating}>★ {van.rating.toFixed(1)}</Text>
-          {van.vendorMessage?.trim() ? (
-            <Text style={styles.featuredCardDeal}>DEAL</Text>
+          {van.isLive ? (
+            <Text style={styles.featuredRowBadge}>LIVE</Text>
           ) : null}
         </View>
       </Pressable>
@@ -419,11 +446,12 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      <MapTextureBackground userLocation={userLocation} />
+
       <FlatList
         data={visibleFilteredVans}
         keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.vendorGridRow}
+        numColumns={1}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
@@ -438,27 +466,133 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            <Animated.View
-              style={[
-                styles.aboutSection,
-                {
-                  opacity: aboutFade,
-                  transform: [{ translateY: aboutSlide }],
-                },
-              ]}
-            >
-              <Text style={styles.aboutGreeting}>To BiteBeacon users,</Text>
+            <AppUpdateBanner settings={appSettings} />
 
-              <Text style={styles.aboutText}>
-                I built BiteBeacon to make street food easier to find, support
-                local vendors, and help more people discover what is worth the
-                trip.
-              </Text>
+            <View style={styles.adventureCard}>
+              <Text style={styles.adventureKicker}>TODAY ON BITEBEACON</Text>
 
-              <Text style={styles.aboutSignature}>— Founder</Text>
+              <Text style={styles.adventureTitle}>Discover food worth the trip.</Text>
 
-              <View style={styles.aboutDivider} />
-            </Animated.View>
+              <View style={styles.adventureStatsRow}>
+                <View style={styles.adventureStat}>
+                  <Text style={styles.adventureStatValue}>🍔 {visibleVans.length}</Text>
+                  <Text style={styles.adventureStatLabel}>Food Spots</Text>
+                </View>
+
+                <View style={styles.adventureStat}>
+                  <Text style={styles.adventureStatValue}>🔥 {liveNowVans.length}</Text>
+                  <Text style={styles.adventureStatLabel}>Live Now</Text>
+                </View>
+
+                <View style={styles.adventureStat}>
+                  <Text style={styles.adventureStatValue}>
+                    📍 {visibleVans.filter((van) => van.listingSource === "user_spotted").length}
+                  </Text>
+                  <Text style={styles.adventureStatLabel}>Finds</Text>
+                </View>
+              </View>
+
+              <TextInput
+                style={styles.adventureSearchInput}
+                placeholder="🍔 Burgers, coffee, pizza, tacos..."
+                placeholderTextColor="rgba(255,255,255,0.58)"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+
+              {searchQuery.trim() ? (
+                <Text style={styles.searchResultsCount}>
+                  {filteredVans.length} results found
+                </Text>
+              ) : null}
+
+              {searchQuery.trim() ? (
+                <View style={styles.searchResultsPanel}>
+                  {filteredVans.slice(0, 4).map((van) => {
+                    const distance = getVendorDistance(van);
+
+                    return (
+                      <Pressable
+                        key={`search-${van.id}`}
+                        style={styles.searchResultRow}
+                        onPress={() => router.push(`/vendor/${van.id}`)}
+                      >
+                        <View style={styles.searchResultTextWrap}>
+                          <Text style={styles.searchResultName} numberOfLines={1}>
+                            {van.name}
+                          </Text>
+                          <Text style={styles.searchResultMeta} numberOfLines={1}>
+                            {van.cuisine}
+                          </Text>
+                        </View>
+
+                        {distance !== null ? (
+                          <Text style={styles.searchResultDistance}>
+                            {distance.toFixed(1)} mi
+                          </Text>
+                        ) : null}
+                      </Pressable>
+                    );
+                  })}
+
+                  {filteredVans.length > 4 ? (
+                    <Pressable
+                      style={styles.viewAllResultsButton}
+                      onPress={() => setVisibleCount(50)}
+                    >
+                      <Text style={styles.viewAllResultsText}>
+                        View all {filteredVans.length} results below
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ) : null}
+
+              <Pressable
+                style={styles.adventureButton}
+                onPress={() => router.push("/(tabs)/explore")}
+              >
+                <Text style={styles.adventureButtonText}>Explore the map</Text>
+              </Pressable>
+            </View>
+
+            {!vendorsLoading && recentlySpottedVans.length > 0 ? (
+              <View style={styles.sectionBlock}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Recently Spotted</Text>
+                  <Text style={styles.sectionSubtitle}>
+                    Community discoveries near you
+                  </Text>
+                </View>
+
+                <View style={styles.spottedList}>
+                  {recentlySpottedVans.map((van) => {
+                    const distance = getVendorDistance(van);
+
+                    return (
+                      <Pressable
+                        key={`spotted-${van.id}`}
+                        style={styles.spottedRow}
+                        onPress={() => router.push(`/vendor/${van.id}`)}
+                      >
+                        <View>
+                          <Text style={styles.spottedName}>{van.name}</Text>
+                          <Text style={styles.spottedCuisine}>
+                            {van.cuisine}
+                          </Text>
+                        </View>
+
+                        {distance !== null ? (
+                          <Text style={styles.spottedDistance}>
+                            {distance.toFixed(1)} mi
+                          </Text>
+                        ) : null}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            ) : null}
 
             {vendorsLoading ? (
               <View style={styles.loadingCard}>
@@ -488,44 +622,23 @@ export default function HomeScreen() {
               </View>
             ) : null}
 
-            <View style={styles.sectionBlock}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Search Vendors</Text>
-                <Text style={styles.sectionSubtitle}>
-                  Find vendors by name, cuisine, or food type
-                </Text>
-              </View>
-
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search vendors, cuisines, or food..."
-                placeholderTextColor="rgba(255,255,255,0.6)"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-            </View>
-
             {!vendorsLoading && featuredProVans.length > 0 ? (
               <View style={styles.sectionBlock}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Featured Vendors</Text>
+                  <Text style={styles.sectionTitle}>Worth the Trip</Text>
                   <Text style={styles.sectionSubtitle}>
-                    Premium listings with extra visibility
+                    Featured food spots with extra buzz
                   </Text>
                 </View>
 
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.horizontalListContent}
-                >
+                <View>
                   {featuredProVans.map(renderFeaturedVendorCard)}
-                </ScrollView>
+                </View>
               </View>
             ) : null}
 
             <View style={styles.controlsCard}>
-              <Text style={styles.controlsTitle}>Browse Vendors</Text>
+              <Text style={styles.controlsTitle}>Find Your Food</Text>
 
               <View style={styles.filterRow}>
                 {(["ALL", "LIVE NOW", "TOP RATED", "FEATURED"] as BrowseFilter[]).map(
@@ -554,9 +667,9 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>All Vendors Nearby</Text>
+              <Text style={styles.sectionTitle}>Nearby Food Spots</Text>
               <Text style={styles.sectionSubtitle}>
-                Ranked by distance, tier, quality, and availability
+                Closest places and community finds near you
               </Text>
             </View>
           </>
@@ -604,7 +717,8 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: "#061E3F",
+    position: "relative",
   },
 
   listContent: {
@@ -615,8 +729,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   vendorGridItem: {
-    width: "48%",
-    marginBottom: 14,
+    width: "100%",
+    marginBottom: 10,
   },
 
   heroWrap: {
@@ -788,8 +902,8 @@ const styles = StyleSheet.create({
   },
 
   featuredCard: {
-    width: 230,
-    minHeight: 150,
+    width: 190,
+    minHeight: 125,
     backgroundColor: "#14386E",
     borderRadius: 22,
     padding: 16,
@@ -834,7 +948,7 @@ const styles = StyleSheet.create({
   },
 
   featuredCardTitle: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: "800",
     color: "#FFFFFF",
     marginTop: 18,
@@ -842,7 +956,7 @@ const styles = StyleSheet.create({
   },
 
   featuredCardMeta: {
-    fontSize: 14,
+    fontSize: 12,
     color: "rgba(255,255,255,0.8)",
     marginBottom: 16,
   },
@@ -871,18 +985,18 @@ const styles = StyleSheet.create({
   },
 
   controlsCard: {
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(255,255,255,0.05)",
     borderRadius: 18,
-    padding: 16,
+    padding: 14,
     marginTop: 4,
     marginBottom: 24,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
   },
 
   controlsTitle: {
-    fontSize: 16,
-    fontWeight: "800",
+    fontSize: 18,
+    fontWeight: "900",
     color: "#FFFFFF",
     marginBottom: 12,
   },
@@ -960,6 +1074,241 @@ const styles = StyleSheet.create({
   loadMoreButtonText: {
     color: theme.colors.background,
     fontSize: 15,
+    fontWeight: "800",
+  },
+
+  adventureCard: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 22,
+    padding: 16,
+    marginBottom: 22,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+  },
+
+  adventureKicker: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: theme.colors.secondary,
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+
+  adventureTitle: {
+    fontSize: 24,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    marginBottom: 14,
+  },
+
+  adventureText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "rgba(255,255,255,0.76)",
+    marginBottom: 16,
+  },
+
+  adventureStatsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 16,
+  },
+
+  adventureStat: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 16,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+
+  adventureStatValue: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: "#FFFFFF",
+  },
+
+  adventureStatLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "rgba(255,255,255,0.72)",
+    marginTop: 4,
+    textAlign: "center",
+    lineHeight: 12,
+  },
+
+  adventureButton: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 16,
+    paddingVertical: 13,
+    alignItems: "center",
+  },
+
+  adventureButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "900",
+  },
+
+  adventureSearchInput: {
+    backgroundColor: "rgba(255,255,255,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    color: "#FFFFFF",
+    fontSize: 16,
+    marginBottom: 14,
+  },
+
+  searchResultsPanel: {
+    backgroundColor: "rgba(255,255,255,0.10)",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.14)",
+    marginBottom: 14,
+    overflow: "hidden",
+  },
+
+  searchResultRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.08)",
+  },
+
+  searchResultTextWrap: {
+    flex: 1,
+    paddingRight: 10,
+  },
+
+  searchResultName: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+
+  searchResultMeta: {
+    color: "rgba(255,255,255,0.62)",
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+
+  searchResultDistance: {
+    color: theme.colors.secondary,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+
+  searchResultsCount: {
+    color: theme.colors.secondary,
+    fontSize: 12,
+    fontWeight: "800",
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 6,
+  },
+
+  viewAllResultsButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: "rgba(255,122,0,0.16)",
+  },
+
+  viewAllResultsText: {
+    color: theme.colors.secondary,
+    fontSize: 13,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+
+  spottedList: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 18,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+  },
+
+  spottedRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.08)",
+  },
+
+  spottedName: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+
+  spottedCuisine: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 12,
+    marginTop: 2,
+  },
+
+  spottedDistance: {
+    color: theme.colors.secondary,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+
+  featuredRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.10)",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+
+  featuredRowLeft: {
+    flex: 1,
+  },
+
+  featuredRowName: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+
+  featuredRowCuisine: {
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 13,
+    marginTop: 2,
+  },
+
+  featuredRowRight: {
+    alignItems: "flex-end",
+  },
+
+  featuredRowDistance: {
+    color: theme.colors.secondary,
+    fontWeight: "800",
+    fontSize: 14,
+  },
+
+  featuredRowBadge: {
+    marginTop: 6,
+    backgroundColor: theme.colors.primary,
+    color: "#FFFFFF",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    fontSize: 10,
     fontWeight: "800",
   },
 });
