@@ -1,7 +1,9 @@
+import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -21,6 +23,7 @@ import MapView, {
 import { supabase } from "../../lib/supabase";
 
 import { getCurrentUser } from "../../services/authService";
+import { uploadVendorPhotos } from "../../services/storageService";
 import { createVendor } from "../../services/vendorService";
 
 const DEFAULT_REGION: Region = {
@@ -39,7 +42,10 @@ export default function RegisterVendorScreen() {
   const [menu, setMenu] = useState("");
   const [schedule, setSchedule] = useState("");
   const [what3words, setWhat3words] = useState("");
-
+  const [instagramUrl, setInstagramUrl] = useState("");
+  const [facebookUrl, setFacebookUrl] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [vehiclePhotoUri, setVehiclePhotoUri] = useState<string | null>(null);
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
 
   const [selectedLocation, setSelectedLocation] = useState<{
@@ -83,6 +89,19 @@ export default function RegisterVendorScreen() {
     setRegion(DEFAULT_REGION);
   }
 
+  async function pickVehiclePhoto() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      setVehiclePhotoUri(result.assets[0].uri);
+    }
+  }
+
   async function handleCreateVendor() {
     // 🔒 HARD GUARD (prevents double submit)
     if (isSaving) return;
@@ -121,6 +140,14 @@ export default function RegisterVendorScreen() {
 
       const id = `vendor-${Date.now()}`;
 
+      let uploadedPhotoUrls: string[] = [];
+
+      if (vehiclePhotoUri) {
+        uploadedPhotoUrls = await uploadVendorPhotos(currentUser.id, [
+          vehiclePhotoUri,
+        ]);
+      }
+
       await createVendor({
         id,
         name: name.trim(),
@@ -137,7 +164,12 @@ export default function RegisterVendorScreen() {
         owner_id: currentUser.id,
         subscriptionTier: "free",
         foodCategories: [],
+        photos: uploadedPhotoUrls,
+        photo: uploadedPhotoUrls[0] ?? null,
         what3words: what3words.trim() || null,
+        instagramUrl: instagramUrl.trim() || undefined,
+        facebookUrl: facebookUrl.trim() || undefined,
+        websiteUrl: websiteUrl.trim() || undefined,
       });
 
       if (!isMountedRef.current) return;
@@ -241,6 +273,89 @@ export default function RegisterVendorScreen() {
               value={what3words}
               onChangeText={setWhat3words}
             />
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Online Presence</Text>
+
+            <View style={styles.infoBox}>
+              <Text style={styles.infoTitle}>Why are we asking?</Text>
+              <Text style={styles.infoText}>
+                These links help us confirm that your business is genuine. They are
+                optional, but adding them can speed up approval and help customers trust
+                your listing once approved.
+              </Text>
+            </View>
+
+            <TextInput
+              style={styles.input}
+              placeholder="@myfoodvan or https://instagram.com/myfoodvan"
+              placeholderTextColor="#7A7A7A"
+              value={instagramUrl}
+              onChangeText={setInstagramUrl}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <Text style={styles.fieldHint}>
+              Instagram example: @bobsburgers or https://instagram.com/bobsburgers
+            </Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Facebook business page link"
+              placeholderTextColor="#7A7A7A"
+              value={facebookUrl}
+              onChangeText={setFacebookUrl}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <Text style={styles.fieldHint}>
+              Example: https://facebook.com/bobsburgers — not your personal profile.
+            </Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="https://www.mybusiness.co.uk"
+              placeholderTextColor="#7A7A7A"
+              value={websiteUrl}
+              onChangeText={setWebsiteUrl}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <Text style={styles.fieldHint}>
+              Leave blank if you do not have a website.
+            </Text>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Vehicle Verification</Text>
+
+            <View style={styles.infoBox}>
+              <Text style={styles.infoTitle}>Why do we need this?</Text>
+              <Text style={styles.infoText}>
+                Please upload one clear photo of your food van, trailer or market stall.
+                This helps our team confirm that your business is genuine and speeds up
+                the approval process.
+              </Text>
+            </View>
+
+            <Pressable style={styles.uploadButton} onPress={pickVehiclePhoto}>
+              <Text style={styles.uploadButtonText}>
+                📷 Upload Vehicle Photo
+              </Text>
+            </Pressable>
+
+            <Text style={styles.fieldHint}>
+              A clear photo showing your vehicle and branding works best.
+            </Text>
+
+            {vehiclePhotoUri ? (
+              <Image
+                source={{ uri: vehiclePhotoUri }}
+                style={styles.vehiclePreview}
+                resizeMode="cover"
+              />
+            ) : null}
           </View>
 
           <View style={styles.card}>
@@ -429,5 +544,64 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "800",
     fontSize: 16,
+  },
+
+  helperText: {
+    fontSize: 13,
+    color: TEXT_MUTED,
+    lineHeight: 19,
+    marginTop: -4,
+    marginBottom: 12,
+  },
+
+  infoBox: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,122,0,0.35)",
+    marginBottom: 14,
+  },
+
+  infoTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: TEXT_DARK,
+    marginBottom: 6,
+  },
+
+  infoText: {
+    fontSize: 13,
+    color: TEXT_MUTED,
+    lineHeight: 19,
+  },
+
+  fieldHint: {
+    fontSize: 12,
+    color: TEXT_MUTED,
+    lineHeight: 17,
+    marginTop: -6,
+    marginBottom: 12,
+  },
+
+  uploadButton: {
+    backgroundColor: ORANGE,
+    paddingVertical: 15,
+    borderRadius: 14,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  uploadButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+
+  vehiclePreview: {
+    width: "100%",
+    height: 220,
+    borderRadius: 14,
+    marginTop: 8,
   },
 });

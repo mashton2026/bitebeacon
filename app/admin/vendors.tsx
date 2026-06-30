@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   FlatList,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -267,6 +268,36 @@ export default function AdminVendorsScreen() {
             <Text style={styles.detailText}>
               Owner: {item.owner_id ? "Assigned" : "Unclaimed"}
             </Text>
+
+            <Text style={styles.detailText}>
+              Location: {item.lat?.toFixed(5)}, {item.lng?.toFixed(5)}
+            </Text>
+
+            <Text style={styles.detailText}>
+              Menu: {item.menu || "Not provided"}
+            </Text>
+
+            <Text style={styles.detailText}>
+              Schedule: {item.schedule || "Not provided"}
+            </Text>
+
+            <Text style={styles.detailText}>
+              Type: {(item.vendorType ?? "food_van").replaceAll("_", " ")}
+            </Text>
+
+            <Text style={styles.detailText}>
+              what3words: {item.what3words || "Not provided"}
+            </Text>
+
+            {item.photo ? (
+              <Image
+                source={{ uri: item.photo }}
+                style={styles.adminVehiclePhoto}
+                resizeMode="cover"
+              />
+            ) : (
+              <Text style={styles.detailText}>Vehicle photo: Not provided</Text>
+            )}
 
             {item.instagramUrl ? (
               <Text style={styles.detailText}>
@@ -714,5 +745,13 @@ const styles = StyleSheet.create({
   loadMoreText: {
     color: "#FFF",
     fontWeight: "800",
+  },
+
+  adminVehiclePhoto: {
+    width: "100%",
+    height: 220,
+    borderRadius: 14,
+    marginTop: 10,
+    marginBottom: 12,
   },
 });
