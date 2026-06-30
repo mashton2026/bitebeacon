@@ -236,7 +236,7 @@ export async function createVendor(input: CreateVendorInput): Promise<void> {
       temporary: input.temporary ?? false,
       listing_source: input.listingSource ?? "admin_seeded",
       expires_at: input.expiresAt ?? null,
-      isApproved: input.isApproved ?? true,
+      isApproved: input.isApproved === true,
       photo: input.photo ?? input.photos?.[0] ?? null,
       photos: input.photos ?? (input.photo ? [input.photo] : []),
       logo_url: input.logoUrl ?? null,

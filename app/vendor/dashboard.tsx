@@ -402,6 +402,11 @@ export default function VendorDashboardScreen() {
             return;
           }
 
+          if (!vendor.isApproved) {
+            router.replace("/vendor/pending");
+            return;
+          }
+
           // Do NOT block suspended vendors here
           // Let loadDashboard handle that state cleanly
 
@@ -1948,7 +1953,7 @@ export default function VendorDashboardScreen() {
             </Pressable>
           ) : null}
         </View>
-        
+
       </View>
 
       <DashboardAccordionSection

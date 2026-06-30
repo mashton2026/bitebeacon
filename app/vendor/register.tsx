@@ -132,6 +132,7 @@ export default function RegisterVendorScreen() {
         lng: selectedLocation.longitude,
         temporary: false,
         listingSource: "admin_seeded",
+        isApproved: false,
         isLive: false,
         owner_id: currentUser.id,
         subscriptionTier: "free",
@@ -141,10 +142,10 @@ export default function RegisterVendorScreen() {
 
       if (!isMountedRef.current) return;
 
-      Alert.alert("Success", "Vendor listing created successfully.", [
+      Alert.alert("Application Submitted", "Your vendor listing has been submitted for review.", [
         {
           text: "OK",
-          onPress: () => router.replace("/vendor/dashboard"),
+          onPress: () => router.replace("/vendor/pending"),
         },
       ]);
     } catch (error) {
