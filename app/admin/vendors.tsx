@@ -4,6 +4,7 @@ import {
   Alert,
   FlatList,
   Image,
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -177,6 +178,17 @@ export default function AdminVendorsScreen() {
     }
   }
 
+  function openVendorLocation(vendor: Van) {
+    if (!vendor.lat || !vendor.lng) {
+      Alert.alert("Location unavailable", "This vendor does not have a saved location.");
+      return;
+    }
+
+    const url = `https://www.google.com/maps/search/?api=1&query=${vendor.lat},${vendor.lng}`;
+
+    Linking.openURL(url);
+  }
+
   async function handleApprove(vendor: Van) {
     if (processingVendorId) return;
     setProcessingVendorId(vendor.id);
@@ -261,6 +273,8 @@ export default function AdminVendorsScreen() {
               </Text>
             </Pressable>
 
+            <Text style={styles.adminSectionTitle}>Listing details</Text>
+
             <Text style={styles.detailText}>
               Tier: {(item.subscriptionTier ?? "free").toUpperCase()}
             </Text>
@@ -270,8 +284,17 @@ export default function AdminVendorsScreen() {
             </Text>
 
             <Text style={styles.detailText}>
-              Location: {item.lat?.toFixed(5)}, {item.lng?.toFixed(5)}
+              Trading location: {item.lat && item.lng ? "Saved" : "Not provided"}
             </Text>
+
+            {item.lat && item.lng ? (
+              <Pressable
+                style={styles.mapButton}
+                onPress={() => openVendorLocation(item)}
+              >
+                <Text style={styles.mapButtonText}>Open in Google Maps</Text>
+              </Pressable>
+            ) : null}
 
             <Text style={styles.detailText}>
               Menu: {item.menu || "Not provided"}
@@ -296,26 +319,74 @@ export default function AdminVendorsScreen() {
                 resizeMode="cover"
               />
             ) : (
-              <Text style={styles.detailText}>Vehicle photo: Not provided</Text>
+              <Text style={[styles.detailText, styles.missingInfo]}>
+                Vehicle photo: Not provided
+              </Text>
             )}
 
+            <Text style={styles.adminSectionTitle}>Online presence</Text>
+
             {item.instagramUrl ? (
-              <Text style={styles.detailText}>
-                Instagram: {item.instagramUrl}
-              </Text>
-            ) : null}
+              <Pressable onPress={() => Linking.openURL(item.instagramUrl!)}>
+                <Text style={styles.linkText}>Open Instagram</Text>
+              </Pressable>
+            ) : (
+              <Text style={[styles.detailText, styles.missingInfo]}>Instagram: Not provided</Text>
+            )}
 
             {item.facebookUrl ? (
-              <Text style={styles.detailText}>
-                Facebook: {item.facebookUrl}
-              </Text>
-            ) : null}
+              <Pressable onPress={() => Linking.openURL(item.facebookUrl!)}>
+                <Text style={styles.linkText}>Open Facebook</Text>
+              </Pressable>
+            ) : (
+              <Text style={[styles.detailText, styles.missingInfo]}>Facebook: Not provided</Text>
+            )}
 
             {item.websiteUrl ? (
-              <Text style={styles.detailText}>
-                Website: {item.websiteUrl}
+              <Pressable onPress={() => Linking.openURL(item.websiteUrl!)}>
+                <Text style={styles.linkText}>Open Website</Text>
+              </Pressable>
+            ) : (
+              <Text style={[styles.detailText, styles.missingInfo]}>Website: Not provided</Text>
+            )}
+
+            <View style={styles.checklistBox}>
+              <Text style={styles.checklistTitle}>Verification checks</Text>
+
+              <Text style={styles.checklistItem}>
+                {item.photo ? "✅" : "⚠️"} Vehicle photo
               </Text>
-            ) : null}
+
+              <Text style={styles.checklistItem}>
+                {item.what3words ? "✅" : "⚠️"} what3words
+              </Text>
+
+              <Text style={styles.checklistItem}>
+                {item.instagramUrl ? "✅" : "⚠️"} Instagram
+              </Text>
+
+              <Text style={styles.checklistItem}>
+                {item.facebookUrl ? "✅" : "⚠️"} Facebook
+              </Text>
+
+              <Text style={styles.checklistItem}>
+                {item.websiteUrl ? "✅" : "⚠️"} Website
+              </Text>
+            </View>
+
+            <View style={styles.summaryBox}>
+              <Text style={styles.summaryTitle}>Approval Summary</Text>
+
+              <Text style={styles.summaryText}>
+                {item.photo &&
+                  item.what3words &&
+                  (item.instagramUrl || item.facebookUrl || item.websiteUrl)
+                  ? "🟢 This listing contains enough information for a confident approval."
+                  : "🟠 This listing may require additional verification before approval."}
+              </Text>
+            </View>
+
+
 
             {!item.isApproved ? (
               <Pressable
@@ -669,6 +740,11 @@ const styles = StyleSheet.create({
     color: "#333333",
     marginBottom: 6,
   },
+
+  missingInfo: {
+    color: "#C62828",
+    fontWeight: "700",
+  },
   noteLabel: {
     fontSize: 13,
     fontWeight: "800",
@@ -753,5 +829,78 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginTop: 10,
     marginBottom: 12,
+  },
+
+  mapButton: {
+    backgroundColor: "#0B2A5B",
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  mapButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+  },
+
+  linkText: {
+    color: "#FF7A00",
+    fontWeight: "800",
+    marginBottom: 8,
+  },
+
+  checklistBox: {
+    backgroundColor: "#F8FBFF",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "rgba(11,42,91,0.18)",
+    marginTop: 8,
+    marginBottom: 12,
+  },
+
+  checklistTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0B2A5B",
+    marginBottom: 8,
+  },
+
+  checklistItem: {
+    fontSize: 14,
+    color: "#333333",
+    marginBottom: 5,
+    fontWeight: "700",
+  },
+
+  adminSectionTitle: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#0B2A5B",
+    marginTop: 12,
+    marginBottom: 8,
+  },
+
+  summaryBox: {
+    backgroundColor: "#FFF8E8",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#FFD27A",
+    marginBottom: 14,
+  },
+
+  summaryTitle: {
+    fontSize: 14,
+    fontWeight: "900",
+    color: "#0B2A5B",
+    marginBottom: 6,
+  },
+
+  summaryText: {
+    fontSize: 13,
+    color: "#444444",
+    lineHeight: 20,
   },
 });
