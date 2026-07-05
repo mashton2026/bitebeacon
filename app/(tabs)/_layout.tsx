@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import { Image } from "react-native";
+import { Image, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
@@ -47,6 +47,36 @@ export default function TabLayout() {
               style={{ width: 56, height: 56, tintColor: color }}
               resizeMode="contain"
             />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="spot"
+        options={{
+          title: "Spot",
+          tabBarButton: (props) => (
+            <Pressable
+              onPress={props.onPress}
+              onLongPress={props.onLongPress}
+              accessibilityState={props.accessibilityState}
+              accessibilityLabel={props.accessibilityLabel}
+              testID={props.testID}
+              style={{
+                flex: 1,
+                top: -26,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <Image
+                source={require("../../assets/icons/spot.png")}
+                style={{
+                  width: 92,
+                  height: 92,
+                }}
+                resizeMode="contain"
+              />
+            </Pressable>
           ),
         }}
       />

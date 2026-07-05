@@ -40,6 +40,7 @@ type VendorRow = {
   facebook_url?: string | null;
   website_url?: string | null;
   what3words?: string | null;
+  spot_notes?: string | null;
 };
 
 function toSafeNumber(value: number | string | null | undefined): number {
@@ -120,6 +121,7 @@ export function mapVendorRowToVan(row: VendorRow): Van {
     facebookUrl: toNullableString(row.facebook_url),
     websiteUrl: toNullableString(row.website_url),
     what3words: toNullableString(row.what3words),
+    spotNotes: toNullableString(row.spot_notes),
   };
 }
 

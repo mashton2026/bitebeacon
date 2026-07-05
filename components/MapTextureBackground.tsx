@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 
@@ -6,6 +7,7 @@ type Props = {
     latitude: number;
     longitude: number;
   } | null;
+  children?: ReactNode;
 };
 
 const DARK_MAP_STYLE = [
@@ -69,7 +71,10 @@ const DARK_MAP_STYLE = [
   },
 ];
 
-export default function MapTextureBackground({ userLocation }: Props) {
+export default function MapTextureBackground({
+  userLocation,
+  children,
+}: Props) {
   const center = userLocation ?? {
     latitude: 50.266,
     longitude: -5.0527,
@@ -156,6 +161,9 @@ export default function MapTextureBackground({ userLocation }: Props) {
 
       <View style={styles.darkOverlay} />
       <View style={styles.blueTint} />
+
+      {children}
+
     </View>
   );
 }

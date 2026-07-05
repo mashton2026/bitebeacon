@@ -31,6 +31,7 @@ export type Van = {
   menu?: string;
   schedule?: string;
   what3words?: string | null;
+  spotNotes?: string | null;
   vendorMessage?: string;
   isLive: boolean;
   liveUntil?: string | null;

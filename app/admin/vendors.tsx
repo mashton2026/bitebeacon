@@ -273,18 +273,26 @@ export default function AdminVendorsScreen() {
               </Text>
             </Pressable>
 
-            <Text style={styles.adminSectionTitle}>Listing details</Text>
+            <Text style={styles.adminSectionTitle}>Vehicle verification</Text>
+
+            {item.photo ? (
+              <Image
+                source={{ uri: item.photo }}
+                style={styles.adminVehiclePhoto}
+                resizeMode="cover"
+              />
+            ) : (
+              <Text style={[styles.detailText, styles.missingInfo]}>
+                Vehicle photo: Not provided
+              </Text>
+            )}
+
+            <Text style={styles.adminSectionTitle}>Trading location</Text>
 
             <Text style={styles.detailText}>
-              Tier: {(item.subscriptionTier ?? "free").toUpperCase()}
-            </Text>
-
-            <Text style={styles.detailText}>
-              Owner: {item.owner_id ? "Assigned" : "Unclaimed"}
-            </Text>
-
-            <Text style={styles.detailText}>
-              Trading location: {item.lat && item.lng ? "Saved" : "Not provided"}
+              {item.lat && item.lng
+                ? "A trading location has been supplied for this vendor."
+                : "No trading location has been supplied."}
             </Text>
 
             {item.lat && item.lng ? (
@@ -295,6 +303,20 @@ export default function AdminVendorsScreen() {
                 <Text style={styles.mapButtonText}>Open in Google Maps</Text>
               </Pressable>
             ) : null}
+
+            <Text style={styles.detailText}>
+              what3words: {item.what3words || "Not provided"}
+            </Text>
+
+            <Text style={styles.adminSectionTitle}>Listing details</Text>
+
+            <Text style={styles.detailText}>
+              Tier: {(item.subscriptionTier ?? "free").toUpperCase()}
+            </Text>
+
+            <Text style={styles.detailText}>
+              Owner: {item.owner_id ? "Assigned" : "Unclaimed"}
+            </Text>
 
             <Text style={styles.detailText}>
               Menu: {item.menu || "Not provided"}
@@ -309,42 +331,42 @@ export default function AdminVendorsScreen() {
             </Text>
 
             <Text style={styles.detailText}>
-              what3words: {item.what3words || "Not provided"}
+              Community notes: {item.spotNotes || "None provided"}
             </Text>
-
-            {item.photo ? (
-              <Image
-                source={{ uri: item.photo }}
-                style={styles.adminVehiclePhoto}
-                resizeMode="cover"
-              />
-            ) : (
-              <Text style={[styles.detailText, styles.missingInfo]}>
-                Vehicle photo: Not provided
-              </Text>
-            )}
 
             <Text style={styles.adminSectionTitle}>Online presence</Text>
 
             {item.instagramUrl ? (
-              <Pressable onPress={() => Linking.openURL(item.instagramUrl!)}>
-                <Text style={styles.linkText}>Open Instagram</Text>
+              <Pressable
+                style={styles.socialLinkBox}
+                onPress={() => Linking.openURL(item.instagramUrl!)}
+              >
+                <Text style={styles.socialLinkLabel}>Instagram</Text>
+                <Text style={styles.socialLinkValue}>{item.instagramUrl} ↗</Text>
               </Pressable>
             ) : (
               <Text style={[styles.detailText, styles.missingInfo]}>Instagram: Not provided</Text>
             )}
 
             {item.facebookUrl ? (
-              <Pressable onPress={() => Linking.openURL(item.facebookUrl!)}>
-                <Text style={styles.linkText}>Open Facebook</Text>
+              <Pressable
+                style={styles.socialLinkBox}
+                onPress={() => Linking.openURL(item.facebookUrl!)}
+              >
+                <Text style={styles.socialLinkLabel}>Facebook</Text>
+                <Text style={styles.socialLinkValue}>{item.facebookUrl} ↗</Text>
               </Pressable>
             ) : (
               <Text style={[styles.detailText, styles.missingInfo]}>Facebook: Not provided</Text>
             )}
 
             {item.websiteUrl ? (
-              <Pressable onPress={() => Linking.openURL(item.websiteUrl!)}>
-                <Text style={styles.linkText}>Open Website</Text>
+              <Pressable
+                style={styles.socialLinkBox}
+                onPress={() => Linking.openURL(item.websiteUrl!)}
+              >
+                <Text style={styles.socialLinkLabel}>Website</Text>
+                <Text style={styles.socialLinkValue}>{item.websiteUrl} ↗</Text>
               </Pressable>
             ) : (
               <Text style={[styles.detailText, styles.missingInfo]}>Website: Not provided</Text>
@@ -352,6 +374,17 @@ export default function AdminVendorsScreen() {
 
             <View style={styles.checklistBox}>
               <Text style={styles.checklistTitle}>Verification checks</Text>
+
+              <Text style={styles.checklistScore}>
+                {[
+                  item.photo,
+                  item.what3words,
+                  item.instagramUrl,
+                  item.facebookUrl,
+                  item.websiteUrl,
+                ].filter(Boolean).length}
+                {" / 5 verification items supplied"}
+              </Text>
 
               <Text style={styles.checklistItem}>
                 {item.photo ? "✅" : "⚠️"} Vehicle photo
@@ -902,5 +935,35 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#444444",
     lineHeight: 20,
+  },
+
+  socialLinkBox: {
+    backgroundColor: "#F8FBFF",
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "rgba(11,42,91,0.16)",
+    marginBottom: 8,
+  },
+
+  socialLinkLabel: {
+    fontSize: 12,
+    fontWeight: "900",
+    color: "#0B2A5B",
+    marginBottom: 4,
+    textTransform: "uppercase",
+  },
+
+  socialLinkValue: {
+    fontSize: 13,
+    color: "#FF7A00",
+    fontWeight: "800",
+  },
+
+  checklistScore: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#0B2A5B",
+    marginBottom: 10,
   },
 });

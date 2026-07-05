@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -21,6 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { getSubscriptionFeatures } from "../../lib/subscriptionFeatures";
 import { getCurrentUser } from "../../services/authService";
+import { uploadVendorPhotos } from "../../services/storageService";
 import { createVendor, getAllVendors } from "../../services/vendorService";
 import { type Van } from "../../types/van";
 
@@ -179,7 +181,10 @@ export default function MapScreen() {
   const [showMapHint, setShowMapHint] = useState(false);
   const [spotMode, setSpotMode] = useState(false);
   const [spotName, setSpotName] = useState("");
+  const [spotNotes, setSpotNotes] = useState("");
   const [spotCuisine, setSpotCuisine] = useState("");
+  const [spotPhotoUri, setSpotPhotoUri] = useState<string | null>(null);
+  const [submittingSpot, setSubmittingSpot] = useState(false);
   const [spotVendorType, setSpotVendorType] = useState<
     "food_van" | "restaurant_takeaway" | "event_vendor" | "market_stall"
   >("food_van");
@@ -242,6 +247,12 @@ export default function MapScreen() {
   }, []);
 
   useEffect(() => {
+    if (params.spotMode === "true") {
+      setSelectedVan(null);
+      setSelectedSpotPin(null);
+      setSpotMode(true);
+    }
+
     const parsedLat = Number(params.lat);
     const parsedLng = Number(params.lng);
 
@@ -290,7 +301,7 @@ export default function MapScreen() {
     if (mapReady) {
       mapRef.current?.animateToRegion(nextRegion, 700);
     }
-  }, [params.lat, params.lng, params.highlight, supabaseVans, mapReady]);
+  }, [params.spotMode, params.lat, params.lng, params.highlight, supabaseVans, mapReady]);
 
   useEffect(() => {
     if (!selectedVan) {
@@ -555,13 +566,30 @@ export default function MapScreen() {
     Alert.alert("Choose location", "Tap the map where the van is located.");
   }
 
+  async function pickSpotPhoto() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      setSpotPhotoUri(result.assets[0].uri);
+    }
+  }
+
   function cancelSpotFlow() {
     setSpotMode(false);
     setSpotVisible(false);
     setSpotName("");
     setSpotCuisine("");
+    setSpotNotes("");
+    setSpotPhotoUri(null);
     setSpotVendorType("food_van");
     setSelectedSpotPin(null);
+
+    router.replace("/(tabs)/explore");
   }
 
   async function closeMapHint() {
@@ -594,6 +622,12 @@ export default function MapScreen() {
       Date.now() + 180 * 24 * 60 * 60 * 1000
     ).toISOString();
 
+    let uploadedSpotPhotoUrls: string[] = [];
+
+    if (spotPhotoUri) {
+      uploadedSpotPhotoUrls = await uploadVendorPhotos(user.id, [spotPhotoUri]);
+    }
+
     const newVan: Van = {
       id: `spotted-${Date.now()}`,
       name: spotName.trim(),
@@ -603,7 +637,8 @@ export default function MapScreen() {
       lng: selectedSpotPin.longitude,
       temporary: true,
       listingSource: "user_spotted",
-      photo: null,
+      photo: uploadedSpotPhotoUrls[0] ?? null,
+      photos: uploadedSpotPhotoUrls,
       vendorName: "Community spotted",
       menu: "Claim this van to add menu",
       schedule: "Claim to add schedule",
@@ -616,6 +651,8 @@ export default function MapScreen() {
       foodCategories: [],
     };
 
+    setSubmittingSpot(true);
+
     try {
       await createVendor({
         id: newVan.id,
@@ -626,7 +663,8 @@ export default function MapScreen() {
         schedule: newVan.schedule ?? "Claim to add schedule",
         lat: newVan.lat,
         lng: newVan.lng,
-        photo: null,
+        photo: uploadedSpotPhotoUrls[0] ?? null,
+        photos: uploadedSpotPhotoUrls,
         temporary: true,
         listingSource: "user_spotted",
         expiresAt,
@@ -636,6 +674,7 @@ export default function MapScreen() {
         directions: 0,
         rating: 0,
         subscriptionTier: "free",
+        spotNotes: spotNotes.trim() || null,
         foodCategories: [],
         spottedBy: user.id,
         isApproved: false,
@@ -643,6 +682,7 @@ export default function MapScreen() {
 
       await loadSupabaseVans(true);
       setSelectedVan(null);
+      setSubmittingSpot(false);
       cancelSpotFlow();
 
       Alert.alert(
@@ -651,6 +691,8 @@ export default function MapScreen() {
       );
 
     } catch (error) {
+      setSubmittingSpot(false);
+
       Alert.alert(
         "Error",
         error instanceof Error ? error.message : "Could not save spotted van."
@@ -879,9 +921,9 @@ export default function MapScreen() {
 
       {spotMode ? (
         <View style={styles.spotInstructionWrap}>
-          <Text style={styles.spotInstructionTitle}>Spot Mode Active</Text>
+          <Text style={styles.spotInstructionTitle}>📍 Spot a Vendor</Text>
           <Text style={styles.spotInstructionText}>
-            Tap the map to place the van location.
+            Tap the map where you found a food vendor. Your submission will be reviewed before appearing on BiteBeacon.
           </Text>
         </View>
       ) : null}
@@ -1044,24 +1086,6 @@ export default function MapScreen() {
         </Animated.View>
       ) : null}
 
-      {showMapHint && !selectedVan && !spotMode ? (
-        <View style={[styles.mapHintWrap, { bottom: insets.bottom + 90 }]}>
-          <Text style={styles.mapHintText}>
-            Tap “Spot a Van” to add a new vendor to the map 📍
-          </Text>
-
-          <Pressable onPress={closeMapHint}>
-            <Text style={styles.mapHintClose}>Got it</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      <View style={[styles.buttonWrap, { bottom: insets.bottom + 20 }]}>
-        <Pressable style={styles.primaryButton} onPress={startSpotMode}>
-          <Text style={styles.primaryButtonText}>Spot a Van</Text>
-        </Pressable>
-      </View>
-
       <Modal
         visible={spotVisible}
         transparent
@@ -1081,83 +1105,253 @@ export default function MapScreen() {
                 keyboardDismissMode="interactive"
                 contentContainerStyle={styles.modalScrollContent}
               >
-                <Text style={styles.modalTitle}>Spot a Van</Text>
-                <Text style={styles.modalSubtitle}>
-                  Add a temporary spotted van for the community.
-                </Text>
-
-                <TextInput
-                  style={styles.input}
-                  placeholder="Van name"
-                  placeholderTextColor="#7A7A7A"
-                  value={spotName}
-                  onChangeText={setSpotName}
-                  returnKeyType="next"
-                />
-
-                <Text style={styles.label}>Business Type</Text>
-
-                <View style={styles.typeRow}>
-                  <Pressable
-                    style={[
-                      styles.typeButton,
-                      spotVendorType === "food_van" && styles.typeButtonActive,
-                    ]}
-                    onPress={() => setSpotVendorType("food_van")}
-                  >
-                    <Text style={styles.typeButtonText}>🚚 Food Van</Text>
+                <View style={styles.spotHeader}>
+                  <Pressable style={styles.spotCloseButton} onPress={cancelSpotFlow}>
+                    <Text style={styles.spotCloseText}>×</Text>
                   </Pressable>
 
-                  <Pressable
-                    style={[
-                      styles.typeButton,
-                      spotVendorType === "restaurant_takeaway" &&
-                      styles.typeButtonActive,
-                    ]}
-                    onPress={() => setSpotVendorType("restaurant_takeaway")}
-                  >
-                    <Text style={styles.typeButtonText}>🍔 Restaurant</Text>
-                  </Pressable>
+                  <View style={styles.spotHeaderIcon}>
+                    <Image
+                      source={require("../../assets/icons/spot.png")}
+                      style={styles.spotHeaderIconImage}
+                      resizeMode="contain"
+                    />
+                  </View>
 
-                  <Pressable
-                    style={[
-                      styles.typeButton,
-                      spotVendorType === "event_vendor" &&
-                      styles.typeButtonActive,
-                    ]}
-                    onPress={() => setSpotVendorType("event_vendor")}
-                  >
-                    <Text style={styles.typeButtonText}>🎪 Event</Text>
-                  </Pressable>
+                  <Text style={styles.modalTitle}>Spot a Vendor</Text>
 
-                  <Pressable
-                    style={[
-                      styles.typeButton,
-                      spotVendorType === "market_stall" &&
-                      styles.typeButtonActive,
-                    ]}
-                    onPress={() => setSpotVendorType("market_stall")}
-                  >
-                    <Text style={styles.typeButtonText}>🛍️ Market</Text>
+                  <Text style={styles.modalSubtitle}>
+                    Help the community by adding vendors you’ve found on the map.
+                  </Text>
+                </View>
+
+                <View style={styles.spotCard}>
+                  <View style={styles.spotCardIcon}>
+                    <Text style={styles.spotCardEmoji}>📍</Text>
+                  </View>
+
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.spotCardTitle}>1. Pin set on map</Text>
+
+                    <Text style={styles.spotCardSubtitle}>
+                      Your location has been pinned.
+                    </Text>
+                  </View>
+
+                  <View style={styles.pinBadge}>
+                    <Text style={styles.pinBadgeText}>✓ Pin set</Text>
+                  </View>
+                </View>
+
+                <View style={styles.spotFormCard}>
+                  <View style={styles.spotFormCardHeader}>
+                    <View style={styles.spotCardIcon}>
+                      <Text style={styles.spotCardEmoji}>🏪</Text>
+                    </View>
+
+                    <Text style={styles.spotFormCardTitle}>2. Business Name</Text>
+                  </View>
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Business name (if known)"
+                    placeholderTextColor="#7A7A7A"
+                    value={spotName}
+                    onChangeText={setSpotName}
+                    returnKeyType="next"
+                  />
+
+                </View>
+
+                <View style={styles.spotFormCard}>
+                  <View style={styles.spotFormCardHeader}>
+                    <View style={styles.spotCardIcon}>
+                      <Text style={styles.spotCardEmoji}>🚚</Text>
+                    </View>
+
+                    <Text style={styles.spotFormCardTitle}>
+                      3. What did you find?
+                    </Text>
+                  </View>
+
+                  <View style={styles.typeGrid}>
+
+                    <Pressable
+                      style={[
+                        styles.typeCard,
+                        spotVendorType === "food_van" && styles.typeCardActive,
+                      ]}
+                      onPress={() => setSpotVendorType("food_van")}
+                    >
+                      <Text style={styles.typeCardEmoji}>🚚</Text>
+                      <Text
+                        style={[
+                          styles.typeCardText,
+                          spotVendorType === "food_van" && styles.typeCardTextActive,
+                        ]}
+                      >
+                        Food Van
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={[
+                        styles.typeCard,
+                        spotVendorType === "restaurant_takeaway" && styles.typeCardActive,
+                      ]}
+                      onPress={() => setSpotVendorType("restaurant_takeaway")}
+                    >
+                      <Text style={styles.typeCardEmoji}>🍔</Text>
+                      <Text
+                        style={[
+                          styles.typeCardText,
+                          spotVendorType === "restaurant_takeaway" && styles.typeCardTextActive,
+                        ]}
+                      >
+                        Restaurant
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={[
+                        styles.typeCard,
+                        spotVendorType === "event_vendor" && styles.typeCardActive,
+                      ]}
+                      onPress={() => setSpotVendorType("event_vendor")}
+                    >
+                      <Text style={styles.typeCardEmoji}>🎪</Text>
+                      <Text
+                        style={[
+                          styles.typeCardText,
+                          spotVendorType === "event_vendor" && styles.typeCardTextActive,
+                        ]}
+                      >
+                        Event
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={[
+                        styles.typeCard,
+                        spotVendorType === "market_stall" && styles.typeCardActive,
+                      ]}
+                      onPress={() => setSpotVendorType("market_stall")}
+                    >
+                      <Text style={styles.typeCardEmoji}>🛍️</Text>
+                      <Text
+                        style={[
+                          styles.typeCardText,
+                          spotVendorType === "market_stall" && styles.typeCardTextActive,
+                        ]}
+                      >
+                        Market
+                      </Text>
+                    </Pressable>
+
+                  </View>
+                </View>
+                <View style={styles.spotFormCard}>
+                  <View style={styles.spotFormCardHeader}>
+                    <View style={styles.spotCardIcon}>
+                      <Text style={styles.spotCardEmoji}>🍔</Text>
+                    </View>
+
+                    <Text style={styles.spotFormCardTitle}>4. Food or cuisine</Text>
+                  </View>
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. Burgers, tacos, coffee"
+                    placeholderTextColor="#7A7A7A"
+                    value={spotCuisine}
+                    onChangeText={setSpotCuisine}
+                    returnKeyType="done"
+                  />
+                </View>
+
+                <View style={styles.spotFormCard}>
+                  <View style={styles.spotFormCardHeader}>
+                    <View style={styles.spotCardIcon}>
+                      <Text style={styles.spotCardEmoji}>📝</Text>
+                    </View>
+
+                    <Text style={styles.spotFormCardTitle}>5. Extra information</Text>
+                  </View>
+
+                  <TextInput
+                    style={[styles.input, { height: 110, textAlignVertical: "top" }]}
+                    placeholder="Anything useful? Opening hours, landmarks, colours, queues..."
+                    placeholderTextColor="#7A7A7A"
+                    value={spotNotes}
+                    onChangeText={setSpotNotes}
+                    multiline
+                  />
+                </View>
+
+                <View style={styles.spotFormCard}>
+                  <View style={styles.spotFormCardHeader}>
+                    <View style={styles.spotCardIcon}>
+                      <Text style={styles.spotCardEmoji}>📷</Text>
+                    </View>
+
+                    <Text style={styles.spotFormCardTitle}>6. Add a photo</Text>
+                  </View>
+
+                  <Pressable style={styles.photoUploadCard} onPress={pickSpotPhoto}>
+                    {spotPhotoUri ? (
+                      <Image
+                        source={{ uri: spotPhotoUri }}
+                        style={styles.photoUploadPreview}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <>
+                        <Text style={styles.photoUploadIcon}>📷</Text>
+                        <Text style={styles.photoUploadTitle}>Tap to add photo</Text>
+                        <Text style={styles.photoUploadSubtitle}>
+                          Optional, but helps us verify the spot
+                        </Text>
+                      </>
+                    )}
                   </Pressable>
                 </View>
 
-                <TextInput
-                  style={styles.input}
-                  placeholder="Cuisine"
-                  placeholderTextColor="#7A7A7A"
-                  value={spotCuisine}
-                  onChangeText={setSpotCuisine}
-                  returnKeyType="done"
-                />
+                <View style={styles.spotActionCard}>
 
-                <Pressable style={styles.primaryButton} onPress={submitSpotVan}>
-                  <Text style={styles.primaryButtonText}>Submit Listing</Text>
-                </Pressable>
+                  <View style={styles.spotActionRow}>
+                    <Text style={styles.spotActionIcon}>⭐</Text>
 
-                <Pressable style={styles.cancelButton} onPress={cancelSpotFlow}>
-                  <Text style={styles.cancelButtonText}>Close</Text>
-                </Pressable>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.spotActionTitle}>
+                        Thank you for helping BiteBeacon
+                      </Text>
+
+                      <Text style={styles.spotActionSubtitle}>
+                        Every approved spot helps more people discover great food.
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Pressable
+                    style={[
+                      styles.primaryButton,
+                      submittingSpot && styles.primaryButtonDisabled,
+                    ]}
+                    onPress={() => {
+                      if (!submittingSpot) {
+                        submitSpotVan();
+                      }
+                    }}
+                    disabled={submittingSpot}
+                  >
+                    <Text style={styles.primaryButtonText}>
+                      {submittingSpot
+                        ? "Submitting..."
+                        : "🚀 Submit Community Spot"}
+                    </Text>
+                  </Pressable>
+
+                </View>
               </ScrollView>
             </View>
           </KeyboardAvoidingView>
@@ -1533,17 +1727,24 @@ const styles = StyleSheet.create({
   },
 
   primaryButton: {
-    backgroundColor: "#0B2A5B",
-    paddingVertical: 15,
-    borderRadius: 16,
+    backgroundColor: "#FF7A00",
+    paddingVertical: 18,
+    borderRadius: 20,
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#FF7A00",
-    shadowColor: "#000",
-    shadowOpacity: 0.14,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    borderWidth: 0,
+
+    shadowColor: "#FF7A00",
+    shadowOpacity: 0.32,
+    shadowRadius: 18,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    elevation: 8,
+  },
+
+  primaryButtonDisabled: {
+    opacity: 0.65,
   },
 
   primaryButtonText: {
@@ -1763,7 +1964,7 @@ const styles = StyleSheet.create({
   },
 
   modalCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F4F7FB",
     paddingTop: 20,
     paddingHorizontal: 20,
     paddingBottom: 24,
@@ -1796,13 +1997,27 @@ const styles = StyleSheet.create({
 
   input: {
     backgroundColor: "#FFFFFF",
-    borderWidth: 2,
-    borderColor: "#FF7A00",
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 12,
-    color: "#1F1F1F",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 16,
+
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+
+    marginTop: 6,
+
+    color: "#111827",
+    fontSize: 16,
+    fontWeight: "600",
+
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    elevation: 2,
   },
 
   cancelButton: {
@@ -1841,5 +2056,342 @@ const styles = StyleSheet.create({
     color: "#FF7A00",
     fontWeight: "800",
     fontSize: 13,
+  },
+
+  typeButtonTextActive: {
+    color: "#FFFFFF",
+  },
+
+  spotInfoBox: {
+    backgroundColor: "#F8FBFF",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,122,0,0.35)",
+    marginBottom: 14,
+  },
+
+  spotInfoTitle: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#0B2A5B",
+    marginBottom: 5,
+  },
+
+  spotInfoText: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: "#5F6368",
+    fontWeight: "600",
+  },
+
+  fieldHint: {
+    marginTop: -6,
+    marginBottom: 12,
+    color: "#6B7280",
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: "600",
+  },
+
+  photoButton: {
+    backgroundColor: "#EEF6FF",
+    borderWidth: 2,
+    borderColor: "#0B2A5B",
+    borderStyle: "dashed",
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginBottom: 14,
+  },
+
+  photoButtonText: {
+    color: "#0B2A5B",
+    fontWeight: "800",
+    fontSize: 15,
+  },
+
+  spotPhotoPreview: {
+    width: "100%",
+    height: 190,
+    borderRadius: 14,
+    marginBottom: 14,
+  },
+
+  spotHeader: {
+    alignItems: "center",
+    marginBottom: 18,
+  },
+
+  spotCloseButton: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+
+  spotCloseText: {
+    fontSize: 34,
+    lineHeight: 36,
+    color: "#0B2A5B",
+    fontWeight: "400",
+  },
+
+  spotHeaderIcon: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+
+    backgroundColor: "#FF7A00",
+
+    alignItems: "center",
+    justifyContent: "center",
+
+    marginBottom: 12,
+
+    shadowColor: "#FF7A00",
+    shadowOpacity: 0.30,
+    shadowRadius: 18,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+
+    elevation: 8,
+  },
+
+  spotHeaderIconImage: {
+    width: 52,
+    height: 52,
+  },
+
+  spotCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FAFBFD",
+    borderRadius: 22,
+    padding: 16,
+    marginBottom: 18,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 4,
+  },
+
+  spotCardIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: "#FFF2E7",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 14,
+  },
+
+  spotCardEmoji: {
+    fontSize: 24,
+  },
+
+  spotCardTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#0B2A5B",
+  },
+
+  spotCardSubtitle: {
+    marginTop: 3,
+    color: "#666",
+    fontSize: 14,
+  },
+
+  pinBadge: {
+    backgroundColor: "#EAF9EA",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+
+  pinBadgeText: {
+    color: "#1E8E3E",
+    fontWeight: "800",
+    fontSize: 13,
+  },
+
+  spotFormCard: {
+    backgroundColor: "#FFFFFF",
+
+    borderRadius: 24,
+
+    padding: 18,
+
+    marginBottom: 20,
+
+    borderWidth: 1,
+    borderColor: "#EEF2F7",
+
+    shadowColor: "#FF7A00",
+    shadowOpacity: 0.10,
+    shadowRadius: 22,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    elevation: 8,
+  },
+
+  spotFormCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  spotFormCardTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#0B2A5B",
+  },
+
+  typeGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  typeCard: {
+    width: "47%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    paddingVertical: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#E6EAF0",
+  },
+
+  typeCardActive: {
+    backgroundColor: "#0B2A5B",
+    borderColor: "#FF7A00",
+    borderWidth: 2,
+
+    shadowColor: "#FF7A00",
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+
+    elevation: 8,
+  },
+
+  typeCardEmoji: {
+    fontSize: 30,
+    marginBottom: 10,
+  },
+
+  typeCardText: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#0B2A5B",
+    textAlign: "center",
+  },
+
+  typeCardTextActive: {
+    color: "#FFFFFF",
+  },
+
+  photoUploadCard: {
+    height: 210,
+    borderRadius: 20,
+    backgroundColor: "#F6FAFF",
+    borderWidth: 2,
+    borderColor: "#DCE8F8",
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+
+  photoUploadPreview: {
+    width: "100%",
+    height: "100%",
+  },
+
+  photoUploadIcon: {
+    fontSize: 38,
+    marginBottom: 8,
+  },
+
+  photoUploadTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#0B2A5B",
+    marginBottom: 4,
+  },
+
+  photoUploadSubtitle: {
+    fontSize: 13,
+    color: "#6B7280",
+    fontWeight: "600",
+  },
+
+  spotActionCard: {
+    backgroundColor: "#FFFFFF",
+
+    borderRadius: 24,
+
+    padding: 18,
+
+    marginTop: 10,
+
+    borderWidth: 1,
+    borderColor: "#EEF2F7",
+
+    shadowColor: "#FF7A00",
+    shadowOpacity: 0.10,
+    shadowRadius: 22,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+
+    elevation: 8,
+  },
+
+  spotActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 18,
+  },
+
+  spotActionIcon: {
+    fontSize: 34,
+    marginRight: 14,
+  },
+
+  spotActionTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#0B2A5B",
+  },
+
+  spotActionSubtitle: {
+    marginTop: 4,
+    color: "#6B7280",
+    fontSize: 13,
+    lineHeight: 18,
   },
 });

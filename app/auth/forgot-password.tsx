@@ -1,14 +1,17 @@
+import PrimaryButton from "@/components/PrimaryButton";
+import SecondaryButton from "@/components/SecondaryButton";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
     Alert,
-    Pressable,
     StyleSheet,
     Text,
-    TextInput,
-    View,
+    View
 } from "react-native";
-import { theme } from "../../constants/theme";
+import MapTextureBackground from "../../components/MapTextureBackground";
+import PremiumCard from "../../components/PremiumCard";
+import PremiumInput from "../../components/PremiumInput";
 import { supabase } from "../../lib/supabase";
 
 export default function ForgotPasswordScreen() {
@@ -58,136 +61,122 @@ export default function ForgotPasswordScreen() {
     }
 
     return (
-        <View style={styles.container}>
-            <View style={styles.heroBlock}>
-                <Text style={styles.kicker}>PASSWORD RESET</Text>
-                <Text style={styles.title}>Reset your password</Text>
-                <Text style={styles.subtitle}>
-                    Enter your email and we’ll send you a password reset link.
-                </Text>
-            </View>
+        <MapTextureBackground>
+            <View style={styles.container}>
+                <View style={styles.heroBlock}>
+                    <LinearGradient
+                        colors={["#B94A00", "#FFB547", "#FF7A00", "#B94A00"]}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0.5 }}
+                        style={styles.heroAccent}
+                    />
 
-            <View style={styles.card}>
-                <Text style={styles.sectionTitle}>Forgot Password</Text>
-
-                <Text style={styles.label}>Email</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Enter your email"
-                    placeholderTextColor="#7A7A7A"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    keyboardType="email-address"
-                    value={email}
-                    onChangeText={setEmail}
-                    editable={!isSending}
-                />
-
-                <Pressable
-                    style={[styles.primaryButton, isSending && styles.buttonDisabled]}
-                    onPress={handleResetPassword}
-                    disabled={isSending}
-                >
-                    <Text style={styles.primaryButtonText}>
-                        {isSending ? "Sending..." : "Send Reset Email"}
+                    <Text style={styles.kicker}>PASSWORD RESET</Text>
+                    <Text style={styles.title}>Reset your password</Text>
+                    <Text style={styles.subtitle}>
+                        Enter your email and we’ll send you a password reset link.
                     </Text>
-                </Pressable>
+                </View>
 
-                <Pressable
-                    style={[styles.secondaryButton, isSending && styles.buttonDisabled]}
-                    onPress={() => router.back()}
-                    disabled={isSending}
-                >
-                    <Text style={styles.secondaryButtonText}>Back</Text>
-                </Pressable>
+                <PremiumCard>
+                    <Text style={styles.sectionTitle}>Forgot Password</Text>
+
+                    <Text style={styles.label}>Email</Text>
+                    <PremiumInput
+                        placeholder="Enter your email"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        keyboardType="email-address"
+                        value={email}
+                        onChangeText={setEmail}
+                        editable={!isSending}
+                    />
+
+                    <PrimaryButton
+                        onPress={handleResetPassword}
+                        disabled={isSending}
+                    >
+                        {isSending ? "Sending..." : "Send Reset Email"}
+                    </PrimaryButton>
+
+                    <SecondaryButton
+                        onPress={() => router.back()}
+                        disabled={isSending}
+                    >
+                        Back
+                    </SecondaryButton>
+                </PremiumCard>
             </View>
-        </View>
+        </MapTextureBackground>
     );
 }
 
 const styles = StyleSheet.create({
+
     container: {
         flex: 1,
-        backgroundColor: theme.colors.background,
-        padding: 24,
-        justifyContent: "center",
+        backgroundColor: "transparent",
+        paddingHorizontal: 24,
+        paddingTop: 20,
+        paddingBottom: 30,
+        justifyContent: "flex-start",
     },
     heroBlock: {
-        marginBottom: 24,
+        marginTop: 90,
+        marginBottom: 40,
+        alignItems: "center",
+    },
+    heroAccent: {
+        width: 72,
+        height: 5,
+        borderRadius: 999,
+
+        marginBottom: 22,
+
+        shadowColor: "#FFA126",
+        shadowOpacity: 0.45,
+        shadowRadius: 14,
+        shadowOffset: {
+            width: 0,
+            height: 0,
+        },
+
+        elevation: 8,
     },
     kicker: {
         fontSize: 12,
         fontWeight: "800",
-        letterSpacing: 1.2,
-        color: theme.colors.secondary,
-        marginBottom: 8,
+        letterSpacing: 3,
+        color: "#FFB547",
+        textAlign: "center",
+        marginBottom: 12,
     },
     title: {
-        fontSize: 34,
+        fontSize: 28,
         fontWeight: "800",
-        color: theme.colors.textOnDark,
-        marginBottom: 8,
+        color: "#FFFFFF",
+        textAlign: "center",
+        marginBottom: 10,
     },
     subtitle: {
         fontSize: 15,
         lineHeight: 22,
-        color: "rgba(255,255,255,0.78)",
-    },
-    card: {
-        backgroundColor: theme.colors.card,
-        borderRadius: 24,
-        padding: 20,
-        borderWidth: 2,
-        borderColor: theme.colors.border,
+        color: "rgba(255,255,255,0.82)",
+        textAlign: "center",
+        maxWidth: 300,
     },
     sectionTitle: {
-        fontSize: 22,
-        fontWeight: "800",
-        color: theme.colors.background,
-        marginBottom: 18,
+        fontSize: 26,
+        fontWeight: "900",
+        color: "#FFFFFF",
+        letterSpacing: 0.3,
+        marginBottom: 22,
     },
     label: {
-        fontSize: 14,
-        fontWeight: "700",
-        color: theme.colors.background,
-        marginBottom: 8,
-    },
-    input: {
-        backgroundColor: "#FFFFFF",
-        borderWidth: 2,
-        borderColor: theme.colors.border,
-        borderRadius: 14,
-        paddingHorizontal: 14,
-        paddingVertical: 14,
-        marginBottom: 18,
-        color: theme.colors.text,
-    },
-    primaryButton: {
-        backgroundColor: theme.colors.primary,
-        paddingVertical: 15,
-        borderRadius: 16,
-        alignItems: "center",
-        marginBottom: 12,
-    },
-    primaryButtonText: {
-        color: "#FFFFFF",
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: "800",
-    },
-    secondaryButton: {
-        backgroundColor: theme.colors.card,
-        borderWidth: 2,
-        borderColor: theme.colors.border,
-        paddingVertical: 15,
-        borderRadius: 16,
-        alignItems: "center",
-    },
-    secondaryButtonText: {
-        color: "#222222",
-        fontSize: 16,
-        fontWeight: "700",
-    },
-    buttonDisabled: {
-        opacity: 0.6,
+        color: "#FFB547",
+        letterSpacing: 0.8,
+        marginBottom: 10,
     },
 });

@@ -17,6 +17,7 @@ type CreateVendorInput = {
   facebookUrl?: string;
   websiteUrl?: string;
   what3words?: string | null;
+  spotNotes?: string | null;
   isApproved?: boolean;
   photo?: string | null;
   photos?: string[];
@@ -253,6 +254,7 @@ export async function createVendor(input: CreateVendorInput): Promise<void> {
       vendor_type: input.vendorType ?? "food_van",
       food_categories: input.foodCategories ?? [],
       what3words: input.what3words ?? null,
+      spot_notes: input.spotNotes ?? null,
       instagram_url: input.instagramUrl ?? null,
       facebook_url: input.facebookUrl ?? null,
       website_url: input.websiteUrl ?? null,
