@@ -1,18 +1,26 @@
-import { router } from "expo-router";
-import { useState } from "react";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { theme } from "../../constants/theme";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import AppText from "../../components/AppText";
+import HeroHeader from "../../components/HeroHeader";
+import MapTextureBackground from "../../components/MapTextureBackground";
+import PremiumCard from "../../components/PremiumCard";
+import PremiumInput from "../../components/PremiumInput";
+import PrimaryButton from "../../components/PrimaryButton";
+import SecondaryButton from "../../components/SecondaryButton";
 import { supabase } from "../../lib/supabase";
 
 export default function UserLoginScreen() {
@@ -22,13 +30,23 @@ export default function UserLoginScreen() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isResending, setIsResending] = useState(false);
 
+  useFocusEffect(
+    useCallback(() => {
+      setIsLoggingIn(false);
+      setIsResending(false);
+    }, [])
+  );
+
   async function handleResendConfirmation() {
-    if (isResending) return;
+    if (isResending || isLoggingIn) return;
 
     const trimmedEmail = email.trim().toLowerCase();
 
     if (!trimmedEmail) {
-      Alert.alert("Missing email", "Enter your email first.");
+      Alert.alert(
+        "Missing email",
+        "Enter your email address first so we know where to resend the confirmation."
+      );
       return;
     }
 
@@ -44,18 +62,18 @@ export default function UserLoginScreen() {
       });
 
       if (error) {
-        Alert.alert("Error", error.message);
+        Alert.alert("Could not resend email", error.message);
         return;
       }
 
       Alert.alert(
-        "Email sent 📩",
-        "We’ve sent another confirmation email. Check your inbox and spam."
+        "Confirmation email sent",
+        "Check your inbox and spam folder for a new confirmation email from BiteBeacon."
       );
     } catch (error) {
       Alert.alert(
-        "Error",
-        error instanceof Error ? error.message : "Unknown error"
+        "Could not resend email",
+        error instanceof Error ? error.message : "An unknown error occurred."
       );
     } finally {
       setIsResending(false);
@@ -63,7 +81,7 @@ export default function UserLoginScreen() {
   }
 
   async function handleLogin() {
-    if (isLoggingIn) return;
+    if (isLoggingIn || isResending) return;
 
     const trimmedEmail = email.trim().toLowerCase();
 
@@ -96,277 +114,387 @@ export default function UserLoginScreen() {
 
       if (user && !user.email_confirmed_at) {
         await supabase.auth.signOut();
+
         Alert.alert(
           "Email not confirmed",
-          "Please confirm your email before logging in."
+          "Please confirm your email before logging in. You can resend the confirmation email below."
         );
         return;
       }
 
-      Alert.alert("Success", "You are now logged in.");
       router.replace("/(tabs)/account");
     } catch (error) {
       Alert.alert(
         "Login failed",
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "An unknown error occurred."
       );
     } finally {
       setIsLoggingIn(false);
     }
   }
 
+  function handleCreateAccount() {
+    if (isLoggingIn || isResending) return;
+
+    router.push("/auth/user-signup");
+  }
+
+  function handleBack() {
+    if (isLoggingIn || isResending) return;
+
+    router.replace("/auth/user-gateway");
+  }
+
+  const controlsDisabled = isLoggingIn || isResending;
+
   return (
-    <KeyboardAvoidingView
-      style={styles.keyboardContainer}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.container}>
-          <View style={styles.heroBlock}>
-            <Text style={styles.kicker}>USER LOGIN</Text>
-            <Text style={styles.title}>Welcome back</Text>
-            <Text style={styles.subtitle}>
-              Log in to save favourites, manage your account, and get back to the
-              best food vendors near you.
-            </Text>
-          </View>
-
-          <View style={styles.formCard}>
-            <Text style={styles.sectionTitle}>User Login</Text>
-
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your email"
-              placeholderTextColor="#7A7A7A"
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              autoComplete="email"
-              textContentType="emailAddress"
-              importantForAutofill="yes"
-              value={email}
-              onChangeText={setEmail}
-              editable={!isLoggingIn}
-            />
-
-            <Text style={styles.label}>Password</Text>
-            <View style={styles.passwordWrap}>
-              <TextInput
-                style={styles.passwordInput}
-                placeholder="Enter your password"
-                placeholderTextColor="#7A7A7A"
-                secureTextEntry={!showPassword}
-                autoComplete="password"
-                textContentType="password"
-                importantForAutofill="yes"
-                value={password}
-                onChangeText={setPassword}
-                editable={!isLoggingIn}
+    <MapTextureBackground>
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView
+          style={styles.keyboardContainer}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <ScrollView
+              contentContainerStyle={styles.container}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
+              <HeroHeader
+                showLogo={false}
+                kicker="USER LOGIN"
+                title="Welcome back"
+                subtitle="Log in to access your favourites, account settings and personalised BiteBeacon experience."
               />
 
-              <Pressable
-                style={[
-                  styles.showPasswordButton,
-                  isLoggingIn && styles.buttonDisabled,
-                ]}
-                onPress={() => setShowPassword((current) => !current)}
-                disabled={isLoggingIn}
-              >
-                <Text style={styles.showPasswordButtonText}>
-                  {showPassword ? "Hide" : "Show"}
-                </Text>
-              </Pressable>
-            </View>
+              <PremiumCard>
+                <View style={styles.cardHeading}>
+                  <View style={styles.accountIcon}>
+                    <MaterialCommunityIcons
+                      name="account-outline"
+                      size={30}
+                      color="#FFB547"
+                    />
+                  </View>
 
-            <Pressable
-              style={[styles.primaryButton, isLoggingIn && styles.buttonDisabled]}
-              onPress={handleLogin}
-              disabled={isLoggingIn}
-            >
-              <Text style={styles.primaryButtonText}>
-                {isLoggingIn ? "Logging in..." : "Log In"}
-              </Text>
-            </Pressable>
+                  <View style={styles.cardHeadingText}>
+                    <AppText variant="heading" style={styles.sectionTitle}>
+                      User Login
+                    </AppText>
 
-            <Pressable
-              onPress={() => router.push("/auth/forgot-password")}
-              style={[styles.linkButton, isLoggingIn && styles.buttonDisabled]}
-              disabled={isLoggingIn}
-            >
-              <Text style={styles.linkButtonText}>Forgot password?</Text>
-            </Pressable>
+                    <AppText variant="body" style={styles.sectionSubtitle}>
+                      Enter your account details below.
+                    </AppText>
+                  </View>
+                </View>
 
-            <Pressable
-              onPress={handleResendConfirmation}
-              style={[styles.linkButton, isResending && styles.buttonDisabled]}
-              disabled={isResending}
-            >
-              <Text style={styles.linkButtonText}>
-                {isResending ? "Sending..." : "Resend confirmation email"}
-              </Text>
-            </Pressable>
+                <AppText variant="label" style={styles.label}>
+                  Email
+                </AppText>
 
-            <Pressable
-              style={[styles.secondaryButton, isLoggingIn && styles.buttonDisabled]}
-              onPress={() => router.push("/auth/user-signup")}
-              disabled={isLoggingIn}
-            >
-              <Text style={styles.secondaryButtonText}>Create User Account</Text>
-            </Pressable>
+                <PremiumInput
+                  placeholder="Enter your email"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  importantForAutofill="yes"
+                  value={email}
+                  onChangeText={setEmail}
+                  editable={!controlsDisabled}
+                />
 
-            <Pressable
-              style={[styles.backButton, isLoggingIn && styles.buttonDisabled]}
-              onPress={() => router.replace("/welcome")}
-              disabled={isLoggingIn}
-            >
-              <Text style={styles.backButtonText}>Back</Text>
-            </Pressable>
-          </View>
-        </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+                <AppText variant="label" style={styles.passwordLabel}>
+                  Password
+                </AppText>
+
+                <View style={styles.passwordRow}>
+                  <View style={styles.passwordInputArea}>
+                    <PremiumInput
+                      placeholder="Enter your password"
+                      secureTextEntry={!showPassword}
+                      autoComplete="password"
+                      textContentType="password"
+                      importantForAutofill="yes"
+                      value={password}
+                      onChangeText={setPassword}
+                      editable={!controlsDisabled}
+                    />
+                  </View>
+
+                  <Pressable
+                    onPress={() =>
+                      setShowPassword((currentValue) => !currentValue)
+                    }
+                    disabled={controlsDisabled}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                    style={({ pressed }) => [
+                      styles.showPasswordButton,
+                      pressed && styles.pressed,
+                      controlsDisabled && styles.buttonDisabled,
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name={showPassword ? "eye-off-outline" : "eye-outline"}
+                      size={21}
+                      color="#FFB547"
+                    />
+
+                    <AppText
+                      variant="bodyBold"
+                      style={styles.showPasswordText}
+                    >
+                      {showPassword ? "Hide" : "Show"}
+                    </AppText>
+                  </Pressable>
+                </View>
+
+                <PrimaryButton
+                  onPress={handleLogin}
+                  disabled={controlsDisabled}
+                  style={styles.loginButton}
+                >
+                  {isLoggingIn ? "Logging in..." : "Log In"}
+                </PrimaryButton>
+
+                <Pressable
+                  onPress={() => router.push("/auth/forgot-password")}
+                  disabled={controlsDisabled}
+                  accessibilityRole="button"
+                  accessibilityLabel="Reset forgotten password"
+                  style={({ pressed }) => [
+                    styles.textLink,
+                    pressed && styles.pressed,
+                    controlsDisabled && styles.buttonDisabled,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="lock-question"
+                    size={18}
+                    color="#FF8A1F"
+                  />
+
+                  <AppText variant="bodyBold" style={styles.textLinkLabel}>
+                    Forgot password?
+                  </AppText>
+                </Pressable>
+
+                <Pressable
+                  onPress={handleResendConfirmation}
+                  disabled={controlsDisabled}
+                  accessibilityRole="button"
+                  accessibilityLabel="Resend confirmation email"
+                  style={({ pressed }) => [
+                    styles.textLink,
+                    styles.resendLink,
+                    pressed && styles.pressed,
+                    controlsDisabled && styles.buttonDisabled,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="email-sync-outline"
+                    size={18}
+                    color="#FF8A1F"
+                  />
+
+                  <AppText variant="bodyBold" style={styles.textLinkLabel}>
+                    {isResending
+                      ? "Sending confirmation..."
+                      : "Resend confirmation email"}
+                  </AppText>
+                </Pressable>
+
+                <View style={styles.dividerRow}>
+                  <View style={styles.dividerLine} />
+
+                  <AppText variant="label" style={styles.dividerText}>
+                    NEW TO BITEBEACON?
+                  </AppText>
+
+                  <View style={styles.dividerLine} />
+                </View>
+
+                <SecondaryButton
+                  onPress={handleCreateAccount}
+                  disabled={controlsDisabled}
+                >
+                  Create User Account
+                </SecondaryButton>
+
+                <SecondaryButton
+                  onPress={handleBack}
+                  disabled={controlsDisabled}
+                  style={styles.backButton}
+                >
+                  Back
+                </SecondaryButton>
+              </PremiumCard>
+            </ScrollView>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </MapTextureBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+
   keyboardContainer: {
     flex: 1,
   },
+
   container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    padding: 24,
-    justifyContent: "center",
+    flexGrow: 1,
+    paddingHorizontal: 22,
+    paddingTop: 18,
+    paddingBottom: 42,
   },
-  heroBlock: {
-    marginBottom: 24,
-  },
-  kicker: {
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-    color: theme.colors.secondary,
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 34,
-    fontWeight: "800",
-    color: theme.colors.textOnDark,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: "rgba(255,255,255,0.78)",
-  },
-  formCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    shadowColor: "#000",
-    shadowOpacity: 0.14,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: theme.colors.background,
-    marginBottom: 18,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: theme.colors.background,
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    marginBottom: 14,
-    color: theme.colors.text,
-  },
-  passwordWrap: {
+
+  cardHeading: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    borderRadius: 14,
-    marginBottom: 18,
-    overflow: "hidden",
+    marginBottom: 22,
   },
-  passwordInput: {
+
+  accountIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,122,0,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,181,71,0.28)",
+    marginRight: 14,
+
+    shadowColor: "#FF7A00",
+    shadowOpacity: 0.2,
+    shadowRadius: 9,
+    shadowOffset: {
+      width: 0,
+      height: 0,
+    },
+
+    elevation: 4,
+  },
+
+  cardHeadingText: {
     flex: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    color: theme.colors.text,
   },
-  showPasswordButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    backgroundColor: "#FFF3E0",
-    borderLeftWidth: 1,
-    borderLeftColor: theme.colors.border,
+
+  sectionTitle: {
+    color: "#FFFFFF",
+    fontSize: 24,
+    lineHeight: 29,
   },
-  showPasswordButtonText: {
-    color: theme.colors.primary,
+
+  sectionSubtitle: {
+    color: "rgba(255,255,255,0.58)",
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 2,
+  },
+
+  label: {
+    color: "#FFB547",
     fontSize: 13,
-    fontWeight: "800",
+    marginBottom: 8,
   },
-  primaryButton: {
-    backgroundColor: theme.colors.background,
-    paddingVertical: 15,
-    borderRadius: 16,
+
+  passwordLabel: {
+    color: "#FFB547",
+    fontSize: 13,
+    marginTop: 15,
+    marginBottom: 8,
+  },
+
+  passwordRow: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 18,
   },
-  primaryButtonText: {
-    color: theme.colors.textOnDark,
-    fontSize: 16,
-    fontWeight: "800",
+
+  passwordInputArea: {
+    flex: 1,
   },
-  linkButton: {
-    marginTop: 10,
+
+  showPasswordButton: {
+    minWidth: 74,
+    minHeight: 50,
+    marginLeft: 8,
+    paddingHorizontal: 8,
+    borderRadius: 15,
     alignItems: "center",
-    marginBottom: 12,
+    justifyContent: "center",
+    gap: 2,
   },
-  linkButtonText: {
+
+  showPasswordText: {
+    color: "#FFB547",
+    fontSize: 11,
+  },
+
+  loginButton: {
+    marginTop: 2,
+  },
+
+  textLink: {
+    minHeight: 36,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    marginTop: 8,
+  },
+
+  resendLink: {
+    marginTop: 1,
+  },
+
+  textLinkLabel: {
     color: "#FF7A00",
-    fontWeight: "700",
+    fontSize: 13,
+    textAlign: "center",
   },
-  secondaryButton: {
-    backgroundColor: theme.colors.primary,
-    paddingVertical: 15,
-    borderRadius: 16,
+
+  dividerRow: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginTop: 16,
+    marginBottom: 15,
   },
-  secondaryButtonText: {
-    color: theme.colors.textOnDark,
-    fontSize: 16,
-    fontWeight: "800",
+
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "rgba(255,181,71,0.2)",
   },
+
+  dividerText: {
+    color: "rgba(255,181,71,0.7)",
+    fontSize: 8.5,
+    letterSpacing: 1.3,
+    marginHorizontal: 10,
+  },
+
   backButton: {
-    backgroundColor: "#D9D9D9",
-    paddingVertical: 15,
-    borderRadius: 16,
-    alignItems: "center",
+    marginTop: 9,
   },
-  backButtonText: {
-    color: "#222222",
-    fontSize: 16,
-    fontWeight: "700",
+
+  pressed: {
+    opacity: 0.8,
   },
+
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.55,
   },
 });

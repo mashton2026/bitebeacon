@@ -1,5 +1,5 @@
 import { StyleSheet, TextInput, TextInputProps } from "react-native";
-
+import { typography } from "../constants/typography";
 export default function PremiumInput(props: TextInputProps) {
     return (
         <TextInput
@@ -20,11 +20,11 @@ const styles = StyleSheet.create({
         borderRadius: 16,
 
         paddingHorizontal: 18,
-        paddingVertical: 16,
+        paddingVertical: 10,
         marginBottom: 20,
 
         color: "#FFFFFF",
-
+        fontFamily: typography.body,
         fontSize: 16,
     },
 });

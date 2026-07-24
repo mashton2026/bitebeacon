@@ -1,180 +1,569 @@
-import { router } from "expo-router";
-import { useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
-import { theme } from "../../constants/theme";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import AppText from "../../components/AppText";
+import MapTextureBackground from "../../components/MapTextureBackground";
 import { supabase } from "../../lib/supabase";
 
 export default function UserGatewayScreen() {
-  const [isContinuingAsGuest, setIsContinuingAsGuest] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      setIsNavigating(false);
+    }, [])
+  );
+
+  function handleLogin() {
+    if (isNavigating) return;
+
+    setIsNavigating(true);
+    router.push("/auth/user-login");
+  }
+
+  function handleCreateAccount() {
+    if (isNavigating) return;
+
+    setIsNavigating(true);
+    router.push("/auth/user-signup");
+  }
 
   async function handleContinueAsGuest() {
-    if (isContinuingAsGuest) return;
+    if (isNavigating) return;
 
-    setIsContinuingAsGuest(true);
+    setIsNavigating(true);
 
     try {
       const { error } = await supabase.auth.signOut();
 
       if (error) {
-        console.log("Signout error:", error.message);
+        console.log("Guest sign-out error:", error.message);
       }
 
       router.replace("/(tabs)");
     } catch (error) {
       Alert.alert(
         "Guest mode failed",
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error
+          ? error.message
+          : "We could not open guest mode."
       );
-    } finally {
-      setIsContinuingAsGuest(false);
+
+      setIsNavigating(false);
     }
   }
 
+  function handleBack() {
+    if (isNavigating) return;
+
+    setIsNavigating(true);
+    router.replace("/welcome");
+  }
+
   return (
-    <View style={styles.container}>
-      <View style={styles.heroBlock}>
-        <Text style={styles.kicker}>GET STARTED</Text>
-        <Text style={styles.title}>Browse BiteBeacon</Text>
-        <Text style={styles.subtitle}>
-          Log in to save favourites and manage your account, or continue as a
-          guest and start discovering food vendors right away.
-        </Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Choose how you want to continue</Text>
-        <Text style={styles.cardText}>
-          Create an account for the full BiteBeacon experience, or jump straight
-          in as a guest.
-        </Text>
-
-        <Pressable
-          style={[
-            styles.primaryButton,
-            isContinuingAsGuest && styles.buttonDisabled,
-          ]}
-          onPress={() => router.push("/auth/user-login")}
-          disabled={isContinuingAsGuest}
+    <MapTextureBackground>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
         >
-          <Text style={styles.primaryButtonText}>Login</Text>
-        </Pressable>
+          {/* HERO */}
+          <View style={styles.heroSection}>
+            <View style={styles.heroLight}>
+              <LinearGradient
+                colors={["#8F4700", "#FFB547", "#FF7A00"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.heroLightGradient}
+              />
+            </View>
 
-        <Pressable
-          style={[
-            styles.secondaryButton,
-            isContinuingAsGuest && styles.buttonDisabled,
-          ]}
-          onPress={() => router.push("/auth/user-signup")}
-          disabled={isContinuingAsGuest}
-        >
-          <Text style={styles.secondaryButtonText}>Create Account</Text>
-        </Pressable>
+            <AppText variant="label" style={styles.kicker}>
+              EXPLORE BITEBEACON
+            </AppText>
 
-        <Pressable
-          style={[
-            styles.guestButton,
-            isContinuingAsGuest && styles.buttonDisabled,
-          ]}
-          onPress={handleContinueAsGuest}
-          disabled={isContinuingAsGuest}
-        >
-          <Text style={styles.guestButtonText}>
-            {isContinuingAsGuest ? "Opening Guest Mode..." : "Continue as Guest"}
-          </Text>
-        </Pressable>
-      </View>
-    </View>
+            <AppText variant="heading" style={styles.title}>
+              How would you like{"\n"}to continue?
+            </AppText>
+
+            <AppText variant="body" style={styles.subtitle}>
+              Sign in for your saved favourites and personalised experience,
+              create a new account, or explore BiteBeacon as a guest.
+            </AppText>
+          </View>
+
+          {/* PREMIUM CARD */}
+          <View style={styles.outerGlow}>
+            <LinearGradient
+              colors={[
+                "#8F4700",
+                "#FFB547",
+                "#FF7A00",
+                "#FFB547",
+                "#8F4700",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.borderWrap}
+            >
+              <View style={styles.card}>
+                <View style={styles.innerHighlight}>
+                  <AppText variant="heading" style={styles.cardTitle}>
+                    Welcome to BiteBeacon
+                  </AppText>
+
+                  <AppText variant="body" style={styles.cardText}>
+                    Choose the option that suits you. Guest access lets you
+                    start exploring immediately.
+                  </AppText>
+
+                  {/* LOGIN */}
+                  <Pressable
+                    onPress={handleLogin}
+                    disabled={isNavigating}
+                    accessibilityRole="button"
+                    accessibilityLabel="Log in to BiteBeacon"
+                    style={({ pressed }) => [
+                      styles.optionButton,
+                      styles.loginButton,
+                      pressed && styles.buttonPressed,
+                      isNavigating && styles.buttonDisabled,
+                    ]}
+                  >
+                    <View style={styles.optionIconWrap}>
+                      <MaterialCommunityIcons
+                        name="login"
+                        size={24}
+                        color="#F4B547"
+                      />
+                    </View>
+
+                    <View style={styles.optionTextArea}>
+                      <AppText
+                        variant="bodyBold"
+                        style={styles.optionButtonTitle}
+                      >
+                        Log In
+                      </AppText>
+
+                      <AppText
+                        variant="body"
+                        style={styles.optionButtonDescription}
+                      >
+                        Access your account and saved favourites.
+                      </AppText>
+                    </View>
+
+                    <MaterialCommunityIcons
+                      name="chevron-right"
+                      size={27}
+                      color="#F4B547"
+                    />
+                  </Pressable>
+
+                  {/* CREATE ACCOUNT */}
+                  <Pressable
+                    onPress={handleCreateAccount}
+                    disabled={isNavigating}
+                    accessibilityRole="button"
+                    accessibilityLabel="Create a BiteBeacon account"
+                    style={({ pressed }) => [
+                      styles.createButtonWrap,
+                      pressed && styles.buttonPressed,
+                      isNavigating && styles.buttonDisabled,
+                    ]}
+                  >
+                    <LinearGradient
+                      colors={["#FF9A1F", "#FF7A00", "#E85D00"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.createButton}
+                    >
+                      <View style={styles.createIconWrap}>
+                        <MaterialCommunityIcons
+                          name="account-plus-outline"
+                          size={24}
+                          color="#FFFFFF"
+                        />
+                      </View>
+
+                      <View style={styles.optionTextArea}>
+                        <AppText
+                          variant="bodyBold"
+                          style={styles.createButtonTitle}
+                        >
+                          Create Account
+                        </AppText>
+
+                        <AppText
+                          variant="body"
+                          style={styles.createButtonDescription}
+                        >
+                          Save favourites and personalise BiteBeacon.
+                        </AppText>
+                      </View>
+
+                      <MaterialCommunityIcons
+                        name="chevron-right"
+                        size={27}
+                        color="#FFFFFF"
+                      />
+                    </LinearGradient>
+                  </Pressable>
+
+                  <View style={styles.dividerRow}>
+                    <View style={styles.dividerLine} />
+
+                    <AppText variant="label" style={styles.dividerText}>
+                      OR
+                    </AppText>
+
+                    <View style={styles.dividerLine} />
+                  </View>
+
+                  {/* GUEST */}
+                  <Pressable
+                    onPress={handleContinueAsGuest}
+                    disabled={isNavigating}
+                    accessibilityRole="button"
+                    accessibilityLabel="Continue as a guest"
+                    style={({ pressed }) => [
+                      styles.guestButton,
+                      pressed && styles.buttonPressed,
+                      isNavigating && styles.buttonDisabled,
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="compass-outline"
+                      size={23}
+                      color="#FFFFFF"
+                    />
+
+                    <AppText variant="bodyBold" style={styles.guestButtonText}>
+                      {isNavigating
+                        ? "Opening BiteBeacon..."
+                        : "Continue as Guest"}
+                    </AppText>
+                  </Pressable>
+
+                  <AppText variant="body" style={styles.guestNote}>
+                    Guest mode lets you browse without creating an account.
+                  </AppText>
+
+                  {/* BACK */}
+                  <Pressable
+                    onPress={handleBack}
+                    disabled={isNavigating}
+                    accessibilityRole="button"
+                    accessibilityLabel="Return to the welcome screen"
+                    style={({ pressed }) => [
+                      styles.backButton,
+                      pressed && styles.buttonPressed,
+                      isNavigating && styles.buttonDisabled,
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="arrow-left"
+                      size={20}
+                      color="#F4B547"
+                    />
+
+                    <AppText variant="bodyBold" style={styles.backButtonText}>
+                      Back
+                    </AppText>
+                  </Pressable>
+                </View>
+              </View>
+            </LinearGradient>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </MapTextureBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: "transparent",
+  },
+
+  container: {
+    flexGrow: 1,
     justifyContent: "center",
-    padding: 24,
+    paddingHorizontal: 22,
+    paddingTop: 28,
+    paddingBottom: 42,
   },
-  heroBlock: {
-    marginBottom: 24,
+
+  heroSection: {
+    alignItems: "center",
+    marginBottom: 28,
   },
+
+  heroLight: {
+    width: 126,
+    height: 8,
+    borderRadius: 999,
+    marginBottom: 22,
+
+    shadowColor: "#FF7A00",
+    shadowOpacity: 0.72,
+    shadowRadius: 13,
+    shadowOffset: {
+      width: 0,
+      height: 0,
+    },
+
+    elevation: 8,
+  },
+
+  heroLightGradient: {
+    flex: 1,
+    borderRadius: 999,
+  },
+
   kicker: {
+    color: "#F4B547",
     fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-    color: theme.colors.secondary,
-    marginBottom: 8,
+    letterSpacing: 3,
+    textAlign: "center",
+    marginBottom: 13,
   },
+
   title: {
+    color: "#FFFFFF",
     fontSize: 34,
-    fontWeight: "800",
-    color: theme.colors.textOnDark,
-    marginBottom: 8,
+    lineHeight: 40,
+    textAlign: "center",
   },
+
   subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
+    maxWidth: 365,
     color: "rgba(255,255,255,0.78)",
-  },
-  card: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    shadowColor: "#000",
-    shadowOpacity: 0.14,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
-  },
-  cardTitle: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: theme.colors.background,
-    marginBottom: 8,
-  },
-  cardText: {
     fontSize: 15,
-    lineHeight: 22,
-    color: theme.colors.muted,
-    marginBottom: 18,
+    lineHeight: 23,
+    textAlign: "center",
+    marginTop: 14,
   },
-  primaryButton: {
-    backgroundColor: theme.colors.background,
-    paddingVertical: 15,
-    borderRadius: 16,
+
+  outerGlow: {
+    borderRadius: 36,
+
+    shadowColor: "#FF7A00",
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+
+    elevation: 11,
+  },
+
+  borderWrap: {
+    borderRadius: 36,
+    padding: 2,
+  },
+
+  card: {
+    borderRadius: 34,
+    backgroundColor: "rgba(8,12,18,0.94)",
+  },
+
+  innerHighlight: {
+    borderRadius: 34,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 20,
+  },
+
+  cardTitle: {
+    color: "#FFFFFF",
+    fontSize: 25,
+    lineHeight: 31,
+    textAlign: "center",
+  },
+
+  cardText: {
+    color: "rgba(255,255,255,0.68)",
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
+    marginTop: 8,
+    marginBottom: 21,
+  },
+
+  optionButton: {
+    minHeight: 83,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    paddingHorizontal: 14,
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
   },
-  primaryButtonText: {
-    color: theme.colors.textOnDark,
-    fontSize: 16,
-    fontWeight: "800",
+
+  loginButton: {
+    backgroundColor: "#121820",
+    borderColor: "rgba(244,181,71,0.72)",
   },
-  secondaryButton: {
-    backgroundColor: theme.colors.primary,
-    paddingVertical: 15,
-    borderRadius: 16,
+
+  optionIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
-    marginBottom: 12,
+    justifyContent: "center",
+    backgroundColor: "rgba(244,181,71,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.24)",
+    marginRight: 12,
   },
-  secondaryButtonText: {
-    color: theme.colors.textOnDark,
+
+  optionTextArea: {
+    flex: 1,
+    paddingRight: 8,
+  },
+
+  optionButtonTitle: {
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "800",
   },
+
+  optionButtonDescription: {
+    color: "rgba(255,255,255,0.57)",
+    fontSize: 11.5,
+    lineHeight: 17,
+    marginTop: 2,
+  },
+
+  createButtonWrap: {
+    borderRadius: 18,
+    marginTop: 12,
+
+    shadowColor: "#FF7A00",
+    shadowOpacity: 0.24,
+    shadowRadius: 10,
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+
+    elevation: 6,
+  },
+
+  createButton: {
+    minHeight: 83,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  createIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.24)",
+    marginRight: 12,
+  },
+
+  createButtonTitle: {
+    color: "#FFFFFF",
+    fontSize: 16,
+  },
+
+  createButtonDescription: {
+    color: "rgba(255,255,255,0.78)",
+    fontSize: 11.5,
+    lineHeight: 17,
+    marginTop: 2,
+  },
+
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 17,
+  },
+
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "rgba(244,181,71,0.22)",
+  },
+
+  dividerText: {
+    color: "rgba(244,181,71,0.72)",
+    fontSize: 10,
+    letterSpacing: 2,
+    marginHorizontal: 12,
+  },
+
   guestButton: {
-    backgroundColor: "#D9D9D9",
-    paddingVertical: 15,
-    borderRadius: 16,
+    minHeight: 54,
+    borderRadius: 17,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.24)",
+    backgroundColor: "#131820",
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
   },
+
   guestButtonText: {
-    color: "#222222",
-    fontSize: 16,
-    fontWeight: "700",
+    color: "#FFFFFF",
+    fontSize: 15,
   },
+
+  guestNote: {
+    color: "rgba(255,255,255,0.47)",
+    fontSize: 11,
+    lineHeight: 17,
+    textAlign: "center",
+    marginTop: 9,
+  },
+
+  backButton: {
+    minHeight: 47,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: "rgba(244,181,71,0.52)",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 17,
+  },
+
+  backButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+  },
+
+  buttonPressed: {
+    opacity: 0.86,
+    transform: [{ scale: 0.985 }],
+  },
+
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.58,
   },
 });

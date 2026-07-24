@@ -4,9 +4,9 @@ import {
     PressableProps,
     StyleProp,
     StyleSheet,
-    Text,
     ViewStyle,
 } from "react-native";
+import AppText from "./AppText";
 
 type SecondaryButtonProps = PressableProps & {
     children: React.ReactNode;
@@ -29,7 +29,9 @@ export default function SecondaryButton({
                 disabled && styles.disabled,
             ]}
         >
-            <Text style={styles.text}>{children}</Text>
+            <AppText variant="button" style={styles.text}>
+                {children}
+            </AppText>
         </Pressable>
     );
 }
@@ -53,7 +55,6 @@ const styles = StyleSheet.create({
     text: {
         color: "#FFFFFF",
         fontSize: 16,
-        fontWeight: "800",
     },
 
     disabled: {

@@ -901,7 +901,7 @@ export default function MapScreen() {
             <TextInput
               style={styles.searchInput}
               placeholder="Search vendor or cuisine"
-              placeholderTextColor="rgba(0,0,0,0.45)"
+              placeholderTextColor="rgba(255,255,255,0.54)"
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoFocus
@@ -1155,7 +1155,7 @@ export default function MapScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="Business name (if known)"
-                    placeholderTextColor="#7A7A7A"
+                    placeholderTextColor="rgba(255,255,255,0.42)"
                     value={spotName}
                     onChangeText={setSpotName}
                     returnKeyType="next"
@@ -1262,7 +1262,7 @@ export default function MapScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="e.g. Burgers, tacos, coffee"
-                    placeholderTextColor="#7A7A7A"
+                    placeholderTextColor="rgba(255,255,255,0.42)"
                     value={spotCuisine}
                     onChangeText={setSpotCuisine}
                     returnKeyType="done"
@@ -1281,7 +1281,7 @@ export default function MapScreen() {
                   <TextInput
                     style={[styles.input, { height: 110, textAlignVertical: "top" }]}
                     placeholder="Anything useful? Opening hours, landmarks, colours, queues..."
-                    placeholderTextColor="#7A7A7A"
+                    placeholderTextColor="rgba(255,255,255,0.42)"
                     value={spotNotes}
                     onChangeText={setSpotNotes}
                     multiline
@@ -1497,62 +1497,100 @@ const styles = StyleSheet.create({
   },
 
   searchInput: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderWidth: 2,
-    borderColor: "#FF7A00",
-    color: "#222222",
+    minHeight: 56,
+
+    backgroundColor: "rgba(5,15,25,0.96)",
+
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.52)",
+
+    paddingHorizontal: 18,
+    paddingVertical: 0,
+
+    color: "#FFFFFF",
+    fontSize: 15,
     fontWeight: "600",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+
+    shadowColor: "#F4B547",
+    shadowOpacity: 0.14,
+    shadowRadius: 12,
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+
+    elevation: 5,
   },
 
   searchIconButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#FFFFFF",
+    width: 52,
+    height: 52,
+
+    borderRadius: 26,
+
+    backgroundColor: "rgba(5,15,25,0.96)",
+
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#FF7A00",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.55)",
+
+    shadowColor: "#F4B547",
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+
+    elevation: 6,
   },
 
   searchIconText: {
-    fontSize: 20,
+    fontSize: 21,
   },
 
   filterChip: {
-    backgroundColor: "rgba(255,255,255,0.96)",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 999,
+    backgroundColor: "rgba(5,15,25,0.96)",
+
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+
+    borderRadius: 18,
+
     borderWidth: 1,
-    borderColor: "rgba(255,122,0,0.35)",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    borderColor: "rgba(244,181,71,0.55)",
+
+    shadowColor: "#F4B547",
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+
+    elevation: 5,
   },
 
   filterChipActive: {
-    backgroundColor: "#0B2A5B",
-    borderColor: "#FF7A00",
+    backgroundColor: "rgba(18,34,52,0.98)",
+    borderColor: "#F4B547",
+
+    shadowColor: "#F4B547",
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+
+    elevation: 7,
   },
 
   filterChipText: {
-    color: "#0B2A5B",
+    color: "rgba(255,255,255,0.88)",
     fontWeight: "800",
     fontSize: 14,
   },
@@ -1563,19 +1601,32 @@ const styles = StyleSheet.create({
 
   legendButton: {
     alignSelf: "flex-start",
-    backgroundColor: "#F8FAFC",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1.5,
-    borderColor: "#FF7A00",
-    marginTop: -4,
+
+    backgroundColor: "rgba(5,15,25,0.96)",
+
+    borderRadius: 18,
+
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.55)",
+
+    shadowColor: "#F4B547",
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+
+    elevation: 5,
   },
 
   legendButtonText: {
-    color: "#0B2A5B",
+    color: "#FFFFFF",
     fontWeight: "800",
-    fontSize: 12,
+    fontSize: 14,
   },
 
   legendCard: {
@@ -1699,20 +1750,31 @@ const styles = StyleSheet.create({
 
   recenterButton: {
     position: "absolute",
+
     right: 16,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#FFFFFF",
+
+    width: 52,
+    height: 52,
+
+    borderRadius: 26,
+
+    backgroundColor: "rgba(5,15,25,0.96)",
+
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#FF7A00",
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.55)",
+
+    shadowColor: "#F4B547",
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+
+    elevation: 6,
   },
 
   recenterButtonText: {
@@ -1964,16 +2026,30 @@ const styles = StyleSheet.create({
   },
 
   modalCard: {
-    backgroundColor: "#F4F7FB",
+    backgroundColor: "#08131F",
+
     paddingTop: 20,
     paddingHorizontal: 20,
     paddingBottom: 24,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+
     borderWidth: 1,
-    borderColor: "rgba(255,122,0,0.35)",
+    borderColor: "rgba(244,181,71,0.35)",
+
     maxHeight: "82%",
     minHeight: 320,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.35,
+    shadowRadius: 28,
+    shadowOffset: {
+      width: 0,
+      height: -8,
+    },
+
+    elevation: 18,
   },
 
   modalScrollContent: {
@@ -1981,24 +2057,33 @@ const styles = StyleSheet.create({
   },
 
   modalTitle: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#0B2A5B",
-    marginBottom: 6,
+    fontSize: 26,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    marginBottom: 8,
+    letterSpacing: -0.4,
   },
 
   modalSubtitle: {
+    maxWidth: 310,
+
     fontSize: 14,
-    color: "#5F6368",
-    lineHeight: 20,
-    marginBottom: 14,
+    lineHeight: 21,
     fontWeight: "600",
+
+    color: "rgba(255,255,255,0.64)",
+
+    textAlign: "center",
+
+    marginBottom: 14,
   },
 
   input: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(5,15,25,0.9)",
+
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "rgba(244,181,71,0.28)",
+
     borderRadius: 16,
 
     paddingHorizontal: 18,
@@ -2006,18 +2091,19 @@ const styles = StyleSheet.create({
 
     marginTop: 6,
 
-    color: "#111827",
+    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
 
     shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    elevation: 2,
+
+    elevation: 4,
   },
 
   cancelButton: {
@@ -2125,49 +2211,68 @@ const styles = StyleSheet.create({
 
   spotCloseButton: {
     position: "absolute",
+
     left: 0,
     top: 0,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#FFFFFF",
+
+    width: 46,
+    height: 46,
+
+    borderRadius: 23,
+
+    backgroundColor: "rgba(16,30,46,0.96)",
+
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.45)",
+
+    shadowColor: "#F4B547",
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+
+    elevation: 5,
   },
 
   spotCloseText: {
-    fontSize: 34,
-    lineHeight: 36,
-    color: "#0B2A5B",
+    fontSize: 30,
+    lineHeight: 32,
+
+    color: "#FFFFFF",
+
     fontWeight: "400",
   },
 
   spotHeaderIcon: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 72,
+    height: 72,
 
-    backgroundColor: "#FF7A00",
+    borderRadius: 36,
+
+    backgroundColor: "#F4B547",
 
     alignItems: "center",
     justifyContent: "center",
 
-    marginBottom: 12,
+    marginBottom: 14,
 
-    shadowColor: "#FF7A00",
-    shadowOpacity: 0.30,
-    shadowRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+
+    shadowColor: "#F4B547",
+    shadowOpacity: 0.32,
+    shadowRadius: 20,
     shadowOffset: {
       width: 0,
       height: 8,
     },
 
-    elevation: 8,
+    elevation: 10,
   },
 
   spotHeaderIconImage: {
@@ -2178,25 +2283,42 @@ const styles = StyleSheet.create({
   spotCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FAFBFD",
+
+    backgroundColor: "rgba(14,29,45,0.96)",
+
     borderRadius: 22,
+
     padding: 16,
     marginBottom: 18,
 
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.28)",
+
     shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 4,
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+
+    elevation: 7,
   },
 
   spotCardIcon: {
     width: 54,
     height: 54,
+
     borderRadius: 27,
-    backgroundColor: "#FFF2E7",
+
+    backgroundColor: "rgba(244,181,71,0.12)",
+
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.35)",
+
     justifyContent: "center",
     alignItems: "center",
+
     marginRight: 14,
   },
 
@@ -2206,31 +2328,43 @@ const styles = StyleSheet.create({
 
   spotCardTitle: {
     fontSize: 17,
-    fontWeight: "800",
-    color: "#0B2A5B",
+    fontWeight: "900",
+    color: "#FFFFFF",
+    letterSpacing: -0.2,
   },
 
   spotCardSubtitle: {
-    marginTop: 3,
-    color: "#666",
-    fontSize: 14,
+    marginTop: 4,
+
+    color: "rgba(255,255,255,0.62)",
+
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "600",
   },
 
   pinBadge: {
-    backgroundColor: "#EAF9EA",
+    backgroundColor: "rgba(29,185,84,0.12)",
+
+    borderRadius: 18,
+
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 20,
+
+    borderWidth: 1,
+    borderColor: "rgba(29,185,84,0.35)",
   },
 
   pinBadgeText: {
-    color: "#1E8E3E",
+    color: "#7DE3A2",
+
     fontWeight: "800",
+
     fontSize: 13,
   },
 
   spotFormCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(14,29,45,0.96)",
 
     borderRadius: 24,
 
@@ -2239,15 +2373,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
 
     borderWidth: 1,
-    borderColor: "#EEF2F7",
+    borderColor: "rgba(244,181,71,0.24)",
 
-    shadowColor: "#FF7A00",
-    shadowOpacity: 0.10,
-    shadowRadius: 22,
+    shadowColor: "#000",
+    shadowOpacity: 0.22,
+    shadowRadius: 16,
     shadowOffset: {
       width: 0,
-      height: 8,
+      height: 7,
     },
+
     elevation: 8,
   },
 
@@ -2259,8 +2394,12 @@ const styles = StyleSheet.create({
 
   spotFormCardTitle: {
     fontSize: 18,
+
     fontWeight: "900",
-    color: "#0B2A5B",
+
+    color: "#FFFFFF",
+
+    letterSpacing: -0.2,
   },
 
   typeGrid: {
@@ -2272,29 +2411,36 @@ const styles = StyleSheet.create({
 
   typeCard: {
     width: "47%",
-    backgroundColor: "#FFFFFF",
+
+    backgroundColor: "rgba(5,15,25,0.9)",
+
     borderRadius: 18,
+
     paddingVertical: 18,
+
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#E6EAF0",
+
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.24)",
   },
 
   typeCardActive: {
-    backgroundColor: "#0B2A5B",
-    borderColor: "#FF7A00",
-    borderWidth: 2,
+    backgroundColor: "rgba(20,36,54,0.98)",
 
-    shadowColor: "#FF7A00",
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
+    borderColor: "#F4B547",
+
+    borderWidth: 1,
+
+    shadowColor: "#F4B547",
+    shadowOpacity: 0.24,
+    shadowRadius: 14,
     shadowOffset: {
       width: 0,
       height: 6,
     },
 
-    elevation: 8,
+    elevation: 7,
   },
 
   typeCardEmoji: {
@@ -2305,7 +2451,7 @@ const styles = StyleSheet.create({
   typeCardText: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#0B2A5B",
+    color: "rgba(255,255,255,0.72)",
     textAlign: "center",
   },
 
@@ -2315,13 +2461,19 @@ const styles = StyleSheet.create({
 
   photoUploadCard: {
     height: 210,
+
     borderRadius: 20,
-    backgroundColor: "#F6FAFF",
-    borderWidth: 2,
-    borderColor: "#DCE8F8",
+
+    backgroundColor: "rgba(5,15,25,0.9)",
+
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.28)",
+
     borderStyle: "dashed",
+
     alignItems: "center",
     justifyContent: "center",
+
     overflow: "hidden",
   },
 
@@ -2338,38 +2490,38 @@ const styles = StyleSheet.create({
   photoUploadTitle: {
     fontSize: 16,
     fontWeight: "900",
-    color: "#0B2A5B",
+    color: "#FFFFFF",
     marginBottom: 4,
   },
 
   photoUploadSubtitle: {
     fontSize: 13,
-    color: "#6B7280",
+    color: "rgba(255,255,255,0.58)",
     fontWeight: "600",
   },
 
   spotActionCard: {
-    backgroundColor: "#FFFFFF",
+  backgroundColor: "rgba(14,29,45,0.96)",
 
-    borderRadius: 24,
+  borderRadius: 24,
 
-    padding: 18,
+  padding: 18,
 
-    marginTop: 10,
+  marginTop: 10,
 
-    borderWidth: 1,
-    borderColor: "#EEF2F7",
+  borderWidth: 1,
+  borderColor: "rgba(244,181,71,0.24)",
 
-    shadowColor: "#FF7A00",
-    shadowOpacity: 0.10,
-    shadowRadius: 22,
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-
-    elevation: 8,
+  shadowColor: "#000",
+  shadowOpacity: 0.22,
+  shadowRadius: 16,
+  shadowOffset: {
+    width: 0,
+    height: 7,
   },
+
+  elevation: 8,
+},
 
   spotActionRow: {
     flexDirection: "row",
@@ -2383,15 +2535,17 @@ const styles = StyleSheet.create({
   },
 
   spotActionTitle: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: "#0B2A5B",
-  },
+  fontSize: 16,
+  fontWeight: "900",
+  color: "#FFFFFF",
+},
 
   spotActionSubtitle: {
-    marginTop: 4,
-    color: "#6B7280",
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  marginTop: 4,
+  color: "rgba(255,255,255,0.62)",
+  fontSize: 13,
+  lineHeight: 18,
+  fontWeight: "600",
+},
+
 });

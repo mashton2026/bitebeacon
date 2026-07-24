@@ -1,18 +1,26 @@
-import { router } from "expo-router";
-import { useState } from "react";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { theme } from "../../constants/theme";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import AppText from "../../components/AppText";
+import HeroHeader from "../../components/HeroHeader";
+import MapTextureBackground from "../../components/MapTextureBackground";
+import PremiumCard from "../../components/PremiumCard";
+import PremiumInput from "../../components/PremiumInput";
+import PrimaryButton from "../../components/PrimaryButton";
+import SecondaryButton from "../../components/SecondaryButton";
 import { supabase } from "../../lib/supabase";
 
 export default function UserSignupScreen() {
@@ -20,236 +28,400 @@ export default function UserSignupScreen() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isSigningUp, setIsSigningUp] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      setIsSigningUp(false);
+    }, [])
+  );
 
   async function handleSignup() {
-    if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
+    if (isSigningUp) return;
+
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedPassword = password.trim();
+    const trimmedConfirmPassword = confirmPassword.trim();
+
+    if (!trimmedEmail || !trimmedPassword || !trimmedConfirmPassword) {
       Alert.alert(
         "Missing details",
-        "Please enter your email, password, and confirmation password."
+        "Please enter your email address, password and confirmation password."
       );
       return;
     }
 
-    if (password !== confirmPassword) {
-      Alert.alert("Password mismatch", "Passwords do not match.");
+    if (trimmedPassword.length < 6) {
+      Alert.alert(
+        "Password too short",
+        "Your password must contain at least 6 characters."
+      );
       return;
     }
 
-    const { error } = await supabase.auth.signUp({
-      email: email.trim().toLowerCase(),
-      password,
-      options: {
-        emailRedirectTo: "bitebeacon://auth/callback",
-      },
-    });
-
-    if (error) {
-      Alert.alert("Sign up failed", error.message);
+    if (trimmedPassword !== trimmedConfirmPassword) {
+      Alert.alert("Password mismatch", "The passwords do not match.");
       return;
     }
 
-    Alert.alert(
-      "Check your email 📩",
-      "We’ve sent you a confirmation email from BiteBeacon. Please check your inbox (and spam) and confirm your account before logging in."
-    );
+    setIsSigningUp(true);
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: trimmedEmail,
+        password: trimmedPassword,
+        options: {
+          emailRedirectTo: "bitebeacon://auth/callback",
+        },
+      });
+
+      if (error) {
+        Alert.alert("Sign up failed", error.message);
+        return;
+      }
+
+      Alert.alert(
+        "Check your email",
+        "We’ve sent you a confirmation email from BiteBeacon. Check your inbox and spam folder, then confirm your account before logging in.",
+        [
+          {
+            text: "OK",
+            onPress: () => router.replace("/auth/user-login"),
+          },
+        ]
+      );
+    } catch (error) {
+      Alert.alert(
+        "Sign up failed",
+        error instanceof Error
+          ? error.message
+          : "An unknown error occurred while creating your account."
+      );
+    } finally {
+      setIsSigningUp(false);
+    }
+  }
+
+  function handleBackToLogin() {
+    if (isSigningUp) return;
 
     router.replace("/auth/user-login");
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.keyboardContainer}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.container}>
-          <View style={styles.heroBlock}>
-            <Text style={styles.kicker}>CREATE ACCOUNT</Text>
-            <Text style={styles.title}>Join BiteBeacon</Text>
-            <Text style={styles.subtitle}>
-              Create an account to save favourites and build your own BiteBeacon
-              experience.
-            </Text>
-          </View>
-
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>User Signup</Text>
-
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your email"
-              placeholderTextColor="#7A7A7A"
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoComplete="email"
-              textContentType="emailAddress"
-              importantForAutofill="yes"
-              value={email}
-              onChangeText={setEmail}
-            />
-
-            <Text style={styles.label}>Password</Text>
-            <View style={styles.passwordWrap}>
-              <TextInput
-                style={styles.passwordInput}
-                placeholder="Create a password"
-                placeholderTextColor="#7A7A7A"
-                secureTextEntry={!showPassword}
-                autoComplete="new-password"
-                textContentType="newPassword"
-                importantForAutofill="yes"
-                value={password}
-                onChangeText={setPassword}
+    <MapTextureBackground>
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView
+          style={styles.keyboardContainer}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <ScrollView
+              contentContainerStyle={styles.container}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
+              <HeroHeader
+                showLogo={false}
+                kicker="CREATE ACCOUNT"
+                title="Join BiteBeacon"
+                subtitle="Create your free account to save favourites, personalise your experience and get more from BiteBeacon."
               />
 
-              <Pressable onPress={() => setShowPassword(!showPassword)}>
-                <Text style={styles.showText}>
-                  {showPassword ? "Hide" : "Show"}
-                </Text>
-              </Pressable>
-            </View>
+              <PremiumCard>
+                <View style={styles.cardHeading}>
+                  <View style={styles.accountIcon}>
+                    <MaterialCommunityIcons
+                      name="account-plus-outline"
+                      size={30}
+                      color="#FFB547"
+                    />
+                  </View>
 
-            <Text style={styles.label}>Confirm Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm password"
-              placeholderTextColor="#7A7A7A"
-              secureTextEntry={!showPassword}
-              autoComplete="new-password"
-              textContentType="newPassword"
-              importantForAutofill="yes"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-            />
+                  <View style={styles.cardHeadingText}>
+                    <AppText variant="heading" style={styles.sectionTitle}>
+                      Create your account
+                    </AppText>
 
-            <Pressable style={styles.primaryButton} onPress={handleSignup}>
-              <Text style={styles.primaryButtonText}>Create Account</Text>
-            </Pressable>
+                    <AppText variant="body" style={styles.sectionSubtitle}>
+                      Enter your details below to get started.
+                    </AppText>
+                  </View>
+                </View>
 
-            <Pressable
-              style={styles.secondaryButton}
-              onPress={() => router.replace("/auth/user-login")}
-            >
-              <Text style={styles.secondaryButtonText}>Back to Login</Text>
-            </Pressable>
-          </View>
-        </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+                <AppText variant="label" style={styles.label}>
+                  Email
+                </AppText>
+
+                <PremiumInput
+                  placeholder="Enter your email"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  importantForAutofill="yes"
+                  value={email}
+                  onChangeText={setEmail}
+                  editable={!isSigningUp}
+                />
+
+                <AppText variant="label" style={styles.passwordLabel}>
+                  Password
+                </AppText>
+
+                <View style={styles.passwordRow}>
+                  <View style={styles.passwordInputArea}>
+                    <PremiumInput
+                      placeholder="Create a password"
+                      secureTextEntry={!showPassword}
+                      autoComplete="new-password"
+                      textContentType="newPassword"
+                      importantForAutofill="yes"
+                      value={password}
+                      onChangeText={setPassword}
+                      editable={!isSigningUp}
+                    />
+                  </View>
+
+                  <Pressable
+                    onPress={() =>
+                      setShowPassword((currentValue) => !currentValue)
+                    }
+                    disabled={isSigningUp}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                    style={({ pressed }) => [
+                      styles.showPasswordButton,
+                      pressed && styles.pressed,
+                      isSigningUp && styles.buttonDisabled,
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name={showPassword ? "eye-off-outline" : "eye-outline"}
+                      size={21}
+                      color="#FFB547"
+                    />
+
+                    <AppText
+                      variant="bodyBold"
+                      style={styles.showPasswordText}
+                    >
+                      {showPassword ? "Hide" : "Show"}
+                    </AppText>
+                  </Pressable>
+                </View>
+
+                <AppText variant="label" style={styles.confirmLabel}>
+                  Confirm Password
+                </AppText>
+
+                <PremiumInput
+                  placeholder="Confirm your password"
+                  secureTextEntry={!showPassword}
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  importantForAutofill="yes"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  editable={!isSigningUp}
+                />
+
+                <View style={styles.passwordHint}>
+                  <MaterialCommunityIcons
+                    name="shield-check-outline"
+                    size={17}
+                    color="#FFB547"
+                  />
+
+                  <AppText variant="body" style={styles.passwordHintText}>
+                    Use at least 6 characters.
+                  </AppText>
+                </View>
+
+                <PrimaryButton
+                  onPress={handleSignup}
+                  disabled={isSigningUp}
+                  style={styles.createButton}
+                >
+                  {isSigningUp ? "Creating account..." : "Create Account"}
+                </PrimaryButton>
+
+                <View style={styles.dividerRow}>
+                  <View style={styles.dividerLine} />
+
+                  <AppText variant="label" style={styles.dividerText}>
+                    ALREADY REGISTERED?
+                  </AppText>
+
+                  <View style={styles.dividerLine} />
+                </View>
+
+                <SecondaryButton
+                  onPress={handleBackToLogin}
+                  disabled={isSigningUp}
+                >
+                  Back to Login
+                </SecondaryButton>
+              </PremiumCard>
+            </ScrollView>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </MapTextureBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+
   keyboardContainer: {
     flex: 1,
   },
 
   container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    padding: 24,
+    flexGrow: 1,
+    paddingHorizontal: 22,
+    paddingTop: 18,
+    paddingBottom: 42,
+  },
+
+  cardHeading: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 22,
+  },
+
+  accountIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "rgba(255,122,0,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,181,71,0.28)",
+    marginRight: 14,
+    shadowColor: "#FF7A00",
+    shadowOpacity: 0.2,
+    shadowRadius: 9,
+    shadowOffset: {
+      width: 0,
+      height: 0,
+    },
+    elevation: 4,
   },
 
-  heroBlock: {
-    marginBottom: 24,
-  },
-
-  kicker: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: theme.colors.secondary,
-    marginBottom: 8,
-  },
-
-  title: {
-    fontSize: 34,
-    fontWeight: "800",
-    color: theme.colors.textOnDark,
-    marginBottom: 8,
-  },
-
-  subtitle: {
-    fontSize: 15,
-    color: "rgba(255,255,255,0.78)",
-  },
-
-  card: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
+  cardHeadingText: {
+    flex: 1,
   },
 
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: theme.colors.background,
-    marginBottom: 16,
+    color: "#FFFFFF",
+    fontSize: 23,
+    lineHeight: 29,
+  },
+
+  sectionSubtitle: {
+    color: "rgba(255,255,255,0.58)",
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 2,
   },
 
   label: {
-    fontWeight: "700",
-    marginBottom: 6,
-    color: theme.colors.background,
+    color: "#FFB547",
+    fontSize: 13,
+    marginBottom: 8,
   },
 
-  input: {
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    backgroundColor: "#fff",
+  passwordLabel: {
+    color: "#FFB547",
+    fontSize: 13,
+    marginTop: 15,
+    marginBottom: 8,
   },
 
-  passwordWrap: {
+  confirmLabel: {
+    color: "#FFB547",
+    fontSize: 13,
+    marginTop: 15,
+    marginBottom: 8,
+  },
+
+  passwordRow: {
     flexDirection: "row",
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    marginBottom: 12,
     alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#fff",
   },
 
-  passwordInput: {
+  passwordInputArea: {
     flex: 1,
-    paddingVertical: 12,
   },
 
-  showText: {
-    color: theme.colors.primary,
-    fontWeight: "700",
-  },
-
-  primaryButton: {
-    backgroundColor: theme.colors.background,
-    padding: 14,
-    borderRadius: 14,
+  showPasswordButton: {
+    minWidth: 74,
+    minHeight: 50,
+    marginLeft: 8,
+    paddingHorizontal: 8,
+    borderRadius: 15,
     alignItems: "center",
-    marginTop: 10,
+    justifyContent: "center",
+    gap: 2,
   },
 
-  primaryButtonText: {
-    color: "#fff",
-    fontWeight: "800",
+  showPasswordText: {
+    color: "#FFB547",
+    fontSize: 11,
   },
 
-  secondaryButton: {
-    backgroundColor: theme.colors.primary,
-    padding: 14,
-    borderRadius: 14,
+  passwordHint: {
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 10,
+    gap: 7,
+    marginTop: 9,
   },
 
-  secondaryButtonText: {
-    color: "#fff",
-    fontWeight: "800",
+  passwordHintText: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 11,
+    lineHeight: 16,
+  },
+
+  createButton: {
+    marginTop: 18,
+  },
+
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 18,
+    marginBottom: 15,
+  },
+
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "rgba(255,181,71,0.2)",
+  },
+
+  dividerText: {
+    color: "rgba(255,181,71,0.7)",
+    fontSize: 8.5,
+    letterSpacing: 1.2,
+    marginHorizontal: 10,
+  },
+
+  pressed: {
+    opacity: 0.8,
+  },
+
+  buttonDisabled: {
+    opacity: 0.55,
   },
 });

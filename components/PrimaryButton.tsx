@@ -1,13 +1,13 @@
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
     Pressable,
     PressableProps,
     StyleProp,
     StyleSheet,
-    Text,
     ViewStyle,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import AppText from "./AppText";
 
 type PrimaryButtonProps = PressableProps & {
     children: React.ReactNode;
@@ -32,7 +32,9 @@ export default function PrimaryButton({
                 end={{ x: 1, y: 1 }}
                 style={styles.button}
             >
-                <Text style={styles.text}>{children}</Text>
+                <AppText variant="button" style={styles.text}>
+                    {children}
+                </AppText>
             </LinearGradient>
         </Pressable>
     );
@@ -40,17 +42,16 @@ export default function PrimaryButton({
 
 const styles = StyleSheet.create({
     button: {
-        paddingVertical: 16,
+        paddingVertical: 13,
         borderRadius: 18,
         alignItems: "center",
         justifyContent: "center",
     },
 
     text: {
-        color: "#FFFFFF",
-        fontSize: 16,
-        fontWeight: "900",
-    },
+    color: "#FFFFFF",
+    fontSize: 16,
+},
 
     disabled: {
         opacity: 0.6,

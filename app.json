@@ -57,7 +57,8 @@
           "enableGooglePay": true
         }
       ],
-      "./plugins/withCleanIosPermissions"
+      "./plugins/withCleanIosPermissions",
+      "expo-font"
     ],
     "extra": {
       "router": {},

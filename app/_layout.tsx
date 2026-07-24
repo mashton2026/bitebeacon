@@ -8,9 +8,38 @@ import { StripeProvider } from "@stripe/stripe-react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
+import {
+  Sora_700Bold,
+  Sora_800ExtraBold,
+  useFonts as useSoraFonts,
+} from "@expo-google-fonts/sora";
+
+import {
+  Manrope_400Regular,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+  Manrope_800ExtraBold,
+  useFonts as useManropeFonts,
+} from "@expo-google-fonts/manrope";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+
+  const [soraLoaded] = useSoraFonts({
+    Sora_700Bold,
+    Sora_800ExtraBold,
+  });
+
+  const [manropeLoaded] = useManropeFonts({
+    Manrope_400Regular,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    Manrope_800ExtraBold,
+  });
+
+  if (!soraLoaded || !manropeLoaded) {
+    return null;
+  }
 
   return (
     <StripeProvider publishableKey="pk_live_51TFFsuPDTRLYMBotQCGmmVzsFgb3fgRZW7jfHj82O2HSN1GYRa5XL7pcGjLmSXKbNHyJB81GOIRo1y2AuqAGjXyD00hWak2boz">

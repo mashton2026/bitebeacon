@@ -81,7 +81,7 @@ export default function MapTextureBackground({
   };
 
   return (
-    <View pointerEvents="none" style={styles.wrap}>
+    <View style={styles.wrap}>
       <MapView
         provider={PROVIDER_GOOGLE}
         pointerEvents="none"
@@ -159,8 +159,8 @@ export default function MapTextureBackground({
         </Marker>
       </MapView>
 
-      <View style={styles.darkOverlay} />
-      <View style={styles.blueTint} />
+      <View pointerEvents="none" style={styles.darkOverlay} />
+      <View pointerEvents="none" style={styles.blueTint} />
 
       {children}
 
