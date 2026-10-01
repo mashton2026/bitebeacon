@@ -89,13 +89,6 @@ export default function AdminClaimsScreen() {
         try {
             await approveVendorClaim(claimId, (adminNotes[claimId] ?? "").trim());
 
-            // NEW: reward scouts for this vendor
-            const claim = claims.find((c) => c.id === claimId);
-            if (claim?.spotted_vendor_id) {
-                const { rewardScoutPointForClaim } = await import("../../services/vendorService");
-                await rewardScoutPointForClaim(claim.spotted_vendor_id);
-            }
-
             Alert.alert("Approved", "The claim has been approved.");
             await loadScreen();
         } catch (error) {

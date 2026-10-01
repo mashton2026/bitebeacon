@@ -71,26 +71,16 @@ export async function getAllVendors(): Promise<Van[]> {
 
   const vendors = data ?? [];
 
-  const now = new Date().toISOString();
+  const { error: liveExpiryError } = await supabase.rpc(
+  "expire_vendor_live_statuses"
+);
 
-  const expiredLiveVendorIds = vendors
-    .filter(
-      (vendor) =>
-        vendor.is_live === true &&
-        vendor.live_until &&
-        vendor.live_until <= now
-    )
-    .map((vendor) => vendor.id);
-
-  if (expiredLiveVendorIds.length > 0) {
-    await supabase
-      .from("vendors")
-      .update({
-        is_live: false,
-        live_until: null,
-      })
-      .in("id", expiredLiveVendorIds);
-  }
+if (liveExpiryError) {
+  console.warn(
+    "Failed to expire vendor LIVE statuses:",
+    liveExpiryError.message
+  );
+}
 
   // Get spotted vendor IDs
   const spottedVendorIds = vendors
@@ -365,15 +355,13 @@ export async function updateVendorSubscriptionTier(
     throw new Error("Vendor id is required.");
   }
 
-  const updates =
-    tier === "free"
-      ? { subscription_tier: tier, is_live: false }
-      : { subscription_tier: tier };
-
-  const { error } = await supabase
-    .from("vendors")
-    .update(updates)
-    .eq("id", id);
+  const { error } = await supabase.rpc(
+    "admin_update_vendor_subscription_tier",
+    {
+      p_vendor_id: id,
+      p_tier: tier,
+    }
+  );
 
   if (error) throw new Error(error.message);
 }
@@ -396,45 +384,6 @@ export async function setVendorLiveStatus(
     .eq("id", id);
 
   if (error) throw new Error(error.message);
-}
-
-async function incrementVendorCounter(
-  id: string,
-  field: "views" | "directions"
-): Promise<number> {
-  const { data, error } = await supabase
-    .from("vendors")
-    .select(field)
-    .eq("id", id)
-    .single();
-
-  if (error || !data) {
-    throw new Error(`Failed to fetch ${field}`);
-  }
-
-  const currentValue =
-    field === "views"
-      ? Number((data as { views?: number | null }).views ?? 0)
-      : Number((data as { directions?: number | null }).directions ?? 0);
-
-  const nextValue = currentValue + 1;
-
-  const { data: updated, error: updateError } = await supabase
-    .from("vendors")
-    .update({ [field]: nextValue })
-    .eq("id", id)
-    .select(field)
-    .maybeSingle();
-
-  if (updateError || !updated) {
-    throw new Error(`Failed to update ${field}`);
-  }
-
-  return field === "views"
-    ? Number((updated as { views?: number | null }).views ?? nextValue)
-    : Number(
-      (updated as { directions?: number | null }).directions ?? nextValue
-    );
 }
 
 export async function incrementVendorViews(id: string): Promise<number> {
@@ -536,102 +485,6 @@ export async function adminDeleteVendor(vendorId: string) {
   });
 
   if (error) throw new Error(error.message);
-}
-
-export async function rewardScoutPointForClaim(vendorId: string): Promise<void> {
-  const { data: vendor, error: vendorError } = await supabase
-    .from("vendors")
-    .select("id, owner_id, rewarded_for_claim")
-    .eq("id", vendorId)
-    .maybeSingle();
-
-  if (vendorError) {
-    throw new Error(vendorError.message);
-  }
-
-  if (!vendor) return;
-
-  const ownerId = (vendor as {
-    owner_id?: string | null;
-    rewarded_for_claim?: boolean | null;
-  }).owner_id;
-
-  const rewardedForClaim = (vendor as {
-    owner_id?: string | null;
-    rewarded_for_claim?: boolean | null;
-  }).rewarded_for_claim;
-
-  if (!ownerId) return;
-  if (rewardedForClaim) return;
-
-  const { data: confirmations, error: confirmationsError } = await supabase
-    .from("vendor_confirmations")
-    .select("user_id")
-    .eq("vendor_id", vendorId);
-
-  if (confirmationsError) {
-    throw new Error(confirmationsError.message);
-  }
-
-  const uniqueUserIds = Array.from(
-    new Set(
-      (confirmations ?? [])
-        .map((confirmation) => confirmation.user_id)
-        .filter((userId): userId is string => !!userId && userId !== ownerId)
-    )
-  );
-
-  if (uniqueUserIds.length === 0) {
-    const { error: rewardFlagError } = await supabase
-      .from("vendors")
-      .update({ rewarded_for_claim: true })
-      .eq("id", vendorId);
-
-    if (rewardFlagError) {
-      throw new Error(rewardFlagError.message);
-    }
-
-    return;
-  }
-
-  for (const userId of uniqueUserIds) {
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("scout_points")
-      .eq("id", userId)
-      .maybeSingle();
-
-    if (profileError) {
-      throw new Error(profileError.message);
-    }
-
-    const currentPoints = Number(
-      (profile as { scout_points?: number | null } | null)?.scout_points ?? 0
-    );
-
-    const { error: upsertError } = await supabase.from("profiles").upsert(
-      {
-        id: userId,
-        scout_points: currentPoints + 1,
-      },
-      {
-        onConflict: "id",
-      }
-    );
-
-    if (upsertError) {
-      throw new Error(upsertError.message);
-    }
-  }
-
-  const { error: rewardFlagError } = await supabase
-    .from("vendors")
-    .update({ rewarded_for_claim: true })
-    .eq("id", vendorId);
-
-  if (rewardFlagError) {
-    throw new Error(rewardFlagError.message);
-  }
 }
 
 export async function canCountVendorInteraction(
@@ -766,10 +619,9 @@ export async function refreshVendorRating(
 }
 
 export async function approveVendor(vendorId: string): Promise<void> {
-  const { error } = await supabase
-    .from("vendors")
-    .update({ isApproved: true }) // ✅ CORRECT
-    .eq("id", vendorId);
+  const { error } = await supabase.rpc("admin_approve_vendor", {
+    p_vendor_id: vendorId,
+  });
 
   if (error) throw new Error(error.message);
 }
