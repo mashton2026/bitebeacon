@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { theme } from "../../constants/theme";
 import {
+    approveListingRemovalRequest,
     getAllAccountDeletionRequests,
     updateAccountDeletionRequestStatus,
     type AccountDeletionRequest,
@@ -49,18 +50,28 @@ export default function AdminDeletionRequestsScreen() {
         }
     }
 
-    async function handleApprove(requestId: string) {
+    async function handleApprove(request: AccountDeletionRequest) {
         if (processingId) return;
 
-        setProcessingId(requestId);
+        setProcessingId(request.id);
 
         try {
-            await updateAccountDeletionRequestStatus({
-                requestId,
-                status: "approved",
-            });
+            if (request.request_type === "listing_removal") {
+                await approveListingRemovalRequest(request.id);
 
-            Alert.alert("Success", "Deletion request approved.");
+                Alert.alert(
+                    "Success",
+                    "Listing removal approved. The vendor has been suspended and taken offline."
+                );
+            } else {
+                await updateAccountDeletionRequestStatus({
+                    requestId: request.id,
+                    status: "approved",
+                });
+
+                Alert.alert("Success", "Account deletion request approved.");
+            }
+
             await loadRequests();
         } catch (error) {
             Alert.alert(
@@ -71,7 +82,6 @@ export default function AdminDeletionRequestsScreen() {
             setProcessingId(null);
         }
     }
-
     async function handleReject(requestId: string) {
         if (processingId) return;
 
@@ -105,7 +115,20 @@ export default function AdminDeletionRequestsScreen() {
                     {item.email ?? "Unknown account"}
                 </Text>
 
+                <Text style={styles.requestType}>
+                    {item.request_type === "listing_removal"
+                        ? "LISTING REMOVAL"
+                        : "ACCOUNT DELETION"}
+                </Text>
+
                 <Text style={styles.meta}>User ID: {item.user_id}</Text>
+
+                {item.request_type === "listing_removal" && (
+                    <Text style={styles.meta}>
+                        Vendor Name: {item.vendor_name ?? "Unknown vendor"}
+                    </Text>
+                )}
+
                 <Text style={styles.meta}>
                     Vendor ID: {item.vendor_id ?? "No linked vendor"}
                 </Text>
@@ -127,13 +150,17 @@ export default function AdminDeletionRequestsScreen() {
                         ]}
                         onPress={() =>
                             Alert.alert(
-                                "Approve deletion request?",
-                                "This will mark the request as approved.",
+                                item.request_type === "listing_removal"
+                                    ? "Approve listing removal?"
+                                    : "Approve account deletion request?",
+                                item.request_type === "listing_removal"
+                                    ? "This will suspend the vendor listing, force it offline, and mark the removal request as approved."
+                                    : "This will mark the account deletion request as approved.",
                                 [
                                     { text: "Cancel", style: "cancel" },
                                     {
                                         text: "Approve",
-                                        onPress: () => handleApprove(item.id),
+                                        onPress: () => handleApprove(item),
                                     },
                                 ]
                             )
@@ -189,7 +216,7 @@ export default function AdminDeletionRequestsScreen() {
                         <Text style={styles.kicker}>ADMIN</Text>
                         <Text style={styles.title}>Deletion Requests</Text>
                         <Text style={styles.subtitle}>
-                            Review account deletion requests submitted by users and vendors.
+                            Review account deletion and listing removal requests.
                         </Text>
                     </View>
                 }
@@ -260,6 +287,13 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: "800",
         color: "#0B2A5B",
+        marginBottom: 8,
+    },
+    requestType: {
+        fontSize: 12,
+        fontWeight: "800",
+        color: "#FF7A00",
+        letterSpacing: 0.8,
         marginBottom: 8,
     },
     meta: {

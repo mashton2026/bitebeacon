@@ -17,6 +17,7 @@ import {
 import MapView, { Marker } from "react-native-maps";
 import { getSubscriptionFeatures } from "../../lib/subscriptionFeatures";
 import { supabase } from "../../lib/supabase";
+import { createListingRemovalRequest } from "../../services/accountDeletionService";
 import {
   getCurrentUser,
   signOutCurrentUser
@@ -1099,41 +1100,52 @@ export default function VendorDashboardScreen() {
   }
 
   async function deleteListing() {
-    if (!van) return;
+  if (!van) return;
 
-    Alert.alert(
-      "Delete listing",
-      "Are you sure you want to delete this vendor listing?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
+  Alert.alert(
+    "Request listing removal",
+    "Your listing will not be deleted immediately. A removal request will be sent to BiteBeacon for review.",
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Request Removal",
+        style: "destructive",
+        onPress: async () => {
+          try {
             const user = await getCurrentUser();
 
             if (!user || user.id !== van.owner_id) {
-              Alert.alert("Access denied", "You can only delete your own listing.");
+              Alert.alert(
+                "Access denied",
+                "You can only request removal of your own listing."
+              );
               return;
             }
 
-            const { error } = await supabase
-              .from("vendors")
-              .delete()
-              .eq("id", van.id);
+            await createListingRemovalRequest({
+              userId: user.id,
+              email: user.email ?? null,
+              vendorId: van.id,
+              reason: null,
+            });
 
-            if (error) {
-              Alert.alert("Delete failed", error.message);
-              return;
-            }
-
-            Alert.alert("Deleted", "Your vendor listing has been removed.");
-            router.replace("/welcome");
-          },
+            Alert.alert(
+              "Request submitted",
+              "Your listing removal request has been sent to BiteBeacon for review. Your listing will remain active until the request is reviewed."
+            );
+          } catch (error) {
+            Alert.alert(
+              "Request failed",
+              error instanceof Error
+                ? error.message
+                : "Could not submit the listing removal request."
+            );
+          }
         },
-      ]
-    );
-  }
+      },
+    ]
+  );
+}
 
   async function manageSubscriptionFromDashboard() {
     try {
@@ -2921,7 +2933,7 @@ export default function VendorDashboardScreen() {
 
       <DashboardAccordionSection
         title="Account Actions"
-        subtitle="Sign out or permanently remove your listing."
+        subtitle="Sign out or request removal of your listing."
         isOpen={openSections.account}
         onToggle={() => toggleSection("account")}
       >
@@ -2931,7 +2943,7 @@ export default function VendorDashboardScreen() {
           </Pressable>
 
           <Pressable style={styles.deleteButton} onPress={deleteListing}>
-            <Text style={styles.deleteButtonText}>Delete Listing</Text>
+            <Text style={styles.deleteButtonText}>Request Listing Removal</Text>
           </Pressable>
         </View>
       </DashboardAccordionSection>
