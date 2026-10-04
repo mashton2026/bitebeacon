@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
@@ -8,6 +9,9 @@ import {
   Text,
   View,
 } from "react-native";
+import AppText from "../../components/AppText";
+import MapTextureBackground from "../../components/MapTextureBackground";
+import PremiumCard from "../../components/PremiumCard";
 import { theme } from "../../constants/theme";
 import { isCurrentUserAdmin } from "../../services/adminService";
 import {
@@ -154,236 +158,302 @@ export default function AccountScreen() {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: 40 }}
-      showsVerticalScrollIndicator={false}
-    >
-      <Text style={styles.title}>Account</Text>
-      <Text style={styles.subtitle}>
-        {email ? `Signed in as ${email}` : "Browsing as a guest"}
-      </Text>
+    <MapTextureBackground>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <AppText variant="heading" style={styles.title}>
+          Account
+        </AppText>
 
-      {email && (
-        <Pressable
-          style={[
-            styles.vendorDashboardCard,
-            !vendorId && styles.vendorDashboardCardDisabled,
-          ]}
-          onPress={() => {
-            if (!vendorId) return;
-            router.push({
-              pathname: "/vendor/dashboard",
-              params: { id: vendorId },
-            });
-          }}
-          disabled={!vendorId}
-        >
-          <Text style={styles.vendorDashboardEyebrow}>Vendor Dashboard</Text>
-          <Text style={styles.vendorDashboardTitle}>
-            {accountSummaryLoading ? "Loading vendor tools..." : "Manage your listing"}
-          </Text>
-          <Text style={styles.vendorDashboardText}>
-            {accountSummaryLoading
-              ? "Checking your vendor access and loading your dashboard tools."
-              : "Manage your listing, analytics and content."}
-          </Text>
-        </Pressable>
-      )}
+        <AppText variant="body" style={styles.subtitle}>
+          {email ? `Signed in as ${email}` : "Browsing as a guest"}
+        </AppText>
 
-      {email && (
-        <View style={styles.scoutCard}>
-          <Text style={styles.scoutCardEyebrow}>Scout Progress</Text>
-          <Text style={styles.scoutCardTitle}>
-            {accountSummaryLoading
-              ? "Loading scout progress..."
-              : `${scoutPoints} Scout Point${scoutPoints === 1 ? "" : "s"}`}
-          </Text>
-          <Text style={styles.scoutCardText}>
-            Earn points when vendors claim listings you originally spotted.
-          </Text>
-        </View>
-      )}
+        {email && (
+          <Pressable
+            onPress={() => {
+              if (!vendorId) return;
+              router.push({
+                pathname: "/vendor/dashboard",
+                params: { id: vendorId },
+              });
+            }}
+            disabled={!vendorId}
+            style={!vendorId ? styles.vendorDashboardCardDisabled : undefined}
+          >
+            <View style={styles.vendorDashboardPremiumCard}>
+              <PremiumCard>
+                <AppText variant="label" style={styles.vendorDashboardEyebrow}>
+                  Vendor Dashboard
+                </AppText>
 
-      {!email && (
-        <>
-          <Section title="Get Started" />
-          <Row
-            label="User Login"
-            onPress={() => router.push("/auth/user-login")}
-          />
-          <Row
-            label="Create Account"
-            onPress={() => router.push("/auth/user-signup")}
-          />
-          <Row
-            label="Vendor Portal"
-            onPress={() => router.push("/auth/login")}
-          />
+                <AppText variant="title" style={styles.vendorDashboardTitle}>
+                  {accountSummaryLoading
+                    ? "Loading vendor tools..."
+                    : "Manage your listing"}
+                </AppText>
 
-          <Section title="Help & Support" />
-          <Row
-            label="Contact BiteBeacon Support"
-            onPress={() => router.push("/account/help")}
-          />
+                <AppText variant="body" style={styles.vendorDashboardText}>
+                  {accountSummaryLoading
+                    ? "Checking your vendor access and loading your dashboard tools."
+                    : "Manage your listing, analytics and content."}
+                </AppText>
+              </PremiumCard>
+            </View>
+          </Pressable>
+        )}
 
-          <Section title="Legal" />
-          <Row
-            label="Terms & Conditions"
-            onPress={() => router.push("/account/terms")}
-          />
-          <Row
-            label="Privacy Policy"
-            onPress={() => router.push("/account/privacy")}
-          />
-        </>
-      )}
+        {email && (
+          <View style={styles.scoutPremiumCard}>
+            <PremiumCard>
+              <AppText variant="label" style={styles.scoutCardEyebrow}>
+                Scout Progress
+              </AppText>
 
-      {email && !isVendor && !isAdmin && (
-        <>
-          <Section title="Your Activity" />
-          <Row
-            label="Favourites"
-            onPress={() => router.push("/(tabs)/favourites")}
-          />
-          <Row
-            label="Explore Map"
-            onPress={() => router.push("/(tabs)/explore")}
-          />
+              <AppText variant="title" style={styles.scoutCardTitle}>
+                {accountSummaryLoading
+                  ? "Loading scout progress..."
+                  : `${scoutPoints} Scout Point${scoutPoints === 1 ? "" : "s"}`}
+              </AppText>
 
-          <Section title="Security" />
-          <Row
-            label="Account Settings"
-            onPress={() => router.push("/account/security")}
-          />
+              <AppText variant="body" style={styles.scoutCardText}>
+                Earn points when vendors claim listings you originally spotted.
+              </AppText>
+            </PremiumCard>
+          </View>
+        )}
 
-          <Section title="Help & Support" />
-          <Row
-            label="Contact BiteBeacon Support"
-            onPress={() => router.push("/account/help")}
-          />
-
-          <Section title="Legal" />
-          <Row
-            label="Terms & Conditions"
-            onPress={() => router.push("/account/terms")}
-          />
-          <Row
-            label="Privacy Policy"
-            onPress={() => router.push("/account/privacy")}
-          />
-
-          <LogoutButton onPress={handleLogout} />
-        </>
-      )}
-
-      {email && isVendor && !isAdmin && (
-        <>
-          <Section title="Vendor Tools" />
-          {vendorId && (
+        {!email && (
+          <>
+            <Section title="Get Started" />
             <Row
-              label="Dashboard"
-              onPress={() =>
-                router.push({
-                  pathname: "/vendor/dashboard",
-                  params: { id: vendorId },
-                })
-              }
+              label="User Login"
+              onPress={() => router.push("/auth/user-login")}
             />
-          )}
-          {vendorId && (
             <Row
-              label="View Listing"
-              onPress={() =>
-                router.push({
-                  pathname: "/vendor/[id]",
-                  params: { id: vendorId },
-                })
-              }
+              label="Create Account"
+              onPress={() => router.push("/auth/user-signup")}
             />
-          )}
+            <Row
+              label="Vendor Portal"
+              onPress={() => router.push("/auth/login")}
+            />
 
-          <Section title="Security" />
-          <Row
-            label="Account Settings"
-            onPress={() => router.push("/account/security")}
-          />
+            <Section title="Help & Support" />
+            <Row
+              label="Contact BiteBeacon Support"
+              onPress={() => router.push("/account/help")}
+            />
 
-          <Section title="Help & Support" />
-          <Row
-            label="Contact BiteBeacon Support"
-            onPress={() => router.push("/account/help")}
-          />
+            <Section title="Legal" />
+            <Row
+              label="Terms & Conditions"
+              onPress={() => router.push("/account/terms")}
+            />
+            <Row
+              label="Privacy Policy"
+              onPress={() => router.push("/account/privacy")}
+            />
+          </>
+        )}
 
-          <Section title="Legal" />
-          <Row
-            label="Terms & Conditions"
-            onPress={() => router.push("/account/terms")}
-          />
-          <Row
-            label="Privacy Policy"
-            onPress={() => router.push("/account/privacy")}
-          />
+        {email && !isVendor && !isAdmin && (
+          <>
+            <Section title="Your Activity" />
+            <Row
+              label="Favourites"
+              onPress={() => router.push("/(tabs)/favourites")}
+            />
+            <Row
+              label="Explore Map"
+              onPress={() => router.push("/(tabs)/explore")}
+            />
 
-          <LogoutButton onPress={handleLogout} />
-        </>
-      )}
+            <Section title="Security" />
+            <Row
+              label="Account Settings"
+              onPress={() => router.push("/account/security")}
+            />
 
-      {email && isAdmin && (
-        <>
-          <Section title="Admin" />
-          <Row label="Control Centre" onPress={() => router.push("/admin")} />
+            <Section title="Help & Support" />
+            <Row
+              label="Contact BiteBeacon Support"
+              onPress={() => router.push("/account/help")}
+            />
 
-          {vendorId && (
-            <>
-              <Section title="Vendor Tools" />
-              <Row
-                label="Dashboard"
+            <Section title="Legal" />
+            <Row
+              label="Terms & Conditions"
+              onPress={() => router.push("/account/terms")}
+            />
+            <Row
+              label="Privacy Policy"
+              onPress={() => router.push("/account/privacy")}
+            />
+
+            <LogoutButton onPress={handleLogout} />
+          </>
+        )}
+
+        {email && isVendor && !isAdmin && (
+          <>
+            <Section title="Vendor Tools" />
+            {vendorId && (
+              <Pressable
+                style={styles.dashboardNavRow}
                 onPress={() =>
                   router.push({
                     pathname: "/vendor/dashboard",
                     params: { id: vendorId },
                   })
                 }
-              />
-              <Row
-                label="View Listing"
+              >
+                <View style={styles.dashboardNavIcon}>
+                  <MaterialCommunityIcons
+                    name="view-dashboard-outline"
+                    size={22}
+                    color="#FFB000"
+                  />
+                </View>
+
+                <View style={styles.dashboardNavTextWrap}>
+                  <AppText variant="bodyBold" style={styles.dashboardNavTitle}>
+                    Dashboard
+                  </AppText>
+
+                  <AppText variant="body" style={styles.dashboardNavSubtitle}>
+                    Manage your vendor tools and performance
+                  </AppText>
+                </View>
+
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={24}
+                  color="#FFB000"
+                />
+              </Pressable>
+            )}
+            {vendorId && (
+              <Pressable
+                style={styles.dashboardNavRow}
                 onPress={() =>
                   router.push({
                     pathname: "/vendor/[id]",
                     params: { id: vendorId },
                   })
                 }
-              />
-            </>
-          )}
+              >
+                <View style={styles.dashboardNavIcon}>
+                  <MaterialCommunityIcons
+                    name="storefront-outline"
+                    size={22}
+                    color="#FFB000"
+                  />
+                </View>
 
-          <Section title="Security" />
-          <Row
-            label="Account Settings"
-            onPress={() => router.push("/account/security")}
-          />
+                <View style={styles.dashboardNavTextWrap}>
+                  <AppText variant="bodyBold" style={styles.dashboardNavTitle}>
+                    View Listing
+                  </AppText>
 
-          <Section title="Help & Support" />
-          <Row
-            label="Contact BiteBeacon Support"
-            onPress={() => router.push("/account/help")}
-          />
+                  <AppText variant="body" style={styles.dashboardNavSubtitle}>
+                    See your public BiteBeacon listing
+                  </AppText>
+                </View>
 
-          <Section title="Legal" />
-          <Row
-            label="Terms & Conditions"
-            onPress={() => router.push("/account/terms")}
-          />
-          <Row
-            label="Privacy Policy"
-            onPress={() => router.push("/account/privacy")}
-          />
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={24}
+                  color="#FFB000"
+                />
+              </Pressable>
+            )}
 
-          <LogoutButton onPress={handleLogout} />
-        </>
-      )}
-    </ScrollView>
+            <Section title="Security" />
+            <Row
+              label="Account Settings"
+              onPress={() => router.push("/account/security")}
+            />
+
+            <Section title="Help & Support" />
+            <Row
+              label="Contact BiteBeacon Support"
+              onPress={() => router.push("/account/help")}
+            />
+
+            <Section title="Legal" />
+            <Row
+              label="Terms & Conditions"
+              onPress={() => router.push("/account/terms")}
+            />
+            <Row
+              label="Privacy Policy"
+              onPress={() => router.push("/account/privacy")}
+            />
+
+            <LogoutButton onPress={handleLogout} />
+          </>
+        )}
+
+        {email && isAdmin && (
+          <>
+            <Section title="Admin" />
+            <Row label="Control Centre" onPress={() => router.push("/admin")} />
+
+            {vendorId && (
+              <>
+                <Section title="Vendor Tools" />
+                <Row
+                  label="Dashboard"
+                  onPress={() =>
+                    router.push({
+                      pathname: "/vendor/dashboard",
+                      params: { id: vendorId },
+                    })
+                  }
+                />
+                <Row
+                  label="View Listing"
+                  onPress={() =>
+                    router.push({
+                      pathname: "/vendor/[id]",
+                      params: { id: vendorId },
+                    })
+                  }
+                />
+              </>
+            )}
+
+            <Section title="Security" />
+            <Row
+              label="Account Settings"
+              onPress={() => router.push("/account/security")}
+            />
+
+            <Section title="Help & Support" />
+            <Row
+              label="Contact BiteBeacon Support"
+              onPress={() => router.push("/account/help")}
+            />
+
+            <Section title="Legal" />
+            <Row
+              label="Terms & Conditions"
+              onPress={() => router.push("/account/terms")}
+            />
+            <Row
+              label="Privacy Policy"
+              onPress={() => router.push("/account/privacy")}
+            />
+
+            <LogoutButton onPress={handleLogout} />
+          </>
+        )}
+      </ScrollView>
+    </MapTextureBackground>
   );
 }
 
@@ -400,7 +470,15 @@ function Row({
 }) {
   return (
     <Pressable style={styles.row} onPress={onPress}>
-      <Text style={styles.rowText}>{label}</Text>
+      <AppText variant="bodyBold" style={styles.rowText}>
+        {label}
+      </AppText>
+
+      <MaterialCommunityIcons
+        name="chevron-right"
+        size={22}
+        color="#FFB000"
+      />
     </Pressable>
   );
 }
@@ -408,7 +486,29 @@ function Row({
 function LogoutButton({ onPress }: { onPress: () => void }) {
   return (
     <Pressable style={styles.logoutButton} onPress={onPress}>
-      <Text style={styles.logoutText}>Log Out</Text>
+      <View style={styles.logoutIcon}>
+        <MaterialCommunityIcons
+          name="logout"
+          size={22}
+          color="#FF5252"
+        />
+      </View>
+
+      <View style={styles.logoutTextWrap}>
+        <AppText variant="bodyBold" style={styles.logoutText}>
+          Log Out
+        </AppText>
+
+        <AppText variant="body" style={styles.logoutSubtext}>
+          End your current BiteBeacon session
+        </AppText>
+      </View>
+
+      <MaterialCommunityIcons
+        name="chevron-right"
+        size={22}
+        color="#FF5252"
+      />
     </Pressable>
   );
 }
@@ -416,7 +516,7 @@ function LogoutButton({ onPress }: { onPress: () => void }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: "transparent",
     padding: 24,
   },
   loadingContainer: {
@@ -425,15 +525,16 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   title: {
-    fontSize: 30,
-    fontWeight: "800",
+    fontSize: 34,
     color: "#FFFFFF",
     marginBottom: 8,
   },
+
   subtitle: {
     fontSize: 15,
-    color: "rgba(255,255,255,0.7)",
-    marginBottom: 20,
+    lineHeight: 21,
+    color: "rgba(255,255,255,0.66)",
+    marginBottom: 28,
   },
   loadingCard: {
     backgroundColor: "#FFFFFF",
@@ -474,15 +575,19 @@ const styles = StyleSheet.create({
   },
   scoutCardTitle: {
     fontSize: 18,
-    fontWeight: "800",
-    color: "#0B2A5B",
+    color: "#FFFFFF",
     marginBottom: 4,
   },
   scoutCardText: {
     fontSize: 13,
     lineHeight: 18,
-    color: "#355070",
-    fontWeight: "600",
+    color: "rgba(255,255,255,0.72)",
+  },
+  scoutPremiumCard: {
+    marginBottom: 12,
+  },
+  vendorDashboardPremiumCard: {
+    marginBottom: 12,
   },
   vendorDashboardCard: {
     backgroundColor: "#FFFFFF",
@@ -506,15 +611,13 @@ const styles = StyleSheet.create({
   },
   vendorDashboardTitle: {
     fontSize: 18,
-    fontWeight: "800",
-    color: "#0B2A5B",
+    color: "#FFFFFF",
     marginBottom: 4,
   },
   vendorDashboardText: {
     fontSize: 13,
     lineHeight: 18,
-    color: "#355070",
-    fontWeight: "600",
+    color: "rgba(255,255,255,0.72)",
   },
   section: {
     fontSize: 12,
@@ -525,24 +628,98 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   row: {
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.08)",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 15,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 16,
+    backgroundColor: "rgba(5,14,24,0.68)",
+    borderWidth: 1,
+    borderColor: "rgba(255,176,0,0.16)",
   },
+
   rowText: {
-    fontSize: 16,
+    flex: 1,
     color: "#FFFFFF",
-    fontWeight: "600",
   },
   logoutButton: {
     marginTop: 24,
-    backgroundColor: "#C62828",
-    paddingVertical: 14,
-    borderRadius: 16,
+    marginBottom: 12,
+    flexDirection: "row",
     alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    backgroundColor: "rgba(35,8,10,0.78)",
+    borderWidth: 1,
+    borderColor: "rgba(255,82,82,0.42)",
   },
+
+  logoutIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,82,82,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(255,82,82,0.20)",
+  },
+
+  logoutTextWrap: {
+    flex: 1,
+    marginLeft: 12,
+  },
+
   logoutText: {
     color: "#FFFFFF",
-    fontWeight: "700",
+    marginBottom: 2,
+  },
+
+  logoutSubtext: {
+    color: "rgba(255,255,255,0.58)",
+    fontSize: 12,
+    lineHeight: 17,
+  },
+
+  dashboardNavRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+    borderRadius: 18,
+    backgroundColor: "rgba(5,14,24,0.78)",
+    borderWidth: 1,
+    borderColor: "rgba(255,176,0,0.22)",
+  },
+
+  dashboardNavIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,176,0,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(255,176,0,0.18)",
+  },
+
+  dashboardNavTextWrap: {
+    flex: 1,
+    marginLeft: 12,
+  },
+
+  dashboardNavTitle: {
+    color: "#FFFFFF",
+    marginBottom: 2,
+  },
+
+  dashboardNavSubtitle: {
+    color: "rgba(255,255,255,0.62)",
+    fontSize: 12,
+    lineHeight: 17,
   },
 });

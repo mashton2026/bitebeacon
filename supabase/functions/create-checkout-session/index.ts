@@ -59,11 +59,28 @@ Deno.serve(async (req) => {
     }
 
     // 🔒 STEP 3: Parse input safely
-    const { priceId, vendorId, tier } = await req.json();
+    const { priceId, vendorId } = await req.json();
 
     if (!priceId || !vendorId) {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const tierByPrice: Record<string, "growth" | "pro"> = {
+      "price_1TGMXnPDTRLYMBotypaooxb6": "growth",
+      "price_1TGMe2PDTRLYMBotJMfaW1ql": "pro",
+    };
+
+    const resolvedTier = tierByPrice[priceId];
+
+    if (!resolvedTier) {
+      return new Response(
+        JSON.stringify({ error: "Invalid price ID" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -104,7 +121,7 @@ Deno.serve(async (req) => {
       cancel_url: "https://bitebeacon.uk",
       metadata: {
         vendorId,
-        tier,
+        tier: resolvedTier,
         userId: user.id, // ✅ now trusted
       },
     });
