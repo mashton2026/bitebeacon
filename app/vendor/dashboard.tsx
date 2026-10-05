@@ -1,5 +1,7 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -15,6 +17,12 @@ import {
   View,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
+import Svg, { Circle, Defs, Path, Stop, LinearGradient as SvgLinearGradient } from "react-native-svg";
+import AppText from "../../components/AppText";
+import CardGlowBorder from "../../components/CardGlowBorder";
+import MapTextureBackground from "../../components/MapTextureBackground";
+import MetallicFrame from "../../components/MetallicFrame";
+import SectionGlowLine from "../../components/SectionGlowLine";
 import { getSubscriptionFeatures } from "../../lib/subscriptionFeatures";
 import { supabase } from "../../lib/supabase";
 import { createListingRemovalRequest } from "../../services/accountDeletionService";
@@ -224,6 +232,31 @@ function getTopHeatmapLocations(points: HeatmapPoint[]) {
   return [...points].sort((a, b) => b.weight - a.weight).slice(0, 3);
 }
 
+function getDashboardSectionIcon(title: string) {
+  switch (title) {
+    case "Performance Insights":
+      return "chart-bar";
+    case "Branding":
+    case "Brand & Media":
+      return "image-multiple-outline";
+    case "Tier Growth":
+    case "Plan Guide":
+    case "Plan & Features":
+      return "crown-outline";
+    case "Listing Health":
+      return "heart-pulse";
+    case "Listing Assets":
+      return "image-multiple-outline";
+    case "Edit Listing":
+    case "Business Details":
+      return "pencil-outline";
+    case "Account Actions":
+      return "account-outline";
+    default:
+      return "dots-horizontal-circle-outline";
+  }
+}
+
 function DashboardAccordionSection({
   title,
   subtitle,
@@ -237,20 +270,156 @@ function DashboardAccordionSection({
   onToggle: () => void;
   children: React.ReactNode;
 }) {
+  const iconName = getDashboardSectionIcon(title);
+
   return (
-    <View style={styles.sectionWrap}>
+    <LinearGradient
+      colors={
+        isOpen
+          ? ["rgba(14,39,62,0.97)", "rgba(6,22,38,0.99)"]
+          : ["rgba(10,31,51,0.90)", "rgba(5,19,33,0.95)"]
+      }
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[styles.sectionWrap, isOpen && styles.sectionWrapOpen]}
+    >
       <Pressable style={styles.sectionHeader} onPress={onToggle}>
-        <View style={styles.sectionHeaderTextWrap}>
-          <Text style={styles.sectionTitle}>{title}</Text>
-          <Text style={styles.sectionSubtitle}>{subtitle}</Text>
+        <View style={styles.sectionIconShell}>
+          <MaterialCommunityIcons
+            name={iconName as any}
+            size={19}
+            color="#F4B547"
+          />
         </View>
 
-        <View style={styles.sectionTogglePill}>
-          <Text style={styles.sectionToggleText}>{isOpen ? "Hide" : "Show"}</Text>
+        <View style={styles.sectionHeaderTextWrap}>
+          <AppText variant="bodyBold" style={styles.sectionTitle}>
+            {title}
+          </AppText>
+
+          <AppText variant="body" style={styles.sectionSubtitle} numberOfLines={1}>
+            {subtitle}
+          </AppText>
+        </View>
+
+        <View style={[styles.sectionTogglePill, isOpen && styles.sectionTogglePillOpen]}>
+          <AppText variant="button" style={styles.sectionToggleText}>
+            {isOpen ? "−" : "+"}
+          </AppText>
         </View>
       </Pressable>
 
-      {isOpen ? <View style={styles.sectionBody}>{children}</View> : null}
+      {isOpen ? (
+        <View style={styles.sectionBody}>
+          <SectionGlowLine />
+          {children}
+        </View>
+      ) : null}
+    </LinearGradient>
+  );
+}
+
+function PerformanceChart({
+  points,
+  locked,
+}: {
+  points: InsightPoint[];
+  locked: boolean;
+}) {
+  const values = locked
+    ? [2, 3.5, 3, 5.2, 4.4, 6.8, 5.9, 7.6, 6.5]
+    : points
+        .filter((point) => typeof point.total === "number")
+        .slice(-9)
+        .map((point) => point.total);
+
+  const safeValues = values.length >= 2 ? values : [0, 0, 0, 0, 0, 0];
+  const maxValue = Math.max(...safeValues, 1);
+  const minValue = Math.min(...safeValues, 0);
+  const range = Math.max(maxValue - minValue, 1);
+  const width = 320;
+  const height = 104;
+  const padX = 8;
+  const padY = 12;
+
+  const coordinates = safeValues.map((value, index) => {
+    const x =
+      padX +
+      (index / Math.max(safeValues.length - 1, 1)) * (width - padX * 2);
+    const y =
+      height -
+      padY -
+      ((value - minValue) / range) * (height - padY * 2);
+    return { x, y };
+  });
+
+  const path = coordinates
+    .map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(1)},${point.y.toFixed(1)}`)
+    .join(" ");
+
+  const first = coordinates[0];
+  const last = coordinates[coordinates.length - 1];
+  const areaPath = `${path} L${last.x.toFixed(1)},${(height - padY).toFixed(1)} L${first.x.toFixed(1)},${(height - padY).toFixed(1)} Z`;
+  const active = coordinates[Math.max(coordinates.length - 2, 0)];
+
+  return (
+    <View style={styles.performanceChartShell}>
+      <Svg width="100%" height={112} viewBox="0 0 320 104">
+        <Defs>
+          <SvgLinearGradient id="performanceArea" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#F4B547" stopOpacity="0.34" />
+            <Stop offset="1" stopColor="#F4B547" stopOpacity="0" />
+          </SvgLinearGradient>
+          <SvgLinearGradient id="performanceLine" x1="0" y1="0" x2="1" y2="0">
+            <Stop offset="0" stopColor="#4FA7FF" />
+            <Stop offset="0.46" stopColor="#F4B547" />
+            <Stop offset="1" stopColor="#FFE39A" />
+          </SvgLinearGradient>
+        </Defs>
+
+        {[28, 52, 76].map((y) => (
+          <Path
+            key={y}
+            d={`M8,${y} L312,${y}`}
+            stroke="rgba(255,255,255,0.07)"
+            strokeWidth="1"
+          />
+        ))}
+
+        <Path d={areaPath} fill="url(#performanceArea)" />
+        <Path
+          d={path}
+          fill="none"
+          stroke="rgba(79,167,255,0.30)"
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <Path
+          d={path}
+          fill="none"
+          stroke="url(#performanceLine)"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {active ? (
+          <>
+            <Circle cx={active.x} cy={active.y} r="7" fill="rgba(244,181,71,0.16)" />
+            <Circle cx={active.x} cy={active.y} r="3.5" fill="#FFF1C2" />
+          </>
+        ) : null}
+      </Svg>
+
+      {locked ? (
+        <View style={styles.performanceChartLock}>
+          <MaterialCommunityIcons name="lock-outline" size={15} color="#F4B547" />
+          <AppText variant="bodyBold" style={styles.performanceChartLockText}>
+            Pro trend preview
+          </AppText>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -295,6 +464,9 @@ function TierExplanationCard({
 export default function VendorDashboardScreen() {
   const params = useLocalSearchParams();
   const scrollRef = useRef<ScrollView | null>(null);
+  const currentScrollY = useRef(0);
+  const editSectionRef = useRef<View | null>(null);
+  const liveDurationRef = useRef<View | null>(null);
   const editSectionY = useRef(0);
   const liveDurationY = useRef(0);
   const statusUpdateInputRef = useRef<TextInput | null>(null);
@@ -367,7 +539,7 @@ export default function VendorDashboardScreen() {
     guide: false,
     health: false,
     assets: false,
-    edit: true,
+    edit: false,
     account: false,
   });
 
@@ -661,21 +833,25 @@ export default function VendorDashboardScreen() {
   async function pickPhotos() {
     if (!van) return;
 
-    const features = getSubscriptionFeatures(van.subscriptionTier);
+    const isFreePlan = van.subscriptionTier === "free";
+    const photoLimit = isFreePlan ? 1 : 5;
 
-    if (!features.images) {
-      Alert.alert(
-        "Growth plan required",
-        "Upgrade to Growth or above to upload listing photos."
-      );
-      return;
-    }
-
-    if (photos.length >= 5) {
-      Alert.alert(
-        "Photo limit reached",
-        "You can upload up to 5 listing photos for now."
-      );
+    if (photos.length >= photoLimit) {
+      if (isFreePlan) {
+        Alert.alert(
+          "Your free photo is already added",
+          "Free includes one main listing photo. Growth unlocks a full gallery of up to 5 photos, plus logo and menu PDF tools.",
+          [
+            { text: "Not now", style: "cancel" },
+            { text: "Explore Growth", onPress: () => router.push("/vendor/upgrade") },
+          ]
+        );
+      } else {
+        Alert.alert(
+          "Photo limit reached",
+          "You can upload up to 5 listing photos for now."
+        );
+      }
       return;
     }
 
@@ -693,8 +869,8 @@ export default function VendorDashboardScreen() {
       mediaTypes: ["images"],
       quality: 0.6,
       allowsEditing: false,
-      allowsMultipleSelection: true,
-      selectionLimit: Math.max(0, 5 - photos.length),
+      allowsMultipleSelection: !isFreePlan,
+      selectionLimit: Math.max(0, photoLimit - photos.length),
     });
 
     if (result.canceled) return;
@@ -703,7 +879,7 @@ export default function VendorDashboardScreen() {
 
     setPhotos((current) => {
       const merged = [...current, ...selectedUris];
-      return Array.from(new Set(merged)).slice(0, 5);
+      return Array.from(new Set(merged)).slice(0, photoLimit);
     });
   }
 
@@ -822,19 +998,30 @@ export default function VendorDashboardScreen() {
     }
   }
 
+  function scrollMeasuredTarget(target: View | null, topOffset = 90) {
+    if (!target) return false;
+
+    target.measureInWindow((_x, y) => {
+      scrollRef.current?.scrollTo({
+        y: Math.max(currentScrollY.current + y - topOffset, 0),
+        animated: true,
+      });
+    });
+
+    return true;
+  }
+
   function jumpToEditSection() {
     openSection("edit");
 
+    // Business Details now sits inside the Management panel, so its old
+    // onLayout Y value is no longer a ScrollView content coordinate.
+    // Measure the actual rendered section instead so the shortcut always lands correctly.
     setTimeout(() => {
-      scrollRef.current?.scrollTo({
-        y: Math.max(editSectionY.current - 20, 0),
-        animated: true,
-      });
-
-      setTimeout(() => {
-        statusUpdateInputRef.current?.focus();
-      }, 350);
-    }, 200);
+      if (!scrollMeasuredTarget(editSectionRef.current, 90)) {
+        setTimeout(() => scrollMeasuredTarget(editSectionRef.current, 90), 250);
+      }
+    }, 320);
   }
 
   function jumpToLiveDuration() {
@@ -844,12 +1031,13 @@ export default function VendorDashboardScreen() {
       setIsLive(true);
     }
 
+    // Wait for the accordion and conditional timer controls to render, then
+    // measure the timer itself. This keeps the original Go Live -> timer behaviour.
     setTimeout(() => {
-      scrollRef.current?.scrollTo({
-        y: Math.max(editSectionY.current + liveDurationY.current - 80, 0),
-        animated: true,
-      });
-    }, 600);
+      if (!scrollMeasuredTarget(liveDurationRef.current, 115)) {
+        setTimeout(() => scrollMeasuredTarget(liveDurationRef.current, 115), 300);
+      }
+    }, 700);
   }
 
   function updateLocation() {
@@ -958,18 +1146,21 @@ export default function VendorDashboardScreen() {
       let nextMenuPdfName: string | null = null;
       let nextMenuPdfUri: string | null = null;
 
+      // Every vendor gets a useful listing: Free can keep one main photo,
+      // while Growth/Pro can build a gallery of up to five.
+      const photoLimit = van.subscriptionTier === "free" ? 1 : 5;
+      const existingRemotePhotos = photos.filter((uri) => !isLocalFileUri(uri));
+      const localPhotos = photos.filter((uri) => isLocalFileUri(uri));
+      const uniqueLocalPhotos = Array.from(new Set(localPhotos));
+
+      const uploadedPhotoUrls =
+        uniqueLocalPhotos.length > 0
+          ? await uploadVendorPhotos(user.id, uniqueLocalPhotos)
+          : [];
+
+      nextPhotos = [...existingRemotePhotos, ...uploadedPhotoUrls].slice(0, photoLimit);
+
       if (features.images) {
-        const existingRemotePhotos = photos.filter((uri) => !isLocalFileUri(uri));
-        const localPhotos = photos.filter((uri) => isLocalFileUri(uri));
-        const uniqueLocalPhotos = Array.from(new Set(localPhotos));
-
-        const uploadedPhotoUrls =
-          uniqueLocalPhotos.length > 0
-            ? await uploadVendorPhotos(user.id, uniqueLocalPhotos)
-            : [];
-
-        nextPhotos = [...existingRemotePhotos, ...uploadedPhotoUrls].slice(0, 5);
-
         if (logoUri) {
           const isExistingStoredLogo = !!logoPath && !isLocalFileUri(logoUri);
 
@@ -1026,8 +1217,8 @@ export default function VendorDashboardScreen() {
           menu: menu.trim() || "Menu coming soon",
           schedule: schedule.trim() || "Schedule coming soon",
           vendor_message: features.reviews ? vendorMessage.trim() : null,
-          photo: features.images ? nextPhotos[0] ?? van.photo ?? null : null,
-          photos: features.images ? nextPhotos : [],
+          photo: nextPhotos[0] ?? null,
+          photos: nextPhotos,
           logo_url: features.images ? nextLogoUri : null,
           logo_path: features.images ? nextLogoPath : null,
           menu_pdf_url: features.images ? nextMenuPdfStoragePath : null,
@@ -1071,8 +1262,8 @@ export default function VendorDashboardScreen() {
         facebookUrl: features.socialLinks ? facebook.trim() || null : null,
         websiteUrl: features.socialLinks ? website.trim() || null : null,
         what3words: features.socialLinks ? what3words.trim() || null : null,
-        photo: features.images ? nextPhotos[0] ?? null : null,
-        photos: features.images ? nextPhotos : [],
+        photo: nextPhotos[0] ?? null,
+        photos: nextPhotos,
         logoUrl: features.images ? nextLogoUri : null,
         logoPath: features.images ? nextLogoPath : null,
         menuPdfUrl: features.images ? nextMenuPdfStoragePath : null,
@@ -1100,52 +1291,52 @@ export default function VendorDashboardScreen() {
   }
 
   async function deleteListing() {
-  if (!van) return;
+    if (!van) return;
 
-  Alert.alert(
-    "Request listing removal",
-    "Your listing will not be deleted immediately. A removal request will be sent to BiteBeacon for review.",
-    [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Request Removal",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const user = await getCurrentUser();
+    Alert.alert(
+      "Request listing removal",
+      "Your listing will not be deleted immediately. A removal request will be sent to BiteBeacon for review.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Request Removal",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const user = await getCurrentUser();
 
-            if (!user || user.id !== van.owner_id) {
+              if (!user || user.id !== van.owner_id) {
+                Alert.alert(
+                  "Access denied",
+                  "You can only request removal of your own listing."
+                );
+                return;
+              }
+
+              await createListingRemovalRequest({
+                userId: user.id,
+                email: user.email ?? null,
+                vendorId: van.id,
+                reason: null,
+              });
+
               Alert.alert(
-                "Access denied",
-                "You can only request removal of your own listing."
+                "Request submitted",
+                "Your listing removal request has been sent to BiteBeacon for review. Your listing will remain active until the request is reviewed."
               );
-              return;
+            } catch (error) {
+              Alert.alert(
+                "Request failed",
+                error instanceof Error
+                  ? error.message
+                  : "Could not submit the listing removal request."
+              );
             }
-
-            await createListingRemovalRequest({
-              userId: user.id,
-              email: user.email ?? null,
-              vendorId: van.id,
-              reason: null,
-            });
-
-            Alert.alert(
-              "Request submitted",
-              "Your listing removal request has been sent to BiteBeacon for review. Your listing will remain active until the request is reviewed."
-            );
-          } catch (error) {
-            Alert.alert(
-              "Request failed",
-              error instanceof Error
-                ? error.message
-                : "Could not submit the listing removal request."
-            );
-          }
+          },
         },
-      },
-    ]
-  );
-}
+      ]
+    );
+  }
 
   async function manageSubscriptionFromDashboard() {
     try {
@@ -1215,7 +1406,7 @@ export default function VendorDashboardScreen() {
       if (views >= 20 && directions < 5) {
         return {
           title: "You are getting noticed, but your listing looks limited",
-          body: "Customers are finding you, but Free plan limitations can make it harder to convert interest into real visits. Growth unlocks LIVE status, branding, menu PDF uploads, and stronger listing trust.",
+          body: "Customers are finding you, but Free plan limitations can make it harder to convert interest into real visits. Growth unlocks a full photo gallery, branding, menu PDF uploads, social links, location tools, and stronger listing trust. LIVE is included on Free during launch.",
           cta: "Upgrade to Growth",
         };
       }
@@ -1317,8 +1508,8 @@ export default function VendorDashboardScreen() {
       }
 
       return {
-        title: "You are missing live visibility",
-        body: "Customers are more likely to visit vendors that appear LIVE at the right time. Growth lets you control that visibility and stay more relevant when people are searching.",
+        title: "Build a stronger customer presence",
+        body: "Free already gives you LIVE during launch. Growth adds the branding, media, location and customer-update tools that make your listing feel more complete.",
       };
 
     }
@@ -1351,7 +1542,7 @@ export default function VendorDashboardScreen() {
     }
 
     // 📸 No photos = weak trust
-    if (van.subscriptionTier !== "free" && !hasPhotos) {
+    if (!hasPhotos) {
       return {
         title: "Add photos to your listing",
         body: "Listings with photos build more trust and get more engagement from customers.",
@@ -1367,16 +1558,6 @@ export default function VendorDashboardScreen() {
         body: "Adding your menu and schedule helps customers decide and improves trust.",
         action: jumpToEditSection,
         cta: "Complete Listing",
-      };
-    }
-
-    // 💬 No recent activity
-    if (van.subscriptionTier !== "free" && !vendorMessage.trim()) {
-      return {
-        title: "Post a quick update",
-        body: "Keeping your listing active with updates helps you stay relevant to customers.",
-        action: jumpToEditSection,
-        cta: "Add Update",
       };
     }
 
@@ -1491,18 +1672,10 @@ export default function VendorDashboardScreen() {
     return `${hours}h ${minutes}m remaining`;
   }, [van?.liveUntil, isLive]);
 
-  useEffect(() => {
-    if (!van) return;
+  // Keep management sections collapsed by default.
+  // Vendors are prompted by the compact next-step card instead of being
+  // dropped into a long form automatically.
 
-    const currentFeatures = getSubscriptionFeatures(van.subscriptionTier);
-    const missingMenu = !menu.trim();
-    const missingSchedule = !schedule.trim();
-    const missingPhotos = photos.length === 0 && currentFeatures.images;
-
-    if (missingMenu || missingSchedule || missingPhotos) {
-      openSection("edit");
-    }
-  }, [van, menu, schedule, photos.length]);
 
   if (loading) {
     return (
@@ -1584,9 +1757,29 @@ export default function VendorDashboardScreen() {
 
   const features = getSubscriptionFeatures(van.subscriptionTier);
 
-  const listingReady = !!menu.trim() && !!schedule.trim();
-  const needsListingAttention =
-    !menu.trim() || !schedule.trim() || (features.images && photos.length === 0);
+  const listingReady = !!menu.trim() && !!schedule.trim() && photos.length > 0;
+  const missingListingEssentials = [
+    photos.length === 0 ? "main photo" : null,
+    !menu.trim() ? "menu" : null,
+    !schedule.trim() ? "trading schedule" : null,
+  ].filter((item): item is string => !!item);
+  const needsListingAttention = missingListingEssentials.length > 0;
+  const listingAttentionTitle =
+    missingListingEssentials.length === 1
+      ? `Add your ${missingListingEssentials[0]}`
+      : `${missingListingEssentials.length} things left to finish`;
+  const listingAttentionSubtitle = missingListingEssentials
+    .map((item) => item.charAt(0).toUpperCase() + item.slice(1))
+    .join(" · ");
+
+  function handleListingAttentionPress() {
+    if (photos.length === 0) {
+      openSection("branding");
+      return;
+    }
+
+    jumpToEditSection();
+  }
 
   const currentPlanLabel =
     van.subscriptionTier === "growth"
@@ -1639,1335 +1832,1065 @@ export default function VendorDashboardScreen() {
         : "Free gets you listed. Growth and Pro are built to help you stand out faster.";
 
   return (
-    <ScrollView
-      ref={scrollRef}
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.headerBlock}>
-        <View style={styles.headerTopRow}>
-          <View style={styles.headerTextWrap}>
-            <Text style={styles.headerTitle}>Vendor Dashboard</Text>
-            <Text style={styles.headerSubtitle}>
-              Run your BiteBeacon presence like a business.
-            </Text>
-          </View>
+    <MapTextureBackground>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        onScroll={(event) => {
+          currentScrollY.current = event.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={16}
+      >
+        <View style={styles.compactTopBar}>
+          <AppText variant="label" style={styles.compactTopEyebrow}>
+            VENDOR DASHBOARD
+          </AppText>
 
-          <View style={styles.headerActions}>
+          <View style={styles.compactTopActions}>
             <Pressable
-              style={styles.accountIconButton}
+              style={styles.compactIconButton}
               onPress={() => router.replace("/(tabs)")}
             >
-              <Text style={styles.accountIconText}>🏠</Text>
+              <MaterialCommunityIcons name="home-outline" size={20} color="#F4B547" />
             </Pressable>
 
             <Pressable
-              style={styles.accountIconButton}
+              style={styles.compactIconButton}
               onPress={() => router.replace("/(tabs)/account")}
             >
-              <Text style={styles.accountIconText}>⚙️</Text>
+              <MaterialCommunityIcons name="cog-outline" size={20} color="#F4B547" />
             </Pressable>
           </View>
         </View>
-      </View>
 
-      {claims.length > 0 ? (
-        <View style={styles.claimBanner}>
-          <Text style={styles.claimBannerTitle}>Your Claim</Text>
-          <Text style={styles.claimBannerText}>
-            {claims[0]?.status === "pending"
-              ? "Your ownership request is being reviewed."
-              : claims[0]?.status === "rejected"
-                ? "Your last claim was not approved."
-                : "Your claim has been approved."}
-          </Text>
-        </View>
-      ) : null}
+        {claims.length > 0 ? (
+          <View style={styles.claimBanner}>
+            <Text style={styles.claimBannerTitle}>Your Claim</Text>
+            <Text style={styles.claimBannerText}>
+              {claims[0]?.status === "pending"
+                ? "Your ownership request is being reviewed."
+                : claims[0]?.status === "rejected"
+                  ? "Your last claim was not approved."
+                  : "Your claim has been approved."}
+            </Text>
+          </View>
+        ) : null}
 
-      <View
-        style={[
-          styles.heroCard,
-          van.subscriptionTier === "pro" && styles.heroCardPro,
-        ]}
-      >
-        <View style={styles.heroGlow} />
+        <View style={styles.identityGlowWrap}>
+          <CardGlowBorder
+            accentColor="#F4B547"
+            borderColor="rgba(244,181,71,0.42)"
+            borderRadius={24}
+          />
 
-        <View style={styles.heroTopRow}>
-          <View style={styles.heroTextWrap}>
-            <View style={styles.heroBadgeRow}>
-              <View
-                style={[
-                  styles.heroStatusBadge,
-                  features.liveStatus
-                    ? isLive
-                      ? styles.heroStatusBadgeLive
-                      : styles.heroStatusBadgeOffline
-                    : styles.heroStatusBadgeListed,
-                ]}
-              >
-                <Text style={styles.heroStatusBadgeText}>
-                  {features.liveStatus ? (isLive ? "LIVE" : "OFFLINE") : "LISTED"}
-                </Text>
+          <MetallicFrame
+            tone="gold"
+            borderWidth={3}
+            style={styles.identityFrame}
+            contentStyle={{ borderRadius: 23 }}
+          >
+            <LinearGradient
+              colors={[
+                "rgba(12,37,61,0.97)",
+                "rgba(5,20,35,0.985)",
+                "rgba(4,13,23,0.995)",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.identityCard}
+            >
+              <View style={styles.identityAvatarShell}>
+                {heroVisualUri ? (
+                  <Image source={{ uri: heroVisualUri }} style={styles.identityAvatarImage} />
+                ) : (
+                  <LinearGradient
+                    colors={["#2E526F", "#152D43"]}
+                    style={styles.identityAvatarFallback}
+                  >
+                    <AppText variant="heading" style={styles.identityAvatarLetter}>
+                      {van.name.trim().slice(0, 1).toUpperCase() || "B"}
+                    </AppText>
+                  </LinearGradient>
+                )}
               </View>
 
-              <View style={[styles.planBadge, planBadgeStyle]}>
-                <Text style={[styles.planBadgeText, planBadgeTextStyle]}>
-                  {currentPlanLabel}
-                </Text>
+              <View style={styles.identityTextArea}>
+                <AppText variant="heading" style={styles.identityName} numberOfLines={1}>
+                  {van.name}
+                </AppText>
+
+                <AppText variant="body" style={styles.identityVendor} numberOfLines={1}>
+                  {vendorName || van.vendorName || cuisine || "Your food business"}
+                </AppText>
+
+                <View style={styles.identityBadgeRow}>
+                  <View style={[styles.compactPlanBadge, planBadgeStyle]}>
+                    <AppText
+                      variant="bodyBold"
+                      style={[styles.compactPlanBadgeText, planBadgeTextStyle]}
+                    >
+                      {currentPlanLabel}
+                    </AppText>
+                  </View>
+
+                  <View style={styles.identityStatusWrap}>
+                    <View
+                      style={[
+                        styles.identityStatusDot,
+                        isLive && features.liveStatus
+                          ? styles.identityStatusDotLive
+                          : styles.identityStatusDotOffline,
+                      ]}
+                    />
+                    <AppText variant="bodyBold" style={styles.identityStatusText}>
+                      {features.liveStatus ? (isLive ? "Live now" : "Offline") : "Listed"}
+                    </AppText>
+                  </View>
+                </View>
+              </View>
+            </LinearGradient>
+          </MetallicFrame>
+        </View>
+
+        <View style={styles.metricsPanel}>
+          <LinearGradient
+            colors={["rgba(10,31,51,0.97)", "rgba(4,16,28,0.99)"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.metricsPanelInner}
+          >
+            <View style={styles.metricCell}>
+              <MaterialCommunityIcons name="eye-outline" size={20} color="#F4B547" />
+              <AppText variant="heading" style={styles.metricValue}>{van.views ?? 0}</AppText>
+              <AppText variant="body" style={styles.metricLabel}>Views</AppText>
+            </View>
+
+            <View style={styles.metricDivider} />
+
+            <View style={styles.metricCell}>
+              <MaterialCommunityIcons name="navigation-variant-outline" size={20} color="#4FA7FF" />
+              <AppText variant="heading" style={styles.metricValue}>{van.directions ?? 0}</AppText>
+              <AppText variant="body" style={styles.metricLabel}>Directions</AppText>
+            </View>
+
+            <View style={styles.metricDivider} />
+
+            <View style={styles.metricCell}>
+              <MaterialCommunityIcons name="star-outline" size={20} color="#F4B547" />
+              <AppText variant="heading" style={styles.metricValue}>{(van.rating ?? 0).toFixed(1)}</AppText>
+              <AppText variant="body" style={styles.metricLabel}>Rating</AppText>
+            </View>
+
+            <View style={styles.metricDivider} />
+
+            <View style={styles.metricCell}>
+              <MaterialCommunityIcons
+                name={van.subscriptionTier === "pro" ? "chart-line" : listingReady ? "check-circle-outline" : "alert-circle-outline"}
+                size={20}
+                color={van.subscriptionTier === "pro" ? "#8ED0FF" : listingReady ? "#42D878" : "#F4B547"}
+              />
+              <AppText variant="heading" style={styles.metricValue}>
+                {van.subscriptionTier === "pro"
+                  ? `${conversionRate}%`
+                  : listingReady
+                    ? "Ready"
+                    : "Finish"}
+              </AppText>
+              <AppText variant="body" style={styles.metricLabel}>
+                {van.subscriptionTier === "pro" ? "Conversion" : "Listing"}
+              </AppText>
+            </View>
+          </LinearGradient>
+        </View>
+
+        <View style={styles.performancePanel}>
+          <CardGlowBorder
+            accentColor="#F4B547"
+            borderColor="rgba(244,181,71,0.40)"
+            borderRadius={22}
+          />
+
+          <LinearGradient
+            colors={["rgba(10,31,51,0.97)", "rgba(5,19,33,0.99)"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.performancePanelInner}
+          >
+            <View style={styles.performanceHeaderRow}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <AppText variant="label" style={styles.performanceEyebrow}>
+                  {van.subscriptionTier === "pro" ? "PERFORMANCE" : "PRO INSIGHT"}
+                </AppText>
+                <AppText variant="heading" style={styles.performanceTitle}>
+                  {van.subscriptionTier === "pro"
+                    ? "Performance This Week"
+                    : "Understand your customers"}
+                </AppText>
+              </View>
+
+              <View style={styles.performanceRangePill}>
+                <AppText variant="bodyBold" style={styles.performanceRangeText}>
+                  {van.subscriptionTier === "pro" ? "7 days" : "Pro"}
+                </AppText>
               </View>
             </View>
 
-            <Text style={styles.heroTitle}>{van.name}</Text>
-            <Text style={styles.heroVendorName}>
-              {vendorName || van.vendorName || "Vendor name not added"}
-            </Text>
-            <Text style={styles.heroCuisine}>
-              {cuisine || "Cuisine not added yet"}
-            </Text>
+            {van.subscriptionTier !== "pro" ? (
+              <AppText variant="body" style={styles.performanceExplainText}>
+                Pro turns BiteBeacon activity into useful guidance — when customers find you, how interest turns into directions, and where demand is strongest.
+              </AppText>
+            ) : null}
 
-            <Text style={styles.heroSupport}>
-              {listingReady
-                ? "Your listing is looking customer-ready."
-                : "Complete your menu and schedule to strengthen trust."}
-            </Text>
-
-            <Text style={styles.heroPlanSupport}>{proVisualSupport}</Text>
-          </View>
-
-          {heroVisualUri ? (
-            <Image source={{ uri: heroVisualUri }} style={styles.heroImage} />
-          ) : null}
-        </View>
-
-        <View style={styles.heroStatsRow}>
-          <View style={styles.heroStatCard}>
-            <Text style={styles.heroStatLabel}>Views</Text>
-            <Text style={styles.heroStatValue}>{van.views ?? 0}</Text>
-          </View>
-
-          <View style={styles.heroStatCard}>
-            <Text style={styles.heroStatLabel}>Directions</Text>
-            <Text style={styles.heroStatValue}>{van.directions ?? 0}</Text>
-          </View>
-
-          <View style={styles.heroStatCard}>
-            <Text style={styles.heroStatLabel}>
-              {van.subscriptionTier === "pro" ? "Conversion" : "Analytics"}
-            </Text>
-            <Text style={styles.heroStatValue}>
-              {van.subscriptionTier === "pro" ? `${conversionRate}%` : "Locked"}
-            </Text>
+            <PerformanceChart
+              points={insights?.daily_views ?? []}
+              locked={van.subscriptionTier !== "pro"}
+            />
 
             {van.subscriptionTier === "pro" ? (
-              <Text style={styles.heroStatHint}>
-                Conversion = the percentage of listing views that turned into direction taps.
-              </Text>
-            ) : (
-              <Text style={styles.heroStatHint}>Pro unlocks conversion insight</Text>
-            )}
-          </View>
-
-          <View style={styles.heroStatCard}>
-            <Text style={styles.heroStatLabel}>Rating</Text>
-            <Text style={styles.heroStatValue}>{(van.rating ?? 0).toFixed(1)}</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.powerCard}>
-        <Text style={styles.powerCardEyebrow}>Performance Signal</Text>
-        <Text style={styles.powerCardTitle}>{performanceSignal?.title}</Text>
-        <Text style={styles.powerCardText}>{performanceSignal?.body}</Text>
-      </View>
-
-      {needsListingAttention ? (
-        <View style={styles.guidanceBanner}>
-          <Text style={styles.guidanceBannerTitle}>
-            Start here: complete your listing
-          </Text>
-          <Text style={styles.guidanceBannerText}>
-            To get your listing ready for customers, complete these steps:
-
-            • Add your menu
-            • Add your schedule
-            • Upload photos
-
-            We have already opened your Edit section to make this easy.
-          </Text>
-
-          <Pressable
-            style={styles.guidanceBannerButton}
-            onPress={jumpToEditSection}
-          >
-            <Text style={styles.guidanceBannerButtonText}>
-              Finish My Listing
-            </Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      {monetisationInsight ? (
-        <View style={styles.monetisationCard}>
-          <Text style={styles.monetisationTitle}>
-            {monetisationInsight.title}
-          </Text>
-          <Text style={styles.monetisationText}>
-            {monetisationInsight.body}
-          </Text>
-
-          <Pressable
-            style={styles.monetisationButton}
-            onPress={() => {
-              if (van.subscriptionTier === "free") {
-                router.push("/vendor/upgrade");
-                return;
-              }
-
-              manageSubscriptionFromDashboard();
-            }}
-          >
-            <Text style={styles.monetisationButtonText}>
-              {van.subscriptionTier === "free"
-                ? "Upgrade to improve performance"
-                : "Manage or Upgrade Subscription"}
-            </Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      {upgradeSignal && !monetisationInsight && van.subscriptionTier !== "pro" ? (
-        <View style={styles.upgradeSignalCard}>
-          <Text style={styles.upgradeSignalEyebrow}>
-            {van.subscriptionTier === "free"
-              ? "Free Plan Limitation"
-              : "Growth Plan Opportunity"}
-          </Text>
-
-          <Text style={styles.upgradeSignalTitle}>{upgradeSignal.title}</Text>
-          <Text style={styles.upgradeSignalText}>{upgradeSignal.body}</Text>
-
-          <Text style={styles.upgradeSignalSupportText}>
-            {van.subscriptionTier === "free"
-              ? "Higher tiers give vendors stronger trust signals, better visibility tools, and a more complete customer-facing presence."
-              : "Pro gives vendors stronger discovery support and interpreted performance insight that Growth does not include."}
-          </Text>
-
-          <Pressable
-            style={styles.upgradeSignalButton}
-            onPress={() => {
-              if (van.subscriptionTier === "free") {
-                router.push("/vendor/upgrade");
-                return;
-              }
-
-              manageSubscriptionFromDashboard();
-            }}
-          >
-            <Text style={styles.upgradeSignalButtonText}>
-              {van.subscriptionTier === "free"
-                ? upgradeSignal.cta
-                : "Manage or Upgrade Subscription"}
-            </Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      <View style={styles.quickActionsCard}>
-        <Text style={styles.quickActionsTitle}>Quick Actions</Text>
-        <Text style={styles.quickActionsSubtitle}>
-          The controls you are most likely to use every day.
-        </Text>
-
-        <View style={styles.quickActionsGrid}>
-          <Pressable
-            style={[
-              styles.quickActionButton,
-              isLive
-                ? styles.quickActionPrimary
-                : styles.quickActionSecondary,
-            ]}
-            onPress={() => {
-              if (isLive) {
-                handleLiveToggle(false);
-              } else {
-                jumpToLiveDuration();
-              }
-            }}
-          >
-            <Text style={styles.quickActionPrimaryText}>
-              {isLive ? "Go Offline" : "Go Live"}
-            </Text>
-
-            {isLive && liveTimeRemaining ? (
-              <Text style={styles.quickActionHintText}>{liveTimeRemaining}</Text>
-            ) : !isLive ? (
-              <Text style={styles.quickActionHintText}>Jump to timer</Text>
-            ) : null}
-          </Pressable>
-
-          <Pressable
-            style={[styles.quickActionButton, styles.quickActionSecondary]}
-            onPress={() =>
-              router.push({
-                pathname: "/vendor/[id]",
-                params: { id: van.id },
-              })
-            }
-          >
-            <Text style={styles.quickActionSecondaryText}>View Public Listing</Text>
-          </Pressable>
-
-          {features.reviews ? (
-            <Pressable
-              style={[styles.quickActionButton, styles.quickActionSecondary]}
-              onPress={jumpToEditSection}
-            >
-              <Text style={styles.quickActionSecondaryText}>
-                Post Update to Listing
-              </Text>
-            </Pressable>
-          ) : (
-            <Pressable
-              style={[styles.quickActionButton, styles.quickActionLocked]}
-              onPress={() => router.push("/vendor/upgrade")}
-            >
-              <Text style={styles.quickActionLockedText}>Post Update 🔒</Text>
-            </Pressable>
-          )}
-
-          {features.locationUpdates ? (
-            <Pressable
-              style={[styles.quickActionButton, styles.quickActionSecondary]}
-              onPress={updateLocation}
-            >
-              <Text style={styles.quickActionSecondaryText}>
-                Set Trading Location
-              </Text>
-            </Pressable>
-          ) : (
-            <Pressable
-              style={[styles.quickActionButton, styles.quickActionLocked]}
-              onPress={() => router.push("/vendor/upgrade")}
-            >
-              <Text style={styles.quickActionLockedText}>Set Trading Location 🔒</Text>
-            </Pressable>
-          )}
-
-          {van.subscriptionTier === "growth" || van.subscriptionTier === "pro" ? (
-            <Pressable
-              style={[styles.quickActionButton, styles.quickActionSecondary]}
-              onPress={manageSubscriptionFromDashboard}
-            >
-              <Text style={styles.quickActionSecondaryText}>
-                Manage Plan
-              </Text>
-            </Pressable>
-          ) : null}
-        </View>
-
-      </View>
-
-      <DashboardAccordionSection
-        title="Performance Insights"
-        subtitle="Use customer behaviour to sharpen visibility and conversion."
-        isOpen={openSections.insights}
-        onToggle={() => toggleSection("insights")}
-      >
-        {van.subscriptionTier === "pro" ? (
-          insightsLoading || heatmapLoading ? (
-            <View style={styles.cardBox}>
-              <Text style={styles.loadingInlineText}>Loading insights...</Text>
-            </View>
-          ) : (
-            <>
-              <View style={styles.insightEngineCard}>
-                <Text style={styles.insightEngineEyebrow}>BiteBeacon Insight</Text>
-                <Text style={styles.insightEngineTitle}>
-                  Intelligence based on your recent vendor activity
-                </Text>
-
-                <View style={styles.insightSection}>
-                  <Text style={styles.insightSectionLabel}>What we analysed</Text>
-                  <Text style={styles.insightSectionText}>
-                    Based on your last 30 days of listing activity, including
-                    views, directions, customer timing patterns, and recorded
-                    location interaction points.
-                  </Text>
-                </View>
-
-                <View style={styles.insightSection}>
-                  <Text style={styles.insightSectionLabel}>What we’re seeing</Text>
-                  <Text style={styles.insightSectionText}>
-                    {proInsight?.summary}
-                  </Text>
-                </View>
-
-                <View style={styles.insightMetricsRow}>
-                  <View style={styles.insightMetricCard}>
-                    <Text style={styles.insightMetricLabel}>Recent Views</Text>
-                    <Text style={styles.insightMetricValue}>
-                      {proInsight?.recentViews ?? 0}
-                    </Text>
-                  </View>
-
-                  <View style={styles.insightMetricCard}>
-                    <Text style={styles.insightMetricLabel}>Recent Directions</Text>
-                    <Text style={styles.insightMetricValue}>
-                      {proInsight?.recentDirections ?? 0}
-                    </Text>
+              <View style={styles.performanceMiniRow}>
+                <View style={styles.performanceMiniCard}>
+                  <MaterialCommunityIcons name="eye-outline" size={16} color="#F4B547" />
+                  <View>
+                    <AppText variant="bodyBold" style={styles.performanceMiniValue}>{van.views ?? 0}</AppText>
+                    <AppText variant="body" style={styles.performanceMiniLabel}>Views</AppText>
                   </View>
                 </View>
 
-                <View style={styles.insightMetricsRow}>
-                  <View style={styles.insightMetricCard}>
-                    <Text style={styles.insightMetricLabel}>Conversion</Text>
-                    <Text style={styles.insightMetricValue}>
-                      {Number(proInsight?.recentConversion ?? 0).toFixed(1)}%
-                    </Text>
-                  </View>
-
-                  <View style={styles.insightMetricCard}>
-                    <Text style={styles.insightMetricLabel}>Data Strength</Text>
-                    <Text style={styles.insightMetricValueSmall}>
-                      {proInsight?.hasEnoughData ? "Usable" : "Early"}
-                    </Text>
+                <View style={styles.performanceMiniCard}>
+                  <MaterialCommunityIcons name="navigation-variant-outline" size={16} color="#4FA7FF" />
+                  <View>
+                    <AppText variant="bodyBold" style={styles.performanceMiniValue}>{van.directions ?? 0}</AppText>
+                    <AppText variant="body" style={styles.performanceMiniLabel}>Directions</AppText>
                   </View>
                 </View>
 
-                <View style={styles.insightSection}>
-                  <Text style={styles.insightSectionLabel}>
-                    Best hours to concentrate service
-                  </Text>
-                  <Text style={styles.insightSectionText}>
-                    {proInsight?.hasSpecificTiming
-                      ? `Your strongest engagement windows are ${proInsight.bestHoursText}.`
-                      : "We need more customer activity before we can identify your strongest trading hours with confidence."}
-                  </Text>
-                </View>
-
-                <View style={styles.insightSection}>
-                  <Text style={styles.insightSectionLabel}>Strongest day signal</Text>
-                  <Text style={styles.insightSectionText}>
-                    {proInsight?.topDay?.day
-                      ? `Your strongest recent day was ${formatInsightDay(
-                        proInsight.topDay.day
-                      )} with ${proInsight.topDay.total} view${proInsight.topDay.total === 1 ? "" : "s"
-                      }.`
-                      : "We need more daily activity before we can identify a strongest day."}
-                  </Text>
-                </View>
-
-                <View style={styles.insightSection}>
-                  <Text style={styles.insightSectionLabel}>Quietest day signal</Text>
-                  <Text style={styles.insightSectionText}>
-                    {proInsight?.quietDay?.day
-                      ? `Your quietest recent day was ${formatInsightDay(
-                        proInsight.quietDay.day
-                      )} with ${proInsight.quietDay.total} view${proInsight.quietDay.total === 1 ? "" : "s"
-                      }.`
-                      : "We need more daily activity before we can identify a weaker day pattern."}
-                  </Text>
-                </View>
-
-                <View style={styles.insightSection}>
-                  <Text style={styles.insightSectionLabel}>
-                    Main activity areas we can see
-                  </Text>
-                  <Text style={styles.insightSectionText}>
-                    {proInsight?.hasSpecificLocation
-                      ? "These are the strongest recorded interaction points from your recent location data."
-                      : "We need more location-based interactions before we can identify your strongest demand areas with confidence."}
-                  </Text>
-
-                  {proInsight?.hasSpecificLocation ? (
-                    <View style={styles.locationListCard}>
-                      <Text style={styles.locationListText}>
-                        {proInsight.locationText}
-                      </Text>
-                      <Text style={styles.locationHintText}>
-                        These coordinates are approximate hotspots from customer
-                        interaction locations, not guessed place names.
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
-
-                <View style={styles.insightSection}>
-                  <Text style={styles.insightSectionLabel}>Recommended action</Text>
-                  <Text style={styles.insightSectionText}>
-                    {proInsight?.recommendation}
-                  </Text>
-                </View>
-
-                {!proInsight?.hasEnoughData ? (
-                  <View style={styles.lowDataNote}>
-                    <Text style={styles.lowDataNoteTitle}>Need more data</Text>
-                    <Text style={styles.lowDataNoteText}>
-                      We need more customer interactions to give you sharper,
-                      more specific commercial guidance.
-                    </Text>
+                <View style={styles.performanceMiniCard}>
+                  <MaterialCommunityIcons name="chart-line" size={16} color="#42D878" />
+                  <View>
+                    <AppText variant="bodyBold" style={styles.performanceMiniValue}>{conversionRate}%</AppText>
+                    <AppText variant="body" style={styles.performanceMiniLabel}>Conversion</AppText>
                   </View>
-                ) : null}
+                </View>
               </View>
+            ) : (
+              <View style={styles.performanceBenefitRow}>
+                <View style={styles.performanceBenefitChip}>
+                  <MaterialCommunityIcons name="clock-outline" size={15} color="#F4B547" />
+                  <AppText variant="bodyBold" style={styles.performanceBenefitText}>Best times</AppText>
+                </View>
+                <View style={styles.performanceBenefitChip}>
+                  <MaterialCommunityIcons name="navigation-variant-outline" size={15} color="#4FA7FF" />
+                  <AppText variant="bodyBold" style={styles.performanceBenefitText}>Visit intent</AppText>
+                </View>
+                <View style={styles.performanceBenefitChip}>
+                  <MaterialCommunityIcons name="map-marker-radius-outline" size={15} color="#42D878" />
+                  <AppText variant="bodyBold" style={styles.performanceBenefitText}>Hotspots</AppText>
+                </View>
+              </View>
+            )}
+          </LinearGradient>
+        </View>
 
-              <View style={styles.mapInsightCard}>
-                <Text style={styles.mapInsightTitle}>Interaction Map</Text>
-                <Text style={styles.mapInsightSubtitle}>
-                  Visual view of the strongest recorded interaction points for
-                  your listing.
-                </Text>
+        <View style={styles.quickPanel}>
+          <CardGlowBorder
+            accentColor="#4FA7FF"
+            borderColor="rgba(79,167,255,0.40)"
+            borderRadius={22}
+          />
 
-                {heatmapPoints.length === 0 ? (
-                  <View style={styles.emptyInlineCard}>
-                    <Text style={styles.emptyInlineTitle}>No map signal yet</Text>
-                    <Text style={styles.emptyInlineText}>
-                      We need more location-based interactions before your map
-                      becomes useful.
-                    </Text>
+          <MetallicFrame
+            tone="blue"
+            borderWidth={2}
+            style={styles.quickPanelFrame}
+            contentStyle={{ borderRadius: 21 }}
+          >
+            <LinearGradient
+              colors={["rgba(9,31,50,0.97)", "rgba(4,17,29,0.99)"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.quickPanelInner}
+            >
+              <AppText variant="label" style={styles.quickEyebrow}>DAILY CONTROLS</AppText>
+              <AppText variant="heading" style={styles.quickTitle}>Quick Actions</AppText>
+
+              <View style={styles.quickGrid}>
+                <Pressable
+                  style={[styles.quickTile, styles.quickTilePrimary]}
+                  onPress={() => {
+                    if (isLive) {
+                      handleLiveToggle(false);
+                    } else {
+                      jumpToLiveDuration();
+                    }
+                  }}
+                >
+                  <MaterialCommunityIcons name="broadcast" size={20} color="#F4B547" />
+                  <View style={styles.quickTileTextArea}>
+                    <AppText variant="button" style={styles.quickTileTitleGold}>
+                      {isLive ? "Go Offline" : "Go Live"}
+                    </AppText>
+                    <AppText variant="body" style={styles.quickTileSubtitle}>
+                      {isLive && liveTimeRemaining ? liveTimeRemaining : "Choose how long you're trading"}
+                    </AppText>
                   </View>
-                ) : (
-                  <MapView
-                    style={styles.heatmapMap}
-                    pointerEvents="none"
-                    initialRegion={{
-                      latitude: lat || van.lat,
-                      longitude: lng || van.lng,
-                      latitudeDelta: 0.18,
-                      longitudeDelta: 0.18,
-                    }}
-                    scrollEnabled={false}
-                    zoomEnabled={false}
-                    rotateEnabled={false}
-                    pitchEnabled={false}
-                    toolbarEnabled={false}
-                  >
-                    <Marker
-                      coordinate={{
-                        latitude: lat || van.lat,
-                        longitude: lng || van.lng,
-                      }}
-                      title={van.name}
-                      pinColor={NAVY}
-                    />
+                </Pressable>
 
-                    {heatmapPoints.map((point, index) => (
-                      <Marker
-                        key={`heatmap-${index}`}
-                        coordinate={{
-                          latitude: point.lat,
-                          longitude: point.lng,
-                        }}
-                        anchor={{ x: 0.5, y: 0.5 }}
-                      >
-                        <View
-                          style={[
-                            styles.heatmapVisualDot,
-                            point.weight >= 8
-                              ? styles.heatmapVisualDotHot
-                              : point.weight >= 4
-                                ? styles.heatmapVisualDotWarm
-                                : styles.heatmapVisualDotCool,
-                          ]}
-                        >
-                          <Text style={styles.heatmapVisualDotText}>
-                            {point.weight}
-                          </Text>
-                        </View>
-                      </Marker>
-                    ))}
-                  </MapView>
+                <Pressable
+                  style={styles.quickTile}
+                  onPress={() => router.push({ pathname: "/vendor/[id]", params: { id: van.id } })}
+                >
+                  <MaterialCommunityIcons name="eye-outline" size={20} color="#8ED0FF" />
+                  <View style={styles.quickTileTextArea}>
+                    <AppText variant="button" style={styles.quickTileTitle}>View Public Listing</AppText>
+                    <AppText variant="body" style={styles.quickTileSubtitle}>See what customers see</AppText>
+                  </View>
+                </Pressable>
+
+                <Pressable style={styles.quickTile} onPress={jumpToEditSection}>
+                  <MaterialCommunityIcons name="pencil-outline" size={20} color="#F4B547" />
+                  <View style={styles.quickTileTextArea}>
+                    <AppText variant="button" style={styles.quickTileTitle}>Edit Details</AppText>
+                    <AppText variant="body" style={styles.quickTileSubtitle}>Menu, schedule & cuisine</AppText>
+                  </View>
+                </Pressable>
+
+                {van.subscriptionTier === "free" ? (
+                  <Pressable style={styles.quickTile} onPress={pickPhotos}>
+                    <MaterialCommunityIcons name="camera-outline" size={20} color="#4FA7FF" />
+                    <View style={styles.quickTileTextArea}>
+                      <AppText variant="button" style={styles.quickTileTitle}>
+                        {photos.length > 0 ? "Change Main Photo" : "Add Main Photo"}
+                      </AppText>
+                      <AppText variant="body" style={styles.quickTileSubtitle}>Included with Free</AppText>
+                    </View>
+                  </Pressable>
+                ) : (
+                  <Pressable style={styles.quickTile} onPress={updateLocation}>
+                    <MaterialCommunityIcons name="map-marker-outline" size={20} color="#4FA7FF" />
+                    <View style={styles.quickTileTextArea}>
+                      <AppText variant="button" style={styles.quickTileTitle}>Set Trading Location</AppText>
+                      <AppText variant="body" style={styles.quickTileSubtitle}>Update your map pin</AppText>
+                    </View>
+                  </Pressable>
                 )}
               </View>
-            </>
-          )
-        ) : (
-          <View style={styles.inlineLockedCard}>
-            <Text style={styles.inlineLockedTitle}>Pro feature</Text>
-            <Text style={styles.inlineLockedText}>
-              Upgrade to Pro to unlock interpreted insights from your views,
-              directions, timing patterns, and location interaction data.
-            </Text>
-          </View>
-        )}
-      </DashboardAccordionSection>
+            </LinearGradient>
+          </MetallicFrame>
+        </View>
 
-      <DashboardAccordionSection
-        title="Branding"
-        subtitle="Strengthen trust and make your business look more premium."
-        isOpen={openSections.branding}
-        onToggle={() => toggleSection("branding")}
-      >
-        <View style={styles.cardBox}>
-          {!features.images ? (
-            <View style={styles.inlineLockedCard}>
-              <Text style={styles.inlineLockedTitle}>Growth required</Text>
-              <Text style={styles.inlineLockedText}>
-                Add your logo to build trust and stand out more clearly.
-              </Text>
+        {needsListingAttention ? (
+          <Pressable style={styles.compactNextStep} onPress={handleListingAttentionPress}>
+            <View style={styles.compactNextStepIcon}>
+              <MaterialCommunityIcons name="progress-check" size={18} color="#F4B547" />
             </View>
-          ) : (
-            <>
-              <Pressable style={styles.softButton} onPress={pickLogo}>
-                <Text style={styles.softButtonText}>
-                  {logoUri ? "Replace Logo" : "Upload Logo"}
-                </Text>
-              </Pressable>
+            <View style={styles.compactNextStepText}>
+              <AppText variant="bodyBold" style={styles.compactNextStepTitle}>{listingAttentionTitle}</AppText>
+              <AppText variant="body" style={styles.compactNextStepSubtitle} numberOfLines={1}>
+                {listingAttentionSubtitle}
+              </AppText>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={21} color="#F4B547" />
+          </Pressable>
+        ) : null}
 
-              {logoUri ? (
-                <View style={styles.logoPreview}>
-                  <Image source={{ uri: logoUri }} style={styles.logoLarge} />
-
-                  <Pressable
-                    style={styles.galleryDeleteButton}
-                    onPress={removeLogo}
-                  >
-                    <Text style={styles.galleryDeleteButtonText}>Remove</Text>
-                  </Pressable>
+        <View style={styles.managementPanel}>
+          <LinearGradient
+            colors={["rgba(7,24,40,0.94)", "rgba(3,14,25,0.98)"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.managementPanelInner}
+          >
+            <AppText variant="label" style={styles.managementEyebrow}>MANAGEMENT</AppText>
+        {van.subscriptionTier === "pro" ? (
+        <DashboardAccordionSection
+            title="Performance Insights"
+            subtitle="Use customer behaviour to sharpen visibility and conversion."
+            isOpen={openSections.insights}
+            onToggle={() => toggleSection("insights")}
+          >
+            {van.subscriptionTier === "pro" ? (
+              insightsLoading || heatmapLoading ? (
+                <View style={styles.cardBox}>
+                  <Text style={styles.loadingInlineText}>Loading insights...</Text>
                 </View>
               ) : (
-                <View style={styles.emptyAssetBox}>
-                  <Text style={styles.emptyAssetTitle}>No logo uploaded yet</Text>
-                  <Text style={styles.emptyAssetText}>
-                    Add a square logo to give your listing a stronger brand identity.
-                  </Text>
-                </View>
-              )}
-            </>
-          )}
-        </View>
-      </DashboardAccordionSection>
-
-      <DashboardAccordionSection
-        title="Tier Growth"
-        subtitle="See exactly what your next plan adds to your business."
-        isOpen={openSections.growth}
-        onToggle={() => toggleSection("growth")}
-      >
-        <View style={styles.cardBox}>
-          {van.subscriptionTier !== "pro" ? (
-            <>
-              <View style={styles.upgradeBadge}>
-                <Text style={styles.upgradeBadgeText}>{currentPlanLabel}</Text>
-              </View>
-
-              <Text style={styles.upgradeTitle}>
-                {van.subscriptionTier === "free"
-                  ? "Upgrade to Growth"
-                  : "Upgrade to Pro"}
-              </Text>
-
-              <Text style={styles.upgradeText}>
-                {van.subscriptionTier === "free"
-                  ? "Turn a basic listing into a stronger customer-facing presence with live visibility, branding, menu uploads, and status updates."
-                  : "Unlock BiteBeacon’s strongest vendor advantage with interpreted analytics, priority discovery, and deeper commercial guidance."}
-              </Text>
-
-              <View style={styles.upgradeFeatureList}>
-                {van.subscriptionTier === "free" ? (
-                  <>
-                    <Text style={styles.upgradeFeature}>• Go LIVE when you are open</Text>
-                    <Text style={styles.upgradeFeature}>• Add photos and logo branding</Text>
-                    <Text style={styles.upgradeFeature}>• Upload a menu PDF</Text>
-                    <Text style={styles.upgradeFeature}>• Post daily status updates</Text>
-                    <Text style={styles.upgradeFeature}>• Update your trading location</Text>
-                    <Text style={styles.upgradeFeature}>• Unlock Instagram, Facebook and website links</Text>
-                    <Text style={styles.upgradeFeature}>• Unlock what3words precise location</Text>
-                    <Text style={styles.upgradeFeature}>• Build more trust with customers</Text>
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.upgradeFeature}>• Priority visibility on the map</Text>
-                    <Text style={styles.upgradeFeature}>• Featured vendor presence</Text>
-                    <Text style={styles.upgradeFeature}>• Trending vendor boost</Text>
-                    <Text style={styles.upgradeFeature}>• Interpreted insight engine</Text>
-                    <Text style={styles.upgradeFeature}>• Best-hour recommendations</Text>
-                    <Text style={styles.upgradeFeature}>• Area activity hotspots</Text>
-                    <Text style={styles.upgradeFeature}>• Conversion guidance</Text>
-                  </>
-                )}
-              </View>
-
-              <Text style={styles.upgradeSupportText}>
-                {van.subscriptionTier === "free"
-                  ? "Growth is built to help your listing look more active, more complete, and more likely to convert views into visits."
-                  : "Pro is built for vendors who want sharper guidance from real activity, not just raw numbers."}
-              </Text>
-
-              <Pressable
-                style={styles.upgradeButton}
-                onPress={() => {
-                  if (van.subscriptionTier === "free") {
-                    router.push("/vendor/upgrade");
-                    return;
-                  }
-
-                  manageSubscriptionFromDashboard();
-                }}
-              >
-                <Text style={styles.upgradeButtonText}>
-                  {van.subscriptionTier === "free"
-                    ? "Upgrade to Growth"
-                    : "Manage or Upgrade Subscription"}
+                <>
+                  <View style={styles.insightEngineCard}>
+                    <Text style={styles.insightEngineEyebrow}>BiteBeacon Insight</Text>
+                    <Text style={styles.insightEngineTitle}>
+                      Intelligence based on your recent vendor activity
+                    </Text>
+  
+                    <View style={styles.insightSection}>
+                      <Text style={styles.insightSectionLabel}>What we analysed</Text>
+                      <Text style={styles.insightSectionText}>
+                        Based on your last 30 days of listing activity, including
+                        views, directions, customer timing patterns, and recorded
+                        location interaction points.
+                      </Text>
+                    </View>
+  
+                    <View style={styles.insightSection}>
+                      <Text style={styles.insightSectionLabel}>What we’re seeing</Text>
+                      <Text style={styles.insightSectionText}>
+                        {proInsight?.summary}
+                      </Text>
+                    </View>
+  
+                    <View style={styles.insightMetricsRow}>
+                      <View style={styles.insightMetricCard}>
+                        <Text style={styles.insightMetricLabel}>Recent Views</Text>
+                        <Text style={styles.insightMetricValue}>
+                          {proInsight?.recentViews ?? 0}
+                        </Text>
+                      </View>
+  
+                      <View style={styles.insightMetricCard}>
+                        <Text style={styles.insightMetricLabel}>Recent Directions</Text>
+                        <Text style={styles.insightMetricValue}>
+                          {proInsight?.recentDirections ?? 0}
+                        </Text>
+                      </View>
+                    </View>
+  
+                    <View style={styles.insightMetricsRow}>
+                      <View style={styles.insightMetricCard}>
+                        <Text style={styles.insightMetricLabel}>Conversion</Text>
+                        <Text style={styles.insightMetricValue}>
+                          {Number(proInsight?.recentConversion ?? 0).toFixed(1)}%
+                        </Text>
+                      </View>
+  
+                      <View style={styles.insightMetricCard}>
+                        <Text style={styles.insightMetricLabel}>Data Strength</Text>
+                        <Text style={styles.insightMetricValueSmall}>
+                          {proInsight?.hasEnoughData ? "Usable" : "Early"}
+                        </Text>
+                      </View>
+                    </View>
+  
+                    <View style={styles.insightSection}>
+                      <Text style={styles.insightSectionLabel}>
+                        Best hours to concentrate service
+                      </Text>
+                      <Text style={styles.insightSectionText}>
+                        {proInsight?.hasSpecificTiming
+                          ? `Your strongest engagement windows are ${proInsight.bestHoursText}.`
+                          : "We need more customer activity before we can identify your strongest trading hours with confidence."}
+                      </Text>
+                    </View>
+  
+                    <View style={styles.insightSection}>
+                      <Text style={styles.insightSectionLabel}>Strongest day signal</Text>
+                      <Text style={styles.insightSectionText}>
+                        {proInsight?.topDay?.day
+                          ? `Your strongest recent day was ${formatInsightDay(
+                            proInsight.topDay.day
+                          )} with ${proInsight.topDay.total} view${proInsight.topDay.total === 1 ? "" : "s"
+                          }.`
+                          : "We need more daily activity before we can identify a strongest day."}
+                      </Text>
+                    </View>
+  
+                    <View style={styles.insightSection}>
+                      <Text style={styles.insightSectionLabel}>Quietest day signal</Text>
+                      <Text style={styles.insightSectionText}>
+                        {proInsight?.quietDay?.day
+                          ? `Your quietest recent day was ${formatInsightDay(
+                            proInsight.quietDay.day
+                          )} with ${proInsight.quietDay.total} view${proInsight.quietDay.total === 1 ? "" : "s"
+                          }.`
+                          : "We need more daily activity before we can identify a weaker day pattern."}
+                      </Text>
+                    </View>
+  
+                    <View style={styles.insightSection}>
+                      <Text style={styles.insightSectionLabel}>
+                        Main activity areas we can see
+                      </Text>
+                      <Text style={styles.insightSectionText}>
+                        {proInsight?.hasSpecificLocation
+                          ? "These are the strongest recorded interaction points from your recent location data."
+                          : "We need more location-based interactions before we can identify your strongest demand areas with confidence."}
+                      </Text>
+  
+                      {proInsight?.hasSpecificLocation ? (
+                        <View style={styles.locationListCard}>
+                          <Text style={styles.locationListText}>
+                            {proInsight.locationText}
+                          </Text>
+                          <Text style={styles.locationHintText}>
+                            These coordinates are approximate hotspots from customer
+                            interaction locations, not guessed place names.
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+  
+                    <View style={styles.insightSection}>
+                      <Text style={styles.insightSectionLabel}>Recommended action</Text>
+                      <Text style={styles.insightSectionText}>
+                        {proInsight?.recommendation}
+                      </Text>
+                    </View>
+  
+                    {!proInsight?.hasEnoughData ? (
+                      <View style={styles.lowDataNote}>
+                        <Text style={styles.lowDataNoteTitle}>Need more data</Text>
+                        <Text style={styles.lowDataNoteText}>
+                          We need more customer interactions to give you sharper,
+                          more specific commercial guidance.
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+  
+                  <View style={styles.mapInsightCard}>
+                    <Text style={styles.mapInsightTitle}>Interaction Map</Text>
+                    <Text style={styles.mapInsightSubtitle}>
+                      Visual view of the strongest recorded interaction points for
+                      your listing.
+                    </Text>
+  
+                    {heatmapPoints.length === 0 ? (
+                      <View style={styles.emptyInlineCard}>
+                        <Text style={styles.emptyInlineTitle}>No map signal yet</Text>
+                        <Text style={styles.emptyInlineText}>
+                          We need more location-based interactions before your map
+                          becomes useful.
+                        </Text>
+                      </View>
+                    ) : (
+                      <MapView
+                        style={styles.heatmapMap}
+                        pointerEvents="none"
+                        initialRegion={{
+                          latitude: lat || van.lat,
+                          longitude: lng || van.lng,
+                          latitudeDelta: 0.18,
+                          longitudeDelta: 0.18,
+                        }}
+                        scrollEnabled={false}
+                        zoomEnabled={false}
+                        rotateEnabled={false}
+                        pitchEnabled={false}
+                        toolbarEnabled={false}
+                      >
+                        <Marker
+                          coordinate={{
+                            latitude: lat || van.lat,
+                            longitude: lng || van.lng,
+                          }}
+                          title={van.name}
+                          pinColor={NAVY}
+                        />
+  
+                        {heatmapPoints.map((point, index) => (
+                          <Marker
+                            key={`heatmap-${index}`}
+                            coordinate={{
+                              latitude: point.lat,
+                              longitude: point.lng,
+                            }}
+                            anchor={{ x: 0.5, y: 0.5 }}
+                          >
+                            <View
+                              style={[
+                                styles.heatmapVisualDot,
+                                point.weight >= 8
+                                  ? styles.heatmapVisualDotHot
+                                  : point.weight >= 4
+                                    ? styles.heatmapVisualDotWarm
+                                    : styles.heatmapVisualDotCool,
+                              ]}
+                            >
+                              <Text style={styles.heatmapVisualDotText}>
+                                {point.weight}
+                              </Text>
+                            </View>
+                          </Marker>
+                        ))}
+                      </MapView>
+                    )}
+                  </View>
+                </>
+              )
+            ) : (
+              <View style={styles.inlineLockedCard}>
+                <Text style={styles.inlineLockedTitle}>Pro feature</Text>
+                <Text style={styles.inlineLockedText}>
+                  Upgrade to Pro to unlock interpreted insights from your views,
+                  directions, timing patterns, and location interaction data.
                 </Text>
-              </Pressable>
-            </>
-          ) : (
-            <>
-              <Text style={styles.proNoteTitle}>Pro Active</Text>
-              <Text style={styles.proNoteText}>
-                Your listing already has BiteBeacon’s highest level of visibility,
-                premium presentation, and interpreted performance insight.
-              </Text>
-            </>
-          )}
-        </View>
-      </DashboardAccordionSection>
+              </View>
+            )}
+          </DashboardAccordionSection>
+  
+          ) : null}
 
-      <DashboardAccordionSection
-        title="Plan Guide"
-        subtitle="Understand what each subscription tier unlocks."
-        isOpen={openSections.guide}
-        onToggle={() => toggleSection("guide")}
-      >
-        <View style={styles.cardBox}>
-          <TierExplanationCard
-            title="Free — Get discovered"
-            subtitle="Your starting point"
-            accent="free"
-            isExpanded={expandedTier === "free"}
-            onToggle={() => setExpandedTier("free")}
-          >
-            <Text style={styles.tierItem}>• Appear on the BiteBeacon map</Text>
-            <Text style={styles.tierItem}>• Let customers view your listing</Text>
-            <Text style={styles.tierItem}>
-              • Track customer interest through views and directions
-            </Text>
-            <Text style={styles.tierItem}>• Build early traction and awareness</Text>
+        <DashboardAccordionSection
+          title="Brand & Media"
+          subtitle={van.subscriptionTier === "free" ? "Your main photo — Growth adds the full branding toolkit." : "Logo, gallery and menu media for your customer-facing listing."}
+          isOpen={openSections.branding}
+          onToggle={() => toggleSection("branding")}
+        >
+          <View style={styles.cardBox}>
+            <View style={styles.managementGroupHeader}>
+              <MaterialCommunityIcons name="camera-outline" size={18} color="#4FA7FF" />
+              <View style={styles.managementGroupCopy}>
+                <AppText variant="bodyBold" style={styles.managementGroupTitle}>Main listing photo</AppText>
+                <AppText variant="body" style={styles.managementGroupText}>
+                  {van.subscriptionTier === "free"
+                    ? "Free includes one photo so customers can recognise your van."
+                    : "Your first image is the main listing photo. Add up to 5 in your gallery."}
+                </AppText>
+              </View>
+            </View>
 
-            <Text style={styles.tierHint}>
-              Best for getting listed and starting your presence.
-            </Text>
-          </TierExplanationCard>
-
-          <TierExplanationCard
-            title="Growth — Turn views into customers"
-            subtitle="Professional vendor tools"
-            accent="growth"
-            isExpanded={expandedTier === "growth"}
-            onToggle={() => setExpandedTier("growth")}
-          >
-            <Text style={styles.tierItem}>• Go LIVE when you are open</Text>
-            <Text style={styles.tierSub}>
-              Shown more actively when customers are looking for food
-            </Text>
-
-            <Text style={styles.tierItem}>• Add photos and logo branding</Text>
-            <Text style={styles.tierSub}>
-              Build trust faster with a stronger visual presence
-            </Text>
-
-            <Text style={styles.tierItem}>• Upload a menu PDF</Text>
-            <Text style={styles.tierSub}>
-              Help customers decide before they arrive
-            </Text>
-
-            <Text style={styles.tierItem}>• Post status updates</Text>
-            <Text style={styles.tierSub}>
-              Keep your listing fresh with daily updates or offers
-            </Text>
-
-            <Text style={styles.tierItem}>• Update your location</Text>
-            <Text style={styles.tierSub}>
-              Stay relevant if you trade in different places
-            </Text>
-
-            <Text style={styles.tierItem}>• Unlock Instagram, Facebook and website links</Text>
-            <Text style={styles.tierSub}>
-              Let customers find, trust and follow your business more easily
-            </Text>
-
-            <Text style={styles.tierItem}>• Unlock what3words precise location</Text>
-            <Text style={styles.tierSub}>
-              Share a more precise trading location with customers
-            </Text>
-
-            <Text style={styles.tierHint}>
-              Built to improve trust, visibility, and conversion.
-            </Text>
-          </TierExplanationCard>
-
-          <TierExplanationCard
-            title="Pro — Dominate visibility with real insight"
-            subtitle="Premium discovery and performance intelligence"
-            accent="pro"
-            isExpanded={expandedTier === "pro"}
-            onToggle={() => setExpandedTier("pro")}
-          >
-            <Text style={styles.tierItem}>• Everything in Growth</Text>
-
-            <Text style={styles.tierItem}>• Priority visibility on the map</Text>
-            <Text style={styles.tierSub}>
-              Pro vendors are ranked ahead of lower tiers in discovery
-            </Text>
-
-            <Text style={styles.tierItem}>• Featured vendor presence</Text>
-            <Text style={styles.tierSub}>
-              Reinforces a stronger premium position across the app
-            </Text>
-
-            <Text style={styles.tierItem}>• Trending vendor boost</Text>
-            <Text style={styles.tierSub}>
-              High-performing Pro listings gain extra social proof
-            </Text>
-
-            <Text style={styles.tierItem}>• Interpreted insight engine</Text>
-            <Text style={styles.tierSub}>
-              Get actionable recommendations from your real interaction data
-            </Text>
-
-            <Text style={styles.tierItem}>• Best-hour recommendations</Text>
-            <Text style={styles.tierSub}>
-              Understand when customer engagement is strongest
-            </Text>
-
-            <Text style={styles.tierItem}>• Area activity hotspots</Text>
-            <Text style={styles.tierSub}>
-              See the strongest interaction points from recorded location data
-            </Text>
-
-            <Text style={styles.tierItem}>• Conversion guidance</Text>
-            <Text style={styles.tierSub}>
-              Understand whether visibility is turning into real visit intent
-            </Text>
-
-            <Text style={styles.tierHint}>
-              Built for vendors who want to outperform competitors and make smarter
-              decisions from real data.
-            </Text>
-          </TierExplanationCard>
-        </View>
-      </DashboardAccordionSection>
-
-      <DashboardAccordionSection
-        title="Listing Health"
-        subtitle="Check whether your public listing looks complete and trustworthy."
-        isOpen={openSections.health}
-        onToggle={() => toggleSection("health")}
-      >
-        <View style={styles.cardBox}>
-          <View style={styles.healthHeader}>
-            <Text style={styles.healthTitle}>
-              {listingReady ? "Ready to publish" : "Needs attention"}
-            </Text>
-            <Text style={styles.healthSubtitle}>
-              Keep the essentials updated so customers trust your listing.
-            </Text>
-          </View>
-
-          <View style={styles.healthRow}>
-            <Text style={styles.healthLabel}>Photos</Text>
-            <Text style={styles.healthValue}>
-              {features.images
-                ? photos.length > 0
-                  ? `${photos.length} added`
-                  : "Missing"
-                : "Growth required"}
-            </Text>
-          </View>
-
-          <View style={styles.healthRow}>
-            <Text style={styles.healthLabel}>Menu</Text>
-            <Text style={styles.healthValue}>
-              {menu.trim() ? "Added" : "Missing"}
-            </Text>
-          </View>
-
-          <View style={styles.healthRow}>
-            <Text style={styles.healthLabel}>Schedule</Text>
-            <Text style={styles.healthValue}>
-              {schedule.trim() ? "Added" : "Missing"}
-            </Text>
-          </View>
-
-          <View style={styles.healthRow}>
-            <Text style={styles.healthLabel}>Menu PDF</Text>
-            <Text style={styles.healthValue}>
-              {menuPdfName ? "Added" : "Optional"}
-            </Text>
-          </View>
-
-          <View style={styles.healthRow}>
-            <Text style={styles.healthLabel}>Logo</Text>
-            <Text style={styles.healthValue}>
-              {!features.images
-                ? "Growth required"
-                : hasLogo
-                  ? "Added"
-                  : "Missing"}
-            </Text>
-          </View>
-
-          <View style={styles.healthRowLast}>
-            <Text style={styles.healthLabel}>Live Status</Text>
-            <Text style={styles.healthValue}>
-              {features.liveStatus ? (isLive ? "Enabled" : "Off") : "Growth required"}
-            </Text>
-          </View>
-        </View>
-      </DashboardAccordionSection>
-
-      <DashboardAccordionSection
-        title="Listing Assets"
-        subtitle="Manage your gallery and optional menu PDF."
-        isOpen={openSections.assets}
-        onToggle={() => toggleSection("assets")}
-      >
-        <View style={styles.cardBox}>
-          <Text style={styles.assetSectionTitle}>Photo Gallery</Text>
-          <Text style={styles.assetSectionText}>
-            Add up to 5 photos to improve your listing. The first photo becomes
-            the main image for now.
-          </Text>
-
-          {features.images ? (
-            <>
+            {photos.length === 0 ? (
               <Pressable style={styles.softButton} onPress={pickPhotos}>
-                <Text style={styles.softButtonText}>Add Photos</Text>
+                <Text style={styles.softButtonText}>Add Main Photo</Text>
               </Pressable>
-
-              {photos.length > 0 ? (
+            ) : (
+              <>
                 <View style={styles.galleryGrid}>
                   {photos.map((photoUri, index) => (
                     <View key={`photo-${index}`} style={styles.galleryItem}>
                       <Image source={{ uri: photoUri }} style={styles.galleryImage} />
-                      <Pressable
-                        style={styles.galleryDeleteButton}
-                        onPress={() => removePhoto(index)}
-                      >
+                      <Pressable style={styles.galleryDeleteButton} onPress={() => removePhoto(index)}>
                         <Text style={styles.galleryDeleteButtonText}>Remove</Text>
                       </Pressable>
                     </View>
                   ))}
                 </View>
-              ) : (
-                <View style={styles.emptyAssetBox}>
-                  <Text style={styles.emptyAssetTitle}>No photos uploaded yet</Text>
-                  <Text style={styles.emptyAssetText}>
-                    Add photos to make your listing look more complete.
+                <Pressable style={styles.softButton} onPress={pickPhotos}>
+                  <Text style={styles.softButtonText}>
+                    {van.subscriptionTier === "free" ? "Photo Added" : "Add Another Photo"}
                   </Text>
-                </View>
-              )}
-            </>
-          ) : (
-            <View style={styles.inlineLockedCard}>
-              <Text style={styles.inlineLockedTitle}>Growth plan required</Text>
-              <Text style={styles.inlineLockedText}>
-                Upgrade to add a photo gallery to your listing.
-              </Text>
-            </View>
-          )}
-
-          <View style={styles.assetDivider} />
-
-          <Text style={styles.assetSectionTitle}>Menu PDF</Text>
-          <Text style={styles.assetSectionText}>
-            Upload a PDF menu for customers.
-          </Text>
-
-          {features.images ? (
-            <>
-              <Pressable style={styles.softButton} onPress={pickMenuPdf}>
-                <Text style={styles.softButtonText}>
-                  {menuPdfName ? "Replace Menu PDF" : "Upload Menu PDF"}
-                </Text>
-              </Pressable>
-
-              {menuPdfName ? (
-                <View style={styles.pdfCard}>
-                  <Text style={styles.pdfName}>{menuPdfName}</Text>
-
-                  <View style={styles.pdfActionsRow}>
-                    <Pressable
-                      style={styles.pdfActionButton}
-                      onPress={openMenuPdfFromDashboard}
-                    >
-                      <Text style={styles.pdfActionButtonText}>View</Text>
-                    </Pressable>
-
-                    <Pressable
-                      style={styles.pdfDeleteButton}
-                      onPress={removeMenuPdf}
-                    >
-                      <Text style={styles.pdfDeleteButtonText}>Remove</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.emptyAssetBox}>
-                  <Text style={styles.emptyAssetTitle}>
-                    No menu PDF uploaded yet
-                  </Text>
-                  <Text style={styles.emptyAssetText}>
-                    This is optional, but useful if you want a menu file ready.
-                  </Text>
-                </View>
-              )}
-            </>
-          ) : (
-            <View style={styles.inlineLockedCard}>
-              <Text style={styles.inlineLockedTitle}>Growth plan required</Text>
-              <Text style={styles.inlineLockedText}>
-                Upgrade to upload a PDF version of your menu.
-              </Text>
-            </View>
-          )}
-        </View>
-      </DashboardAccordionSection>
-
-      <View
-        onLayout={(event) => {
-          editSectionY.current = event.nativeEvent.layout.y;
-        }}
-      >
-        <DashboardAccordionSection
-          title="Edit Listing"
-          subtitle="Update the details customers see on your public profile."
-          isOpen={openSections.edit}
-          onToggle={() => toggleSection("edit")}
-        >
-          <View style={styles.cardBox}>
-            <Text style={styles.label}>Van name</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="Van name"
-              placeholderTextColor="#7A7A7A"
-            />
-
-            <Text style={styles.label}>Vendor name</Text>
-            <TextInput
-              style={styles.input}
-              value={vendorName}
-              onChangeText={setVendorName}
-              placeholder="Vendor name"
-              placeholderTextColor="#7A7A7A"
-            />
-
-            <Text style={styles.label}>Cuisine</Text>
-            <TextInput
-              style={styles.input}
-              value={cuisine}
-              onChangeText={setCuisine}
-              placeholder="Cuisine"
-              placeholderTextColor="#7A7A7A"
-            />
-
-            <Text style={styles.label}>Menu</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={menu}
-              onChangeText={setMenu}
-              placeholder="Menu"
-              placeholderTextColor="#7A7A7A"
-              multiline
-            />
-
-            <Text style={styles.label}>Schedule</Text>
-
-            <Text style={styles.label}>Instagram</Text>
-
-            {!features.socialLinks ? (
-              <View style={styles.inlineLockedCard}>
-                <Text style={styles.inlineLockedTitle}>Growth feature</Text>
-                <Text style={styles.inlineLockedText}>
-                  Upgrade to Growth to add your Instagram and build customer trust.
-                </Text>
-              </View>
-            ) : (
-              <TextInput
-                style={styles.input}
-                value={instagram}
-                onChangeText={setInstagram}
-                placeholder="https://instagram.com/yourpage"
-                placeholderTextColor="#7A7A7A"
-              />
+                </Pressable>
+              </>
             )}
 
-            <Text style={styles.label}>Facebook</Text>
-
-            {!features.socialLinks ? (
-              <View style={styles.inlineLockedCard}>
-                <Text style={styles.inlineLockedTitle}>Growth feature</Text>
-                <Text style={styles.inlineLockedText}>
-                  Upgrade to Growth to add your Facebook page.
-                </Text>
-              </View>
-            ) : (
-              <TextInput
-                style={styles.input}
-                value={facebook}
-                onChangeText={setFacebook}
-                placeholder="https://facebook.com/yourpage"
-                placeholderTextColor="#7A7A7A"
-              />
-            )}
-
-            <Text style={styles.label}>Website</Text>
-
-            {!features.socialLinks ? (
-              <View style={styles.inlineLockedCard}>
-                <Text style={styles.inlineLockedTitle}>Growth feature</Text>
-                <Text style={styles.inlineLockedText}>
-                  Upgrade to Growth to add your website link.
-                </Text>
-              </View>
-            ) : (
-              <TextInput
-                style={styles.input}
-                value={website}
-                onChangeText={setWebsite}
-                placeholder="https://yourwebsite.com"
-                placeholderTextColor="#7A7A7A"
-              />
-            )}
-
-            <Text style={styles.label}>what3words location</Text>
-
-            {!features.socialLinks ? (
-              <View style={styles.inlineLockedCard}>
-                <Text style={styles.inlineLockedTitle}>Growth feature</Text>
-                <Text style={styles.inlineLockedText}>
-                  Upgrade to Growth to add a precise what3words location.
-                </Text>
-              </View>
-            ) : (
-              <TextInput
-                style={styles.input}
-                value={what3words}
-                onChangeText={setWhat3words}
-                placeholder="e.g. filled.count.soap"
-                placeholderTextColor="#7A7A7A"
-              />
-            )}
-
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={schedule}
-              onChangeText={setSchedule}
-              placeholder="Weekly schedule"
-              placeholderTextColor="#7A7A7A"
-              multiline
-            />
-
-            <Text style={styles.label}>Food categories</Text>
-            <TextInput
-              style={styles.input}
-              value={foodCategorySearch}
-              onChangeText={setFoodCategorySearch}
-              placeholder="Search food categories"
-              placeholderTextColor="#7A7A7A"
-            />
-
-            <View style={styles.checkboxGroup}>
-              {filteredFoodCategoryOptions.map((category) => {
-                const isSelected = foodCategories.includes(category);
-
-                return (
-                  <Pressable
-                    key={category}
-                    style={[
-                      styles.checkboxChip,
-                      isSelected && styles.checkboxChipSelected,
-                    ]}
-                    onPress={() => toggleFoodCategory(category)}
-                  >
-                    <Text
-                      style={[
-                        styles.checkboxChipText,
-                        isSelected && styles.checkboxChipTextSelected,
-                      ]}
-                    >
-                      {isSelected ? "✓ " : ""}
-                      {category}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            {canAddCustomCategory ? (
-              <Pressable
-                style={styles.addCustomCategoryButton}
-                onPress={() => {
-                  const trimmedCategory = foodCategorySearch.trim();
-
-                  if (!trimmedCategory) return;
-
-                  setFoodCategories((current) => {
-                    const alreadyExists = current.some(
-                      (item) => item.toLowerCase() === trimmedCategory.toLowerCase()
-                    );
-
-                    if (alreadyExists) return current;
-
-                    return [...current, trimmedCategory];
-                  });
-
-                  setFoodCategorySearch("");
-                }}
-              >
-                <Text style={styles.addCustomCategoryButtonText}>
-                  Add "{foodCategorySearch.trim()}" as a cuisine
-                </Text>
-              </Pressable>
-            ) : null}
-
-            {foodCategorySearch.trim().length === 0 ? (
-              <Text style={styles.categorySearchEmptyText}>
-                Start typing to add your cuisine
-              </Text>
-            ) : filteredFoodCategoryOptions.length === 0 && !canAddCustomCategory ? (
-              <Text style={styles.categorySearchEmptyText}>
-                No matching categories found.
-              </Text>
-            ) : null}
-
-            {features.reviews ? (
+            {!features.images ? (
               <>
-                <Text style={styles.label}>Listing update</Text>
-                <View>
-                  <TextInput
-                    ref={statusUpdateInputRef}
-                    style={[styles.input, styles.textArea]}
-                    value={vendorMessage}
-                    onChangeText={setVendorMessage}
-                    placeholder="Post a short update customers will see on your listing"
-                    placeholderTextColor="#7A7A7A"
-                    multiline
-                    maxLength={140}
-                  />
+                <View style={styles.assetDivider} />
+                <View style={styles.inlineLockedCard}>
+                  <View style={styles.lockedFeatureRow}>
+                    <MaterialCommunityIcons name="crown-outline" size={18} color="#F4B547" />
+                    <View style={styles.lockedFeatureCopy}>
+                      <AppText variant="bodyBold" style={styles.inlineLockedTitle}>Want to make your listing stand out?</AppText>
+                      <AppText variant="body" style={styles.inlineLockedText}>
+                        Growth adds a 5-photo gallery, business logo and PDF menu. Your free main photo stays yours.
+                      </AppText>
+                    </View>
+                  </View>
+                  <Pressable style={styles.lockedFeatureButton} onPress={() => router.push("/vendor/upgrade")}>
+                    <AppText variant="button" style={styles.lockedFeatureButtonText}>See Growth Features</AppText>
+                  </Pressable>
                 </View>
               </>
             ) : (
-              <View style={styles.inlineLockedCard}>
-                <Text style={styles.inlineLockedTitle}>Growth plan required</Text>
-                <Text style={styles.inlineLockedText}>
-                  Upgrade to post daily status updates and offers.
-                </Text>
-              </View>
-            )}
-
-            <View style={styles.liveRow}>
-              <Text style={styles.liveLabel}>Show as live now</Text>
-              <Switch
-                value={isLive}
-                onValueChange={(value) => handleLiveToggle(value)}
-              />
-            </View>
-
-            {isLive ? (
-              <View
-                style={styles.liveDurationWrap}
-                onLayout={(event) => {
-                  liveDurationY.current = event.nativeEvent.layout.y;
-                }}
-              >
-                <Text style={styles.liveDurationTitle}>Stay live for</Text>
-                <View style={styles.liveDurationOptions}>
-                  {[1, 2, 4, 8].map((hours) => (
-                    <Pressable
-                      key={hours}
-                      style={[
-                        styles.liveDurationChip,
-                        liveDurationHours === hours && styles.liveDurationChipActive,
-                      ]}
-                      onPress={() => setLiveDurationHours(hours as 1 | 2 | 4 | 8)}
-                    >
-                      <Text
-                        style={[
-                          styles.liveDurationChipText,
-                          liveDurationHours === hours && styles.liveDurationChipTextActive,
-                        ]}
-                      >
-                        {hours}h
-                      </Text>
-                    </Pressable>
-                  ))}
+              <>
+                <View style={styles.assetDivider} />
+                <View style={styles.managementGroupHeader}>
+                  <MaterialCommunityIcons name="badge-account-outline" size={18} color="#F4B547" />
+                  <View style={styles.managementGroupCopy}>
+                    <AppText variant="bodyBold" style={styles.managementGroupTitle}>Business logo</AppText>
+                    <AppText variant="body" style={styles.managementGroupText}>Optional — useful for stronger recognition.</AppText>
+                  </View>
                 </View>
-              </View>
-            ) : null}
+                <Pressable style={styles.softButton} onPress={pickLogo}>
+                  <Text style={styles.softButtonText}>{logoUri ? "Replace Logo" : "Upload Logo"}</Text>
+                </Pressable>
+                {logoUri ? (
+                  <View style={styles.logoPreview}>
+                    <Image source={{ uri: logoUri }} style={styles.logoLarge} />
+                    <Pressable style={styles.galleryDeleteButton} onPress={removeLogo}>
+                      <Text style={styles.galleryDeleteButtonText}>Remove</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
 
-            <Text style={styles.liveFutureNotice}>
-              LIVE status is currently included free during launch.
-              After launch, LIVE visibility will require Growth.
-            </Text>
-
-            <Pressable
-              style={[styles.primaryButton, isSaving && { opacity: 0.7 }]}
-              onPress={() => {
-                if (!isSaving) saveChanges();
-              }}
-              disabled={isSaving}
-            >
-              <Text style={styles.primaryButtonText}>
-                {isSaving ? "Saving Changes..." : "Save Changes"}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.softButton}
-              onPress={() =>
-                router.replace({
-                  pathname: "/vendor/[id]",
-                  params: { id: van.id },
-                })
-              }
-            >
-              <Text style={styles.softButtonText}>Back to Vendor Page</Text>
-            </Pressable>
+                <View style={styles.assetDivider} />
+                <View style={styles.managementGroupHeader}>
+                  <MaterialCommunityIcons name="file-pdf-box" size={18} color="#F4B547" />
+                  <View style={styles.managementGroupCopy}>
+                    <AppText variant="bodyBold" style={styles.managementGroupTitle}>Menu PDF</AppText>
+                    <AppText variant="body" style={styles.managementGroupText}>Optional — give customers the full menu before they arrive.</AppText>
+                  </View>
+                </View>
+                <Pressable style={styles.softButton} onPress={pickMenuPdf}>
+                  <Text style={styles.softButtonText}>{menuPdfName ? "Replace Menu PDF" : "Upload Menu PDF"}</Text>
+                </Pressable>
+                {menuPdfName ? (
+                  <View style={styles.pdfCard}>
+                    <Text style={styles.pdfName}>{menuPdfName}</Text>
+                    <View style={styles.pdfActionsRow}>
+                      <Pressable style={styles.pdfActionButton} onPress={openMenuPdfFromDashboard}>
+                        <Text style={styles.pdfActionButtonText}>View</Text>
+                      </Pressable>
+                      <Pressable style={styles.pdfDeleteButton} onPress={removeMenuPdf}>
+                        <Text style={styles.pdfDeleteButtonText}>Remove</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : null}
+              </>
+            )}
           </View>
         </DashboardAccordionSection>
-      </View>
 
-      <DashboardAccordionSection
-        title="Account Actions"
-        subtitle="Sign out or request removal of your listing."
-        isOpen={openSections.account}
-        onToggle={() => toggleSection("account")}
-      >
-        <View style={styles.cardBox}>
-          <Pressable style={styles.softButton} onPress={handleLogout}>
-            <Text style={styles.softButtonText}>Log Out</Text>
-          </Pressable>
+        <DashboardAccordionSection
+          title="Plan Guide"
+          subtitle="See exactly what Free, Growth and Pro include."
+          isOpen={openSections.guide}
+          onToggle={() => toggleSection("guide")}
+        >
+          <View style={styles.cardBox}>
+            <AppText variant="body" style={styles.planSummaryText}>
+              Start with what you need today. Upgrade only when the extra tools become useful to your business.
+            </AppText>
 
-          <Pressable style={styles.deleteButton} onPress={deleteListing}>
-            <Text style={styles.deleteButtonText}>Request Listing Removal</Text>
-          </Pressable>
+            <TierExplanationCard
+              title={`Free — Get discovered${van.subscriptionTier === "free" ? " · YOUR PLAN" : ""}`}
+              subtitle="A useful listing, not a stripped-back trial"
+              accent="free"
+              isExpanded={expandedTier === "free"}
+              onToggle={() => setExpandedTier("free")}
+            >
+              <AppText variant="body" style={styles.tierItem}>• Public BiteBeacon listing and map discovery</AppText>
+              <AppText variant="body" style={styles.tierItem}>• 1 main photo of your van or food setup</AppText>
+              <AppText variant="body" style={styles.tierItem}>• Menu text, cuisine and trading schedule</AppText>
+              <AppText variant="body" style={styles.tierItem}>• Customer rating, views and directions</AppText>
+              <AppText variant="body" style={styles.tierItem}>• LIVE status during the BiteBeacon launch period</AppText>
+              <AppText variant="bodyBold" style={styles.tierHint}>Built to help customers find you and know what to expect.</AppText>
+            </TierExplanationCard>
+
+            <TierExplanationCard
+              title={`Growth — Stand out${van.subscriptionTier === "growth" ? " · YOUR PLAN" : ""}`}
+              subtitle="£9.99/month · Customer-facing growth tools"
+              accent="growth"
+              isExpanded={expandedTier === "growth"}
+              onToggle={() => setExpandedTier("growth")}
+            >
+              <AppText variant="body" style={styles.tierItem}>• Everything in Free</AppText>
+              <AppText variant="body" style={styles.tierItem}>• Full photo gallery with up to 5 images</AppText>
+              <AppText variant="body" style={styles.tierItem}>• Business logo and PDF menu</AppText>
+              <AppText variant="body" style={styles.tierItem}>• Instagram, Facebook and website links</AppText>
+              <AppText variant="body" style={styles.tierItem}>• what3words precise location</AppText>
+              <AppText variant="body" style={styles.tierItem}>• Customer updates and offers</AppText>
+              <AppText variant="body" style={styles.tierItem}>• Trading-location updates</AppText>
+              <AppText variant="bodyBold" style={styles.tierHint}>Built to make your listing look stronger and convert more interest into visits.</AppText>
+            </TierExplanationCard>
+
+            <TierExplanationCard
+              title={`Pro — Grow smarter${van.subscriptionTier === "pro" ? " · YOUR PLAN" : ""}`}
+              subtitle="£14.99/month · Premium visibility and insight"
+              accent="pro"
+              isExpanded={expandedTier === "pro"}
+              onToggle={() => setExpandedTier("pro")}
+            >
+              <AppText variant="body" style={styles.tierItem}>• Everything in Growth</AppText>
+              <AppText variant="body" style={styles.tierItem}>• Advanced performance analytics</AppText>
+              <AppText variant="body" style={styles.tierItem}>• Conversion and customer-intent guidance</AppText>
+              <AppText variant="body" style={styles.tierItem}>• Best-hour recommendations and timing patterns</AppText>
+              <AppText variant="body" style={styles.tierItem}>• Area activity hotspots</AppText>
+              <AppText variant="body" style={styles.tierItem}>• Priority and featured discovery support</AppText>
+              <AppText variant="bodyBold" style={styles.tierHint}>Built for vendors ready to make decisions from real BiteBeacon activity.</AppText>
+            </TierExplanationCard>
+
+            {van.subscriptionTier === "free" ? (
+              <Pressable style={styles.upgradeButton} onPress={() => router.push("/vendor/upgrade")}>
+                <Text style={styles.upgradeButtonText}>Compare Upgrade Options</Text>
+              </Pressable>
+            ) : (
+              <Pressable style={styles.softButton} onPress={manageSubscriptionFromDashboard}>
+                <Text style={styles.softButtonText}>
+                  {van.subscriptionTier === "growth" ? "Manage or Upgrade Plan" : "Manage Subscription"}
+                </Text>
+              </Pressable>
+            )}
+          </View>
+        </DashboardAccordionSection>
+
+        <View
+          ref={editSectionRef}
+          onLayout={(event) => {
+            editSectionY.current = event.nativeEvent.layout.y;
+          }}
+        >
+          <DashboardAccordionSection
+            title="Business Details"
+            subtitle="The details customers use to decide, find and visit you."
+            isOpen={openSections.edit}
+            onToggle={() => toggleSection("edit")}
+          >
+            <View style={styles.cardBox}>
+              <View style={styles.managementGroupHeader}>
+                <MaterialCommunityIcons name="storefront-outline" size={18} color="#F4B547" />
+                <View style={styles.managementGroupCopy}>
+                  <AppText variant="bodyBold" style={styles.managementGroupTitle}>Your listing</AppText>
+                  <AppText variant="body" style={styles.managementGroupText}>The essentials customers see when they open your business.</AppText>
+                </View>
+              </View>
+
+              <Text style={styles.label}>Business name</Text>
+              <AppText variant="body" style={styles.fieldHelp}>Your main public name on BiteBeacon.</AppText>
+              <TextInput
+                style={styles.input}
+                value={name}
+                onChangeText={setName}
+                placeholder="e.g. Matt's Burgers"
+                placeholderTextColor="rgba(255,255,255,0.34)"
+              />
+
+              <Text style={styles.label}>Secondary display name</Text>
+              <AppText variant="body" style={styles.fieldHelp}>Shown beneath your business name — for example an operator, trader or short brand line.</AppText>
+              <TextInput
+                style={styles.input}
+                value={vendorName}
+                onChangeText={setVendorName}
+                placeholder="Secondary display name"
+                placeholderTextColor="rgba(255,255,255,0.34)"
+              />
+
+              <Text style={styles.label}>Cuisine</Text>
+              <TextInput
+                style={styles.input}
+                value={cuisine}
+                onChangeText={setCuisine}
+                placeholder="e.g. Burgers & loaded fries"
+                placeholderTextColor="rgba(255,255,255,0.34)"
+              />
+
+              <Text style={styles.label}>Menu</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={menu}
+                onChangeText={setMenu}
+                placeholder="Add the main items customers can order"
+                placeholderTextColor="rgba(255,255,255,0.34)"
+                multiline
+              />
+
+              <View style={styles.assetDivider} />
+
+              <View style={styles.managementGroupHeader}>
+                <MaterialCommunityIcons name="calendar-clock-outline" size={18} color="#F4B547" />
+                <View style={styles.managementGroupCopy}>
+                  <AppText variant="bodyBold" style={styles.managementGroupTitle}>When & what you trade</AppText>
+                  <AppText variant="body" style={styles.managementGroupText}>Keep your schedule and food categories accurate so customers know what to expect.</AppText>
+                </View>
+              </View>
+
+              <Text style={styles.label}>Trading schedule</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={schedule}
+                onChangeText={setSchedule}
+                placeholder="e.g. Mon–Fri 7am–2pm"
+                placeholderTextColor="rgba(255,255,255,0.34)"
+                multiline
+              />
+
+              <Text style={styles.label}>Food categories</Text>
+              <TextInput
+                style={styles.input}
+                value={foodCategorySearch}
+                onChangeText={setFoodCategorySearch}
+                placeholder="Search or add food categories"
+                placeholderTextColor="rgba(255,255,255,0.34)"
+              />
+
+              <View style={styles.checkboxGroup}>
+                {filteredFoodCategoryOptions.map((category) => {
+                  const isSelected = foodCategories.includes(category);
+
+                  return (
+                    <Pressable
+                      key={category}
+                      style={[styles.checkboxChip, isSelected && styles.checkboxChipSelected]}
+                      onPress={() => toggleFoodCategory(category)}
+                    >
+                      <Text style={[styles.checkboxChipText, isSelected && styles.checkboxChipTextSelected]}>
+                        {isSelected ? "✓ " : ""}{category}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {canAddCustomCategory ? (
+                <Pressable
+                  style={styles.addCustomCategoryButton}
+                  onPress={() => {
+                    const trimmedCategory = foodCategorySearch.trim();
+                    if (!trimmedCategory) return;
+
+                    setFoodCategories((current) => {
+                      const alreadyExists = current.some(
+                        (item) => item.toLowerCase() === trimmedCategory.toLowerCase()
+                      );
+                      if (alreadyExists) return current;
+                      return [...current, trimmedCategory];
+                    });
+                    setFoodCategorySearch("");
+                  }}
+                >
+                  <Text style={styles.addCustomCategoryButtonText}>
+                    Add "{foodCategorySearch.trim()}" as a cuisine
+                  </Text>
+                </Pressable>
+              ) : null}
+
+              {foodCategorySearch.trim().length === 0 ? (
+                <Text style={styles.categorySearchEmptyText}>Start typing to add your cuisine</Text>
+              ) : filteredFoodCategoryOptions.length === 0 && !canAddCustomCategory ? (
+                <Text style={styles.categorySearchEmptyText}>No matching categories found.</Text>
+              ) : null}
+
+              <View style={styles.liveRow}>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.liveLabel}>Show as live now</Text>
+                  <AppText variant="body" style={styles.fieldHelp}>Lets customers know you are currently open and trading.</AppText>
+                </View>
+                <Switch value={isLive} onValueChange={(value) => handleLiveToggle(value)} />
+              </View>
+
+              {isLive ? (
+                <View
+                  ref={liveDurationRef}
+                  style={styles.liveDurationWrap}
+                  onLayout={(event) => {
+                    liveDurationY.current = event.nativeEvent.layout.y;
+                  }}
+                >
+                  <Text style={styles.liveDurationTitle}>Stay live for</Text>
+                  <View style={styles.liveDurationOptions}>
+                    {[1, 2, 4, 8].map((hours) => (
+                      <Pressable
+                        key={hours}
+                        style={[styles.liveDurationChip, liveDurationHours === hours && styles.liveDurationChipActive]}
+                        onPress={() => setLiveDurationHours(hours as 1 | 2 | 4 | 8)}
+                      >
+                        <Text style={[styles.liveDurationChipText, liveDurationHours === hours && styles.liveDurationChipTextActive]}>
+                          {hours}h
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+
+              <Text style={styles.liveFutureNotice}>
+                LIVE status is currently included free during launch. After launch, LIVE visibility will require Growth.
+              </Text>
+
+              <View style={styles.assetDivider} />
+
+              <View style={styles.managementGroupHeader}>
+                <MaterialCommunityIcons name="link-variant" size={18} color="#4FA7FF" />
+                <View style={styles.managementGroupCopy}>
+                  <AppText variant="bodyBold" style={styles.managementGroupTitle}>Online presence & precise location</AppText>
+                  <AppText variant="body" style={styles.managementGroupText}>Optional tools for vendors who want customers to find and follow them beyond the core listing.</AppText>
+                </View>
+              </View>
+
+              {!features.socialLinks ? (
+                <View style={styles.inlineLockedCard}>
+                  <AppText variant="bodyBold" style={styles.inlineLockedTitle}>Growth feature</AppText>
+                  <AppText variant="body" style={styles.inlineLockedText}>
+                    Growth unlocks Instagram, Facebook, your website and what3words precise location.
+                  </AppText>
+                </View>
+              ) : (
+                <>
+                  <Text style={styles.label}>Instagram</Text>
+                  <TextInput style={styles.input} value={instagram} onChangeText={setInstagram} placeholder="https://instagram.com/yourpage" placeholderTextColor="rgba(255,255,255,0.34)" />
+
+                  <Text style={styles.label}>Facebook</Text>
+                  <TextInput style={styles.input} value={facebook} onChangeText={setFacebook} placeholder="https://facebook.com/yourpage" placeholderTextColor="rgba(255,255,255,0.34)" />
+
+                  <Text style={styles.label}>Website</Text>
+                  <TextInput style={styles.input} value={website} onChangeText={setWebsite} placeholder="https://yourwebsite.com" placeholderTextColor="rgba(255,255,255,0.34)" />
+
+                  <Text style={styles.label}>what3words location</Text>
+                  <TextInput style={styles.input} value={what3words} onChangeText={setWhat3words} placeholder="e.g. filled.count.soap" placeholderTextColor="rgba(255,255,255,0.34)" />
+                </>
+              )}
+
+              <Pressable
+                style={[styles.primaryButton, isSaving && { opacity: 0.7 }]}
+                onPress={() => {
+                  if (!isSaving) saveChanges();
+                }}
+                disabled={isSaving}
+              >
+                <Text style={styles.primaryButtonText}>
+                  {isSaving ? "Saving Changes..." : "Save Changes"}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.softButton}
+                onPress={() =>
+                  router.replace({
+                    pathname: "/vendor/[id]",
+                    params: { id: van.id },
+                  })
+                }
+              >
+                <Text style={styles.softButtonText}>Back to Vendor Page</Text>
+              </Pressable>
+            </View>
+          </DashboardAccordionSection>
         </View>
-      </DashboardAccordionSection>
 
-      <Pressable
-        style={styles.manageButton}
-        onPress={() => router.replace("/(tabs)/account")}
-      >
-        <Text style={styles.manageButtonText}>Account & Settings</Text>
-      </Pressable>
-    </ScrollView>
+        <DashboardAccordionSection
+          title="Account Actions"
+          subtitle="Settings, sign out and listing removal."
+          isOpen={openSections.account}
+          onToggle={() => toggleSection("account")}
+        >
+          <View style={styles.cardBox}>
+            <Pressable style={styles.softButton} onPress={() => router.replace("/(tabs)/account")}>
+              <Text style={styles.softButtonText}>Account & Settings</Text>
+            </Pressable>
+
+            <Pressable style={styles.softButton} onPress={handleLogout}>
+              <Text style={styles.softButtonText}>Log Out</Text>
+            </Pressable>
+
+            <View style={styles.dangerZone}>
+              <AppText variant="bodyBold" style={styles.dangerZoneTitle}>Listing removal</AppText>
+              <AppText variant="body" style={styles.dangerZoneText}>
+                Only use this if you want BiteBeacon to remove this vendor listing.
+              </AppText>
+              <Pressable style={styles.deleteButton} onPress={deleteListing}>
+                <Text style={styles.deleteButtonText}>Request Listing Removal</Text>
+              </Pressable>
+            </View>
+          </View>
+        </DashboardAccordionSection>
+          </LinearGradient>
+        </View>
+      </ScrollView>
+    </MapTextureBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: NAVY,
+    backgroundColor: "transparent",
   },
 
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 40,
+    paddingHorizontal: 14,
+    paddingTop: 18,
+    paddingBottom: 34,
   },
 
   centered: {
@@ -2985,8 +2908,8 @@ const styles = StyleSheet.create({
   },
 
   loadingInlineText: {
-    fontSize: 14,
-    color: MUTED_TEXT,
+    fontSize: 13,
+    color: "rgba(255,255,255,0.58)",
     fontWeight: "700",
   },
 
@@ -3018,6 +2941,8 @@ const styles = StyleSheet.create({
 
   headerTextWrap: {
     flex: 1,
+    minWidth: 0,
+    paddingRight: 4,
   },
 
   headerActions: {
@@ -3025,24 +2950,38 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
+  accountIconFrame: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+
+  accountIconFrameContent: {
+    borderRadius: 25,
+  },
+
   accountIconButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: WHITE,
+    width: "100%",
+    height: "100%",
+    borderRadius: 25,
+    backgroundColor: "rgba(7, 20, 33, 0.96)",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 2,
-    borderColor: ORANGE,
   },
 
   accountIconText: {
     fontSize: 20,
   },
 
+  headerEyebrow: {
+    fontSize: 12,
+    letterSpacing: 1.4,
+    color: "#F4B547",
+    marginBottom: 6,
+  },
+
   headerTitle: {
     fontSize: 30,
-    fontWeight: "800",
     color: WHITE,
     marginBottom: 8,
   },
@@ -3075,18 +3014,25 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  heroCard: {
-    backgroundColor: CARD_BG,
-    borderRadius: 26,
-    padding: 20,
+  heroOuterFrame: {
+    borderRadius: 24,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: SOFT_BORDER,
-    shadowColor: "#000",
-    shadowOpacity: 0.14,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
+    shadowColor: "#F4B547",
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 0 },
     elevation: 6,
+  },
+
+  heroCard: {
+    backgroundColor: "rgba(5,14,24,0.88)",
+    borderRadius: 24,
+    padding: 18,
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
     overflow: "hidden",
   },
 
@@ -3098,12 +3044,12 @@ const styles = StyleSheet.create({
 
   heroGlow: {
     position: "absolute",
-    top: -30,
-    right: -20,
-    width: 160,
-    height: 160,
+    top: -45,
+    right: -35,
+    width: 150,
+    height: 150,
     borderRadius: 999,
-    backgroundColor: "rgba(255,122,0,0.10)",
+    backgroundColor: "rgba(255,176,0,0.06)",
   },
 
   heroTopRow: {
@@ -3150,36 +3096,36 @@ const styles = StyleSheet.create({
   },
 
   heroTitle: {
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: "900",
-    color: DARK_TEXT,
+    color: WHITE,
     marginBottom: 4,
   },
 
   heroVendorName: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: MUTED_TEXT,
-    marginBottom: 6,
+    fontSize: 15,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.72)",
+    marginBottom: 4,
   },
 
   heroCuisine: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#3F4B5B",
+    fontSize: 14,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.58)",
     marginBottom: 10,
   },
 
   heroSupport: {
-    fontSize: 14,
-    color: MUTED_TEXT,
-    lineHeight: 21,
-    marginBottom: 8,
+    fontSize: 13,
+    color: "rgba(255,255,255,0.68)",
+    lineHeight: 19,
+    marginBottom: 0,
   },
 
   heroPlanSupport: {
     fontSize: 13,
-    color: "#8A4B00",
+    color: "rgba(255,176,0,0.82)",
     lineHeight: 19,
     fontWeight: "700",
   },
@@ -3197,139 +3143,184 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
+    marginTop: 16,
   },
 
   heroStatCard: {
     minWidth: "47%",
     flex: 1,
-    backgroundColor: NAVY_DEEP,
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
+    backgroundColor: "rgba(255,255,255,0.055)",
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 13,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
   },
 
   heroStatLabel: {
     fontSize: 11,
-    fontWeight: "700",
-    color: "rgba(255,255,255,0.68)",
+    fontWeight: "800",
+    letterSpacing: 0.6,
+    color: "rgba(255,255,255,0.58)",
     textTransform: "uppercase",
     marginBottom: 6,
   },
 
   heroStatValue: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "900",
     color: WHITE,
   },
 
   heroStatHint: {
     fontSize: 11,
-    fontWeight: "700",
-    color: "rgba(255,255,255,0.68)",
-    marginTop: 4,
     lineHeight: 15,
+    color: "rgba(255,255,255,0.5)",
+    marginTop: 4,
+  },
+
+  powerCardGlow: {
+    borderRadius: 22,
+    marginBottom: 16,
   },
 
   powerCard: {
-    backgroundColor: SOFT_ORANGE_BG,
+    backgroundColor: "rgba(5,14,24,0.82)",
     borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: SOFT_ORANGE_BORDER,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
   },
 
   guidanceBanner: {
-    backgroundColor: "#F4F8FF",
+    backgroundColor: "rgba(5,14,24,0.82)",
     borderRadius: 20,
-    padding: 16,
+    padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#C9D9F6",
+    borderColor: "rgba(244,181,71,0.18)",
   },
 
   guidanceBannerTitle: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: DARK_TEXT,
-    marginBottom: 6,
+    fontSize: 20,
+    color: WHITE,
+    marginBottom: 8,
   },
 
   guidanceBannerText: {
     fontSize: 14,
-    color: MUTED_TEXT,
+    color: "rgba(255,255,255,0.68)",
     lineHeight: 20,
+    marginBottom: 4,
   },
 
   guidanceBannerButton: {
-    marginTop: 12,
-    backgroundColor: NAVY,
-    paddingVertical: 12,
-    borderRadius: 14,
+    marginTop: 16,
+    backgroundColor: "rgba(244,181,71,0.10)",
+    paddingVertical: 13,
+    borderRadius: 15,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.42)",
   },
 
   guidanceBannerButtonText: {
-    color: WHITE,
+    color: "#F4B547",
     fontSize: 14,
-    fontWeight: "800",
+  },
+
+  guidanceBannerEyebrow: {
+    fontSize: 11,
+    letterSpacing: 1.5,
+    color: "#F4B547",
+    marginBottom: 8,
+  },
+
+  guidanceChecklist: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 14,
+  },
+
+  guidanceChecklistItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.18)",
+  },
+
+  guidanceChecklistText: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.82)",
   },
 
   powerCardEyebrow: {
     fontSize: 11,
-    fontWeight: "900",
-    color: "#8A4B00",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: 6,
+    letterSpacing: 1.5,
+    color: "#F4B547",
+    marginBottom: 10,
   },
 
   powerCardTitle: {
-    fontSize: 18,
-    fontWeight: "900",
-    color: "#8A4B00",
-    marginBottom: 6,
+    fontSize: 20,
+    lineHeight: 25,
+    color: "#FFFFFF",
+    marginBottom: 10,
   },
 
   powerCardText: {
     fontSize: 14,
-    color: "#8A4B00",
-    lineHeight: 20,
+    lineHeight: 21,
+    color: "rgba(255,255,255,0.68)",
+  },
+
+  monetisationFrame: {
+    borderRadius: 22,
+    marginBottom: 16,
   },
 
   monetisationCard: {
-    backgroundColor: "#FFF8F1",
     borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#FFD3AD",
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+  },
+
+  monetisationEyebrow: {
+    fontSize: 11,
+    letterSpacing: 1.5,
+    color: "#F4B547",
+    marginBottom: 8,
   },
 
   monetisationTitle: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: "#8A4B00",
-    marginBottom: 6,
+    fontSize: 20,
+    lineHeight: 25,
+    color: WHITE,
+    marginBottom: 10,
   },
 
   monetisationText: {
     fontSize: 14,
-    color: "#8A4B00",
-    lineHeight: 20,
-    marginBottom: 12,
+    color: "rgba(255,255,255,0.68)",
+    lineHeight: 21,
+    marginBottom: 4,
   },
 
   monetisationButton: {
-    backgroundColor: ORANGE,
-    paddingVertical: 12,
-    borderRadius: 14,
+    marginTop: 16,
+    backgroundColor: "rgba(244,181,71,0.10)",
+    paddingVertical: 13,
+    borderRadius: 15,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.42)",
   },
 
   monetisationButtonText: {
-    color: WHITE,
-    fontWeight: "800",
+    color: "#F4B547",
+    fontSize: 14,
   },
 
   upgradeSignalCard: {
@@ -3349,7 +3340,7 @@ const styles = StyleSheet.create({
   upgradeSignalEyebrow: {
     fontSize: 11,
     fontWeight: "900",
-    color: ORANGE,
+    color: "#F4B547",
     textTransform: "uppercase",
     letterSpacing: 0.8,
     marginBottom: 6,
@@ -3371,7 +3362,7 @@ const styles = StyleSheet.create({
 
   upgradeSignalSupportText: {
     fontSize: 13,
-    color: "#8A4B00",
+    color: "#F4B547",
     lineHeight: 19,
     fontWeight: "700",
     marginBottom: 14,
@@ -3390,32 +3381,35 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 
-  quickActionsCard: {
-    backgroundColor: CARD_BG,
-    borderRadius: 22,
-    padding: 18,
+  quickActionsFrame: {
+    borderRadius: 24,
     marginBottom: 18,
-    borderWidth: 1,
-    borderColor: SOFT_BORDER,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+  },
+
+  quickActionsCard: {
+    borderRadius: 22,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+  },
+
+  quickActionsEyebrow: {
+    fontSize: 11,
+    letterSpacing: 1.5,
+    color: "#F4B547",
+    marginBottom: 8,
   },
 
   quickActionsTitle: {
     fontSize: 22,
-    fontWeight: "900",
-    color: DARK_TEXT,
-    marginBottom: 4,
+    color: WHITE,
+    marginBottom: 6,
   },
 
   quickActionsSubtitle: {
     fontSize: 14,
-    color: MUTED_TEXT,
+    color: "rgba(255,255,255,0.68)",
     lineHeight: 20,
-    marginBottom: 14,
+    marginBottom: 4,
   },
 
   quickActionsGrid: {
@@ -3471,93 +3465,127 @@ const styles = StyleSheet.create({
   },
 
   quickActionPrimary: {
-    backgroundColor: ORANGE,
+    backgroundColor: "rgba(244,181,71,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.42)",
   },
 
   quickActionSecondary: {
-    backgroundColor: NAVY,
+    backgroundColor: "rgba(255,255,255,0.045)",
+    borderWidth: 1,
+    borderColor: "rgba(79,167,255,0.28)",
   },
 
   quickActionLocked: {
-    backgroundColor: "#F4F4F4",
+    backgroundColor: "rgba(255,255,255,0.03)",
     borderWidth: 1,
-    borderColor: "#E2E2E2",
+    borderColor: "rgba(255,255,255,0.10)",
+    opacity: 0.62,
   },
 
   quickActionPrimaryText: {
-    color: WHITE,
+    color: "#F4B547",
     fontSize: 15,
-    fontWeight: "800",
     textAlign: "center",
   },
 
   quickActionHintText: {
-    color: "rgba(255,255,255,0.8)",
+    color: "rgba(255,255,255,0.62)",
     fontSize: 11,
-    fontWeight: "600",
     textAlign: "center",
-    marginTop: 2,
+    marginTop: 3,
   },
-
   quickActionSecondaryText: {
     color: WHITE,
     fontSize: 15,
-    fontWeight: "800",
     textAlign: "center",
   },
 
   quickActionLockedText: {
-    color: DARK_TEXT,
+    color: "rgba(255,255,255,0.58)",
     fontSize: 15,
-    fontWeight: "800",
     textAlign: "center",
   },
 
   sectionWrap: {
-    marginBottom: 16,
+    borderRadius: 14,
+    marginBottom: 7,
+    borderWidth: 1,
+    borderColor: "rgba(79,167,255,0.20)",
+    overflow: "hidden",
+  },
+
+  sectionWrapOpen: {
+    borderColor: "rgba(244,181,71,0.42)",
+  },
+
+  sectionAccent: {
+    display: "none",
   },
 
   sectionHeader: {
+    minHeight: 58,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 10,
+  },
+
+  sectionIconShell: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(244,181,71,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.18)",
   },
 
   sectionHeaderTextWrap: {
     flex: 1,
+    minWidth: 0,
   },
 
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: "900",
     color: WHITE,
-    marginBottom: 4,
+    fontSize: 14,
+    lineHeight: 18,
+    marginBottom: 1,
   },
 
   sectionSubtitle: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.72)",
-    lineHeight: 20,
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 11,
+    lineHeight: 15,
   },
 
   sectionTogglePill: {
-    backgroundColor: WHITE,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(244,181,71,0.04)",
     borderWidth: 1,
-    borderColor: SOFT_BORDER,
+    borderColor: "rgba(244,181,71,0.48)",
+  },
+
+  sectionTogglePillOpen: {
+    backgroundColor: "rgba(244,181,71,0.11)",
+    borderColor: "rgba(255,216,129,0.72)",
   },
 
   sectionToggleText: {
-    color: DARK_TEXT,
-    fontSize: 12,
-    fontWeight: "800",
+    color: "#F4B547",
+    fontSize: 18,
+    lineHeight: 20,
   },
 
   sectionBody: {
+    paddingHorizontal: 10,
+    paddingBottom: 10,
     gap: 0,
   },
 
@@ -3597,46 +3625,36 @@ const styles = StyleSheet.create({
   },
 
   cardBox: {
-    backgroundColor: CARD_BG,
-    borderRadius: 22,
-    padding: 18,
+    backgroundColor: "rgba(4,17,29,0.72)",
+    borderRadius: 18,
+    padding: 14,
     borderWidth: 1,
-    borderColor: SOFT_BORDER,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    borderColor: "rgba(79,167,255,0.16)",
   },
 
   insightEngineCard: {
-    backgroundColor: CARD_BG,
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
+    backgroundColor: "rgba(5,20,35,0.78)",
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: SOFT_BORDER,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    borderColor: "rgba(244,181,71,0.24)",
   },
 
   insightEngineEyebrow: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "900",
-    color: ORANGE,
+    color: "#F4B547",
     textTransform: "uppercase",
-    letterSpacing: 0.8,
+    letterSpacing: 1.1,
     marginBottom: 6,
   },
 
   insightEngineTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "900",
-    color: DARK_TEXT,
-    marginBottom: 14,
+    color: WHITE,
+    marginBottom: 12,
   },
 
   insightSection: {
@@ -3644,16 +3662,16 @@ const styles = StyleSheet.create({
   },
 
   insightSectionLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "800",
-    color: DARK_TEXT,
-    marginBottom: 6,
+    color: "#F4B547",
+    marginBottom: 5,
   },
 
   insightSectionText: {
-    fontSize: 14,
-    color: MUTED_TEXT,
-    lineHeight: 21,
+    fontSize: 13,
+    color: "rgba(255,255,255,0.67)",
+    lineHeight: 19,
   },
 
   insightMetricsRow: {
@@ -3664,105 +3682,100 @@ const styles = StyleSheet.create({
 
   insightMetricCard: {
     flex: 1,
-    backgroundColor: SOFT_BG,
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
+    backgroundColor: "rgba(11,35,56,0.78)",
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 11,
     borderWidth: 1,
-    borderColor: THIN_BLACK,
+    borderColor: "rgba(79,167,255,0.20)",
   },
 
   insightMetricLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "800",
-    color: MUTED_TEXT,
+    color: "rgba(255,255,255,0.46)",
     textTransform: "uppercase",
-    marginBottom: 6,
+    marginBottom: 5,
   },
 
   insightMetricValue: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "900",
-    color: ORANGE,
+    color: "#F4B547",
   },
 
   insightMetricValueSmall: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "900",
-    color: DARK_TEXT,
+    color: WHITE,
   },
 
   locationListCard: {
     marginTop: 10,
-    backgroundColor: SOFT_BG,
-    borderRadius: 16,
-    padding: 14,
+    backgroundColor: "rgba(11,35,56,0.72)",
+    borderRadius: 14,
+    padding: 12,
     borderWidth: 1,
-    borderColor: THIN_BLACK,
+    borderColor: "rgba(79,167,255,0.18)",
   },
 
   locationListText: {
-    fontSize: 14,
-    color: DARK_TEXT,
-    lineHeight: 21,
+    fontSize: 13,
+    color: WHITE,
+    lineHeight: 19,
     fontWeight: "700",
-    marginBottom: 10,
+    marginBottom: 8,
   },
 
   locationHintText: {
-    fontSize: 12,
-    color: MUTED_TEXT,
-    lineHeight: 18,
+    fontSize: 11.5,
+    color: "rgba(255,255,255,0.52)",
+    lineHeight: 17,
   },
 
   lowDataNote: {
     marginTop: 4,
-    backgroundColor: SOFT_ORANGE_BG,
-    borderRadius: 16,
-    padding: 14,
+    backgroundColor: "rgba(244,181,71,0.08)",
+    borderRadius: 14,
+    padding: 12,
     borderWidth: 1,
-    borderColor: SOFT_ORANGE_BORDER,
+    borderColor: "rgba(244,181,71,0.24)",
   },
 
   lowDataNoteTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "800",
-    color: "#8A4B00",
+    color: "#F4B547",
     marginBottom: 4,
   },
 
   lowDataNoteText: {
-    fontSize: 13,
-    color: "#8A4B00",
-    lineHeight: 19,
+    fontSize: 12,
+    color: "rgba(255,255,255,0.62)",
+    lineHeight: 18,
   },
 
   mapInsightCard: {
-    backgroundColor: CARD_BG,
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
+    backgroundColor: "rgba(5,20,35,0.78)",
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: SOFT_BORDER,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    borderColor: "rgba(79,167,255,0.22)",
   },
 
   mapInsightTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "800",
-    color: DARK_TEXT,
+    color: WHITE,
     marginBottom: 4,
   },
 
   mapInsightSubtitle: {
-    fontSize: 13,
-    color: MUTED_TEXT,
-    lineHeight: 19,
-    marginBottom: 14,
+    fontSize: 12,
+    color: "rgba(255,255,255,0.55)",
+    lineHeight: 18,
+    marginBottom: 12,
   },
 
   heatmapMap: {
@@ -3802,24 +3815,24 @@ const styles = StyleSheet.create({
   },
 
   emptyInlineCard: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 16,
-    padding: 14,
+    backgroundColor: "rgba(255,255,255,0.035)",
+    borderRadius: 14,
+    padding: 12,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "rgba(255,255,255,0.08)",
   },
 
   emptyInlineTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "800",
-    color: DARK_TEXT,
+    color: WHITE,
     marginBottom: 4,
   },
 
   emptyInlineText: {
-    fontSize: 14,
-    color: MUTED_TEXT,
-    lineHeight: 20,
+    fontSize: 12.5,
+    color: "rgba(255,255,255,0.54)",
+    lineHeight: 18,
   },
 
   upgradeBadge: {
@@ -3897,22 +3910,22 @@ const styles = StyleSheet.create({
   },
 
   tierExplainCard: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 18,
+    backgroundColor: "rgba(7,24,40,0.88)",
+    borderRadius: 16,
     padding: 14,
-    marginBottom: 12,
+    marginBottom: 10,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "rgba(79,167,255,0.24)",
   },
 
   tierExplainCardGrowth: {
-    borderColor: "#C9D9F6",
-    backgroundColor: "#F4F8FF",
+    borderColor: "rgba(244,181,71,0.42)",
+    backgroundColor: "rgba(29,27,20,0.78)",
   },
 
   tierExplainCardPro: {
-    borderColor: "#FFD3AD",
-    backgroundColor: "#FFF8F1",
+    borderColor: "rgba(79,167,255,0.44)",
+    backgroundColor: "rgba(7,27,45,0.92)",
   },
 
   tierExplainHeader: {
@@ -3924,20 +3937,20 @@ const styles = StyleSheet.create({
   tierExplainTitle: {
     fontSize: 16,
     fontWeight: "800",
-    color: DARK_TEXT,
+    color: WHITE,
     marginBottom: 2,
   },
 
   tierExplainSubtitle: {
     fontSize: 13,
-    color: MUTED_TEXT,
+    color: "rgba(255,255,255,0.62)",
     lineHeight: 18,
   },
 
   tierExplainToggle: {
     fontSize: 24,
     fontWeight: "800",
-    color: DARK_TEXT,
+    color: "#F4B547",
     marginLeft: 10,
   },
 
@@ -3948,7 +3961,7 @@ const styles = StyleSheet.create({
 
   tierItem: {
     fontSize: 14,
-    color: "#1F2937",
+    color: "rgba(255,255,255,0.86)",
     lineHeight: 20,
   },
 
@@ -4015,17 +4028,17 @@ const styles = StyleSheet.create({
   },
 
   assetSectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "800",
-    color: DARK_TEXT,
-    marginBottom: 6,
+    color: WHITE,
+    marginBottom: 5,
   },
 
   assetSectionText: {
-    fontSize: 14,
-    color: MUTED_TEXT,
-    lineHeight: 21,
-    marginBottom: 14,
+    fontSize: 12.5,
+    color: "rgba(255,255,255,0.56)",
+    lineHeight: 18,
+    marginBottom: 12,
   },
 
   galleryGrid: {
@@ -4036,11 +4049,11 @@ const styles = StyleSheet.create({
 
   galleryItem: {
     width: "48%",
-    backgroundColor: SOFT_BG,
-    borderRadius: 16,
-    padding: 8,
+    backgroundColor: "rgba(11,35,56,0.72)",
+    borderRadius: 14,
+    padding: 7,
     borderWidth: 1,
-    borderColor: THIN_BLACK,
+    borderColor: "rgba(79,167,255,0.18)",
   },
 
   galleryImage: {
@@ -4051,39 +4064,39 @@ const styles = StyleSheet.create({
   },
 
   galleryDeleteButton: {
-    backgroundColor: WHITE,
-    borderRadius: 12,
-    paddingVertical: 10,
+    backgroundColor: "rgba(198,40,40,0.10)",
+    borderRadius: 11,
+    paddingVertical: 9,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "rgba(239,83,80,0.28)",
   },
 
   galleryDeleteButtonText: {
-    color: "#C62828",
-    fontSize: 13,
+    color: "#FF7774",
+    fontSize: 12,
     fontWeight: "800",
   },
 
   assetDivider: {
     height: 1,
-    backgroundColor: "#ECECEC",
-    marginVertical: 18,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    marginVertical: 16,
   },
 
   pdfCard: {
-    backgroundColor: SOFT_BG,
-    borderRadius: 16,
-    padding: 14,
+    backgroundColor: "rgba(11,35,56,0.72)",
+    borderRadius: 14,
+    padding: 12,
     borderWidth: 1,
-    borderColor: THIN_BLACK,
+    borderColor: "rgba(79,167,255,0.18)",
   },
 
   pdfName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
-    color: DARK_TEXT,
-    marginBottom: 12,
+    color: WHITE,
+    marginBottom: 10,
   },
 
   pdfActionsRow: {
@@ -4093,10 +4106,12 @@ const styles = StyleSheet.create({
 
   pdfActionButton: {
     flex: 1,
-    backgroundColor: NAVY,
-    paddingVertical: 12,
-    borderRadius: 14,
+    backgroundColor: "rgba(79,167,255,0.14)",
+    paddingVertical: 11,
+    borderRadius: 12,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(79,167,255,0.32)",
   },
 
   pdfActionButtonText: {
@@ -4107,57 +4122,66 @@ const styles = StyleSheet.create({
 
   pdfDeleteButton: {
     flex: 1,
-    backgroundColor: WHITE,
-    paddingVertical: 12,
-    borderRadius: 14,
+    backgroundColor: "rgba(198,40,40,0.08)",
+    paddingVertical: 11,
+    borderRadius: 12,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "rgba(239,83,80,0.24)",
   },
 
   pdfDeleteButtonText: {
-    color: "#C62828",
-    fontSize: 14,
+    color: "#FF7774",
+    fontSize: 13,
     fontWeight: "700",
   },
 
   emptyAssetBox: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 16,
-    padding: 14,
+    backgroundColor: "rgba(255,255,255,0.035)",
+    borderRadius: 14,
+    padding: 12,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "rgba(255,255,255,0.08)",
   },
 
   emptyAssetTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "800",
-    color: DARK_TEXT,
+    color: WHITE,
     marginBottom: 4,
   },
 
   emptyAssetText: {
-    fontSize: 14,
-    color: MUTED_TEXT,
-    lineHeight: 20,
+    fontSize: 12.5,
+    color: "rgba(255,255,255,0.52)",
+    lineHeight: 18,
   },
 
   label: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "700",
-    color: DARK_TEXT,
-    marginBottom: 8,
+    color: "rgba(255,255,255,0.80)",
+    marginBottom: 7,
+  },
+
+
+  fieldHelp: {
+    color: "rgba(255,255,255,0.47)",
+    fontSize: 10.5,
+    lineHeight: 15,
+    marginTop: -5,
+    marginBottom: 7,
   },
 
   input: {
-    backgroundColor: WHITE,
-    borderWidth: 2,
-    borderColor: ORANGE,
-    borderRadius: 14,
-    paddingHorizontal: 14,
+    backgroundColor: "rgba(6,22,37,0.92)",
+    borderWidth: 1,
+    borderColor: "rgba(79,167,255,0.26)",
+    borderRadius: 13,
+    paddingHorizontal: 13,
     paddingVertical: 12,
-    marginBottom: 16,
-    color: "#1F1F1F",
+    marginBottom: 14,
+    color: WHITE,
   },
 
   textArea: {
@@ -4173,43 +4197,45 @@ const styles = StyleSheet.create({
   },
 
   checkboxChip: {
-    backgroundColor: WHITE,
+    backgroundColor: "rgba(255,255,255,0.035)",
     borderWidth: 1,
-    borderColor: "#D9D9D9",
+    borderColor: "rgba(255,255,255,0.10)",
     borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
   },
 
   checkboxChipSelected: {
-    backgroundColor: NAVY,
-    borderColor: NAVY,
+    backgroundColor: "rgba(244,181,71,0.12)",
+    borderColor: "rgba(244,181,71,0.55)",
   },
 
   checkboxChipText: {
-    color: NAVY,
-    fontSize: 14,
+    color: "rgba(255,255,255,0.68)",
+    fontSize: 12.5,
     fontWeight: "700",
   },
 
   checkboxChipTextSelected: {
-    color: WHITE,
+    color: "#F4B547",
   },
 
   categorySearchEmptyText: {
-    fontSize: 14,
-    color: MUTED_TEXT,
-    marginBottom: 16,
+    fontSize: 12,
+    color: "rgba(255,255,255,0.42)",
+    marginBottom: 14,
     fontWeight: "600",
   },
 
   addCustomCategoryButton: {
-    backgroundColor: NAVY,
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 16,
+    backgroundColor: "rgba(79,167,255,0.12)",
+    borderRadius: 13,
+    paddingVertical: 11,
+    paddingHorizontal: 13,
+    marginBottom: 14,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(79,167,255,0.28)",
   },
 
   addCustomCategoryButtonText: {
@@ -4220,76 +4246,79 @@ const styles = StyleSheet.create({
   },
 
   inlineLockedCard: {
-    backgroundColor: "#FFF3E0",
-    borderRadius: 16,
-    padding: 14,
+    backgroundColor: "rgba(244,181,71,0.07)",
+    borderRadius: 14,
+    padding: 12,
     borderWidth: 1,
-    borderColor: SOFT_BORDER,
+    borderColor: "rgba(244,181,71,0.24)",
+    marginBottom: 12,
   },
 
   inlineLockedTitle: {
-    fontSize: 15,
+    fontSize: 13.5,
     fontWeight: "800",
-    color: "#8A4B00",
+    color: "#F4B547",
     marginBottom: 4,
   },
 
   inlineLockedText: {
-    fontSize: 14,
-    color: "#8A4B00",
-    lineHeight: 20,
+    fontSize: 12.5,
+    color: "rgba(255,255,255,0.62)",
+    lineHeight: 18,
   },
 
   liveRow: {
-    backgroundColor: SOFT_BG,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 16,
+    backgroundColor: "rgba(11,35,56,0.72)",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 14,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: THIN_BLACK,
+    borderColor: "rgba(79,167,255,0.18)",
   },
 
   liveLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "700",
-    color: DARK_TEXT,
+    color: WHITE,
   },
 
   liveLockedText: {
-    fontSize: 14,
+    fontSize: 12.5,
     fontWeight: "700",
-    color: "#8A4B00",
+    color: "#F4B547",
   },
 
   primaryButton: {
-    backgroundColor: ORANGE,
-    paddingVertical: 15,
-    borderRadius: 16,
+    backgroundColor: "#F4B547",
+    paddingVertical: 14,
+    borderRadius: 14,
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 11,
   },
 
   primaryButtonText: {
-    color: WHITE,
-    fontSize: 16,
-    fontWeight: "800",
+    color: "#071421",
+    fontSize: 14,
+    fontWeight: "900",
   },
 
   softButton: {
-    backgroundColor: "#EEF2F7",
-    paddingVertical: 14,
-    borderRadius: 16,
+    backgroundColor: "rgba(79,167,255,0.10)",
+    paddingVertical: 12,
+    borderRadius: 13,
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 11,
+    borderWidth: 1,
+    borderColor: "rgba(79,167,255,0.24)",
   },
 
   softButtonText: {
-    color: DARK_TEXT,
-    fontSize: 16,
+    color: WHITE,
+    fontSize: 13.5,
     fontWeight: "700",
   },
 
@@ -4308,11 +4337,13 @@ const styles = StyleSheet.create({
   },
 
   deleteButton: {
-    backgroundColor: "#C62828",
-    paddingVertical: 14,
-    borderRadius: 16,
+    backgroundColor: "rgba(198,40,40,0.14)",
+    paddingVertical: 13,
+    borderRadius: 14,
     alignItems: "center",
     marginTop: 4,
+    borderWidth: 1,
+    borderColor: "rgba(239,83,80,0.30)",
   },
 
   deleteButtonText: {
@@ -4337,28 +4368,28 @@ const styles = StyleSheet.create({
   },
 
   claimStatus: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "800",
-    color: DARK_TEXT,
+    color: WHITE,
     marginBottom: 10,
   },
 
   claimNoteLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "800",
-    color: ORANGE,
+    color: "#F4B547",
     marginBottom: 6,
   },
 
   claimNote: {
-    fontSize: 14,
-    color: "#222222",
-    lineHeight: 20,
+    fontSize: 13,
+    color: "rgba(255,255,255,0.68)",
+    lineHeight: 19,
   },
 
   claimPending: {
-    fontSize: 14,
-    color: OFFLINE,
+    fontSize: 13,
+    color: "rgba(255,255,255,0.50)",
     fontStyle: "italic",
   },
 
@@ -4368,12 +4399,12 @@ const styles = StyleSheet.create({
   },
 
   logoLarge: {
-    width: 120,
-    height: 120,
-    borderRadius: 24,
+    width: 108,
+    height: 108,
+    borderRadius: 22,
     alignSelf: "center",
-    marginTop: 12,
-    backgroundColor: SOFT_BG,
+    marginTop: 8,
+    backgroundColor: "rgba(255,255,255,0.06)",
   },
 
   liveFutureNotice: {
@@ -4390,10 +4421,10 @@ const styles = StyleSheet.create({
   },
 
   liveDurationTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
-    color: DARK_TEXT,
-    marginBottom: 10,
+    color: "rgba(255,255,255,0.78)",
+    marginBottom: 9,
   },
 
   liveDurationOptions: {
@@ -4403,25 +4434,648 @@ const styles = StyleSheet.create({
   },
 
   liveDurationChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
     borderRadius: 999,
-    backgroundColor: "#EEF2F7",
+    backgroundColor: "rgba(255,255,255,0.04)",
     borderWidth: 1,
-    borderColor: "#D9D9D9",
+    borderColor: "rgba(255,255,255,0.10)",
   },
 
   liveDurationChipActive: {
-    backgroundColor: ORANGE,
-    borderColor: ORANGE,
+    backgroundColor: "rgba(244,181,71,0.14)",
+    borderColor: "rgba(244,181,71,0.58)",
   },
 
   liveDurationChipText: {
-    color: DARK_TEXT,
+    color: "rgba(255,255,255,0.62)",
     fontWeight: "700",
   },
 
   liveDurationChipTextActive: {
-    color: WHITE,
+    color: "#F4B547",
   },
+
+  managementGroupHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 11,
+  },
+
+  managementGroupCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  managementGroupTitle: {
+    color: WHITE,
+    fontSize: 13.5,
+  },
+
+  managementGroupText: {
+    color: "rgba(255,255,255,0.48)",
+    fontSize: 11.5,
+    lineHeight: 16,
+    marginTop: 1,
+  },
+
+  lockedFeatureRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+
+  lockedFeatureCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  lockedFeatureButton: {
+    marginTop: 12,
+    alignSelf: "flex-start",
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+    backgroundColor: "rgba(244,181,71,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.34)",
+  },
+
+  lockedFeatureButtonText: {
+    color: "#F4B547",
+    fontSize: 12,
+  },
+
+  planSummaryTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+
+  planSummaryEyebrow: {
+    color: "rgba(255,255,255,0.42)",
+    fontSize: 9.5,
+    letterSpacing: 1.2,
+    marginBottom: 3,
+  },
+
+  planSummaryTitle: {
+    color: WHITE,
+    fontSize: 20,
+  },
+
+  planSummaryBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(244,181,71,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.26)",
+  },
+
+  planSummaryText: {
+    color: "rgba(255,255,255,0.62)",
+    fontSize: 12.5,
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+
+  launchNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    borderRadius: 12,
+    backgroundColor: "rgba(79,167,255,0.07)",
+    borderWidth: 1,
+    borderColor: "rgba(79,167,255,0.18)",
+    marginBottom: 12,
+  },
+
+  launchNoticeText: {
+    color: "rgba(255,255,255,0.62)",
+    fontSize: 11.5,
+  },
+
+  planFeatureMiniList: {
+    gap: 5,
+    marginBottom: 12,
+  },
+
+  planFeatureMiniItem: {
+    color: "rgba(255,255,255,0.68)",
+    fontSize: 12.5,
+    lineHeight: 18,
+  },
+
+  dangerZone: {
+    marginTop: 4,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+  },
+
+  dangerZoneTitle: {
+    color: "#FF8A87",
+    fontSize: 13,
+  },
+
+  dangerZoneText: {
+    color: "rgba(255,255,255,0.48)",
+    fontSize: 11.5,
+    lineHeight: 17,
+    marginTop: 3,
+    marginBottom: 10,
+  },
+
+  compactTopBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+
+  compactTopEyebrow: {
+    color: "#F4B547",
+    fontSize: 12,
+    letterSpacing: 1.6,
+  },
+
+  compactTopActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+
+  compactIconButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(5,20,35,0.90)",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.72)",
+    shadowColor: "#F4B547",
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+
+  identityGlowWrap: {
+    position: "relative",
+    borderRadius: 24,
+    marginBottom: 10,
+  },
+
+  identityFrame: {
+    borderRadius: 24,
+  },
+
+  identityCard: {
+    minHeight: 118,
+    borderRadius: 23,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+
+  identityAvatarShell: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    padding: 3,
+    backgroundColor: "rgba(4,13,23,0.95)",
+    borderWidth: 2,
+    borderColor: "rgba(244,181,71,0.68)",
+    shadowColor: "#F4B547",
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+
+  identityAvatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 32,
+  },
+
+  identityAvatarFallback: {
+    flex: 1,
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  identityAvatarLetter: {
+    color: "#F4B547",
+    fontSize: 30,
+  },
+
+  identityTextArea: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  identityName: {
+    color: WHITE,
+    fontSize: 24,
+    lineHeight: 28,
+    marginBottom: 2,
+  },
+
+  identityVendor: {
+    color: "rgba(255,255,255,0.62)",
+    fontSize: 13,
+    marginBottom: 9,
+  },
+
+  identityBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+
+  compactPlanBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+
+  compactPlanBadgeText: {
+    fontSize: 11,
+  },
+
+  identityStatusWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+
+  identityStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+
+  identityStatusDotLive: {
+    backgroundColor: "#42D878",
+    shadowColor: "#42D878",
+    shadowOpacity: 0.75,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+
+  identityStatusDotOffline: {
+    backgroundColor: "rgba(255,255,255,0.38)",
+  },
+
+  identityStatusText: {
+    color: "rgba(255,255,255,0.70)",
+    fontSize: 11,
+  },
+
+  metricsPanel: {
+    position: "relative",
+    borderRadius: 22,
+    marginBottom: 10,
+    overflow: "hidden",
+  },
+
+  metricsPanelInner: {
+    borderRadius: 22,
+    paddingVertical: 13,
+    paddingHorizontal: 8,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  metricCell: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 0,
+  },
+
+  metricDivider: {
+    width: 1,
+    height: 48,
+    backgroundColor: "rgba(255,255,255,0.09)",
+  },
+
+  metricValue: {
+    color: WHITE,
+    fontSize: 20,
+    lineHeight: 24,
+    marginTop: 3,
+  },
+
+  metricLabel: {
+    color: "rgba(255,255,255,0.50)",
+    fontSize: 10,
+    lineHeight: 13,
+  },
+
+  performancePanel: {
+    position: "relative",
+    borderRadius: 22,
+    marginBottom: 10,
+    overflow: "hidden",
+  },
+
+  performancePanelInner: {
+    borderRadius: 22,
+    padding: 14,
+  },
+
+  performanceHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 4,
+  },
+
+  performanceEyebrow: {
+    color: "#F4B547",
+    fontSize: 10,
+    letterSpacing: 1.35,
+    marginBottom: 2,
+  },
+
+  performanceTitle: {
+    color: WHITE,
+    fontSize: 17,
+    lineHeight: 21,
+  },
+
+  performanceRangePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.38)",
+    backgroundColor: "rgba(244,181,71,0.06)",
+  },
+
+  performanceRangeText: {
+    color: "#F4B547",
+    fontSize: 10,
+  },
+
+  performanceChartShell: {
+    position: "relative",
+    height: 112,
+    borderRadius: 15,
+    overflow: "hidden",
+    backgroundColor: "rgba(2,12,21,0.58)",
+    marginTop: 6,
+  },
+
+  performanceChartLock: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: "rgba(3,13,22,0.78)",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.24)",
+  },
+
+  performanceChartLockText: {
+    color: "rgba(255,255,255,0.64)",
+    fontSize: 9,
+  },
+
+
+  performanceExplainText: {
+    color: "rgba(255,255,255,0.62)",
+    fontSize: 11.5,
+    lineHeight: 17,
+    marginTop: 4,
+    marginBottom: 3,
+  },
+
+  performanceBenefitRow: {
+    flexDirection: "row",
+    gap: 7,
+    marginTop: 8,
+  },
+
+  performanceBenefitChip: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingHorizontal: 7,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: "rgba(8,30,49,0.78)",
+    borderWidth: 1,
+    borderColor: "rgba(79,167,255,0.18)",
+  },
+
+  performanceBenefitText: {
+    color: "rgba(255,255,255,0.78)",
+    fontSize: 8.5,
+    lineHeight: 11,
+  },
+
+  performanceMiniRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 8,
+  },
+
+  performanceMiniCard: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    borderRadius: 12,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
+    backgroundColor: "rgba(8,30,49,0.84)",
+    borderWidth: 1,
+    borderColor: "rgba(79,167,255,0.22)",
+  },
+
+  performanceMiniValue: {
+    color: WHITE,
+    fontSize: 13,
+    lineHeight: 16,
+  },
+
+  performanceMiniLabel: {
+    color: "rgba(255,255,255,0.43)",
+    fontSize: 8.5,
+    lineHeight: 11,
+  },
+
+  quickPanel: {
+    position: "relative",
+    borderRadius: 22,
+    marginBottom: 10,
+  },
+
+  quickPanelFrame: {
+    borderRadius: 22,
+  },
+
+  quickPanelInner: {
+    borderRadius: 21,
+    padding: 13,
+  },
+
+  quickEyebrow: {
+    color: "#F4B547",
+    fontSize: 10,
+    letterSpacing: 1.3,
+    marginBottom: 2,
+  },
+
+  quickTitle: {
+    color: WHITE,
+    fontSize: 18,
+    lineHeight: 22,
+    marginBottom: 10,
+  },
+
+  quickGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+
+  quickTile: {
+    width: "48.8%",
+    minHeight: 62,
+    borderRadius: 14,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    backgroundColor: "rgba(9,32,52,0.90)",
+    borderWidth: 1,
+    borderColor: "rgba(79,167,255,0.30)",
+  },
+
+  quickTilePrimary: {
+    borderColor: "rgba(244,181,71,0.40)",
+    backgroundColor: "rgba(31,35,35,0.72)",
+  },
+
+  quickTileLocked: {
+    opacity: 0.52,
+    borderColor: "rgba(255,255,255,0.09)",
+  },
+
+  quickTileTextArea: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  quickTileTitle: {
+    color: WHITE,
+    fontSize: 11.5,
+    lineHeight: 14,
+  },
+
+  quickTileTitleGold: {
+    color: "#F4B547",
+    fontSize: 11.5,
+    lineHeight: 14,
+  },
+
+  quickTileSubtitle: {
+    color: "rgba(255,255,255,0.47)",
+    fontSize: 9,
+    lineHeight: 12,
+    marginTop: 2,
+  },
+
+  quickTileLockedTitle: {
+    color: "rgba(255,255,255,0.48)",
+    fontSize: 11.5,
+  },
+
+  quickTileLockedSubtitle: {
+    color: "rgba(255,255,255,0.30)",
+    fontSize: 9,
+    marginTop: 2,
+  },
+
+  compactNextStep: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderRadius: 15,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 10,
+    backgroundColor: "rgba(8,27,44,0.88)",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.24)",
+  },
+
+  compactNextStepIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(244,181,71,0.08)",
+  },
+
+  compactNextStepText: {
+    flex: 1,
+  },
+
+  compactNextStepTitle: {
+    color: WHITE,
+    fontSize: 12,
+  },
+
+  compactNextStepSubtitle: {
+    color: "rgba(255,255,255,0.50)",
+    fontSize: 9.5,
+    marginTop: 1,
+  },
+
+  managementPanel: {
+    position: "relative",
+    borderRadius: 22,
+    overflow: "hidden",
+    marginBottom: 6,
+  },
+
+  managementPanelInner: {
+    borderRadius: 22,
+    padding: 9,
+  },
+
+  managementEyebrow: {
+    color: "#F4B547",
+    fontSize: 9.5,
+    letterSpacing: 1.3,
+    marginLeft: 4,
+    marginBottom: 7,
+  },
+
 });
