@@ -1,3 +1,5 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import {
@@ -10,10 +12,14 @@ import {
   Text,
   View,
 } from "react-native";
+import AppText from "../../components/AppText";
+import CardGlowBorder from "../../components/CardGlowBorder";
+import MapTextureBackground from "../../components/MapTextureBackground";
+import MetallicFrame from "../../components/MetallicFrame";
+import SectionGlowLine from "../../components/SectionGlowLine";
 import {
   getSubscriptionFeatures,
-  isFreeTier,
-  isProTier,
+  isProTier
 } from "../../lib/subscriptionFeatures";
 import { ensureHttps } from "../../lib/url";
 import {
@@ -564,518 +570,609 @@ export default function VendorScreen() {
       ? "SPOTTED"
       : features.liveStatus
         ? van.isLive
-          ? "LIVE"
+          ? "LIVE NOW"
           : "LISTED"
         : "LISTED";
 
-  const primaryVisual = van.logoUrl ?? galleryPhotos[0] ?? null;
-  const showLogoSection = !!van.logoUrl;
-
+  const canShowPremiumBranding = features.images;
+  const primaryVisual = galleryPhotos[0] ?? (canShowPremiumBranding ? van.logoUrl : null) ?? null;
   const showSocialLinks =
-    (van.subscriptionTier === "growth" || van.subscriptionTier === "pro") &&
-    (van.instagramUrl || van.facebookUrl || van.websiteUrl);
+    showSocials && (van.instagramUrl || van.facebookUrl || van.websiteUrl);
+  const showPreciseLocation = !!van.what3words && showSocials;
+  const ratingDisplay = ratingCount >= 3 ? van.rating.toFixed(1) : "New";
+  const isSpotted = van.listingSource === "user_spotted";
+  const isExpiredSpotted =
+    isSpotted && !!van.expiresAt && new Date(van.expiresAt) < new Date();
+  const hasGallery = canShowPremiumBranding && galleryPhotos.length > 1;
+  const hasVendorMessage = features.reviews && !!van.vendorMessage?.trim();
+  const hasMenu = !!van.menu?.trim();
+  const hasSchedule = !!van.schedule?.trim();
+  const hasFoodCategories = (van.foodCategories ?? []).length > 0;
+  const hasMainPhoto = galleryPhotos.length > 0;
+  const hasDistinctVendorName =
+    !!van.vendorName?.trim() &&
+    van.vendorName.trim().toLowerCase() !== van.name.trim().toLowerCase() &&
+    van.vendorName.trim().toLowerCase() !== (van.cuisine ?? "").trim().toLowerCase();
 
-  const showPreciseLocation =
-    !!van.what3words &&
-    (van.subscriptionTier === "growth" || van.subscriptionTier === "pro");
+  const ownerMissingEssentials = [
+    !hasMainPhoto ? "a main photo" : null,
+    !hasMenu ? "your menu" : null,
+    !hasSchedule ? "your trading schedule" : null,
+    !van.cuisine?.trim() ? "your cuisine" : null,
+  ].filter(Boolean) as string[];
 
-  const ratingDisplay = ratingCount >= 3 ? van.rating.toFixed(1) : "N/A";
+  const ownerMissingText =
+    ownerMissingEssentials.length === 1
+      ? `Add ${ownerMissingEssentials[0]} to make this public advert feel complete.`
+      : ownerMissingEssentials.length > 1
+        ? `Add ${ownerMissingEssentials.slice(0, 3).join(", ")} to make this public advert work harder for you.`
+        : null;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.headerAccent} />
-
-      <View style={styles.heroWrap}>
-        <View style={styles.heroGlow} />
-
-        <View style={styles.heroCard}>
-          <View style={styles.heroTop}>
-            <View style={styles.heroCopy}>
-              <Text style={styles.heroEyebrow}>BiteBeacon Listing</Text>
-              <Text style={styles.heroTitle}>{van.name}</Text>
-              <Text style={styles.heroSubtitle}>{van.cuisine}</Text>
-
-              <View style={styles.badgeRow}>
-                <Badge
-                  label={statusText}
-                  style={
-                    van.listingSource === "user_spotted"
-                      ? styles.badgeOrange
-                      : features.liveStatus
-                        ? van.isLive
-                          ? styles.badgeGreen
-                          : styles.badgeBlue
-                        : styles.badgeBlue
-                  }
-                />
-
-                {isProTier(van.subscriptionTier) ? (
-                  <Badge label="PRO" style={styles.badgeMuted} />
-                ) : null}
-
-                {van.owner_id && van.listingSource !== "user_spotted" ? (
-                  <Badge label="VENDOR MANAGED" style={styles.badgeOutline} />
-                ) : null}
-
-                {isProTier(van.subscriptionTier) ? (
-                  <Badge label="FEATURED" style={styles.badgeOrange} />
-                ) : null}
-
-                {isProTier(van.subscriptionTier) &&
-                  (van.views ?? 0) >= 25 &&
-                  (van.directions ?? 0) >= 5 &&
-                  (van.rating ?? 0) >= 4.2 ? (
-                  <Badge
-                    label="TRENDING"
-                    style={styles.badgeLight}
-                    textStyle={styles.badgeLightText}
-                  />
-                ) : null}
-              </View>
-            </View>
-
-            {primaryVisual ? (
-              <Image source={{ uri: primaryVisual }} style={styles.heroImage} />
-            ) : (
-              <View style={styles.heroImagePlaceholder}>
-                <Text style={styles.heroImagePlaceholderText}>
-                  {van.name?.charAt(0)?.toUpperCase() ?? "V"}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          <View style={styles.statsRow}>
-            <StatCard label="Rating" value={ratingDisplay} />
-            <StatCard label="Views" value={van.views ?? 0} />
-            <StatCard label="Directions" value={van.directions ?? 0} />
-          </View>
-
-          {isProTier(van.subscriptionTier) &&
-            showSocials &&
-            (van.instagramUrl || van.facebookUrl || van.websiteUrl) ? (
-            <View style={styles.heroActionsInline}>
-              {van.instagramUrl ? (
-                <Pressable
-                  style={styles.iconButton}
-                  onPress={() => Linking.openURL(ensureHttps(van.instagramUrl!))}
-                >
-                  <Text style={styles.iconButtonText}>📸</Text>
-                </Pressable>
-              ) : null}
-
-              {van.facebookUrl ? (
-                <Pressable
-                  style={styles.iconButton}
-                  onPress={() => Linking.openURL(ensureHttps(van.facebookUrl!))}
-                >
-                  <Text style={styles.iconButtonText}>📘</Text>
-                </Pressable>
-              ) : null}
-
-              {van.websiteUrl ? (
-                <Pressable
-                  style={styles.iconButton}
-                  onPress={() => Linking.openURL(ensureHttps(van.websiteUrl!))}
-                >
-                  <Text style={styles.iconButtonText}>🌐</Text>
-                </Pressable>
-              ) : null}
-            </View>
-          ) : null}
-        </View>
-      </View>
-
-      {isOwner ? (
-        <View style={[styles.noticeCard, styles.noticeBlue]}>
-          <Text style={styles.noticeTitle}>Your Listing</Text>
-          <Text style={styles.noticeText}>
-            You are viewing your own vendor listing.
-          </Text>
-        </View>
-      ) : null}
-
-      {isOwner && isFreeTier(van.subscriptionTier) ? (
-        <View style={[styles.noticeCard, styles.noticeOrange]}>
-          <Text style={[styles.noticeTitle, styles.noticeOrangeText]}>
-            Unlock More Features
-          </Text>
-          <Text style={styles.noticeText}>
-            Upgrade your plan to go live, add more content, strengthen branding,
-            and reach more customers.
-          </Text>
-
-          <Pressable
-            style={styles.primaryOrangeButton}
-            onPress={() => router.push("/vendor/upgrade")}
-          >
-            <Text style={styles.primaryOrangeButtonText}>Upgrade Now</Text>
+    <MapTextureBackground>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.topBar}>
+          <Pressable style={styles.circleButton} onPress={() => router.back()}>
+            <MaterialCommunityIcons name="chevron-left" size={27} color={WHITE} />
           </Pressable>
-        </View>
-      ) : null}
 
-      {van.listingSource === "user_spotted" ? (
-        <View style={[styles.noticeCard, styles.noticeOrange]}>
-          <Text style={[styles.noticeTitle, styles.noticeOrangeText]}>
-            Community Spotted
-          </Text>
-          <Text style={styles.noticeText}>
-            This listing was spotted by the community and is not yet verified by
-            the vendor. Details may change once the vendor claims and manages this
-            listing.
-          </Text>
+          <AppText variant="label" style={styles.topBarEyebrow}>
+            DISCOVER ON BITEBEACON
+          </AppText>
 
-          {getExpiryText(van.expiresAt) ? (
-            <View style={styles.expiryPill}>
-              <Text style={styles.expiryPillText}>
-                {getExpiryText(van.expiresAt)}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      ) : van.owner_id ? (
-        <View style={[styles.noticeCard, styles.noticeGreen]}>
-          <Text style={[styles.noticeTitle, styles.noticeGreenText]}>
-            Vendor Managed
-          </Text>
-          <Text style={styles.noticeText}>
-            This listing is managed directly by the vendor through BiteBeacon and
-            is a verified vendor-managed listing.
-          </Text>
-        </View>
-      ) : null}
-
-      {showLogoSection ? (
-        <Section title="Branding">
-          <View style={styles.brandCard}>
-            <Image source={{ uri: van.logoUrl! }} style={styles.brandLogo} />
-            <View style={styles.brandContent}>
-              <Text style={styles.brandTitle}>{van.vendorName || van.name}</Text>
-              <Text style={styles.brandText}>
-                This vendor has added branded profile assets through BiteBeacon.
-              </Text>
-            </View>
-          </View>
-        </Section>
-      ) : null}
-
-      {features.reviews && van.vendorMessage ? (
-        <Section title="Today’s Update">
-          <View style={styles.featureCard}>
-            <Text style={styles.featureText}>{van.vendorMessage}</Text>
-          </View>
-        </Section>
-      ) : null}
-
-      {(van.foodCategories ?? []).length > 0 ? (
-        <Section title="Food Categories">
-          <View style={styles.chipWrap}>
-            {(van.foodCategories ?? []).map((category) => (
-              <View key={category} style={styles.chip}>
-                <Text style={styles.chipText}>{category}</Text>
-              </View>
-            ))}
-          </View>
-        </Section>
-      ) : null}
-
-      <Section title="Vendor">
-        <View style={styles.infoCard}>
-          <Text style={styles.infoPrimary}>
-            {van.vendorName || "Vendor name coming soon"}
-          </Text>
-
-          {showSocialLinks ? (
-            <View style={styles.linkList}>
-              {van.instagramUrl ? (
-                <Pressable
-                  style={styles.linkButton}
-                  onPress={() => Linking.openURL(ensureHttps(van.instagramUrl!))}
-                >
-                  <Text style={styles.linkButtonText}>📸 Instagram</Text>
-                </Pressable>
-              ) : null}
-
-              {van.facebookUrl ? (
-                <Pressable
-                  style={styles.linkButton}
-                  onPress={() => Linking.openURL(ensureHttps(van.facebookUrl!))}
-                >
-                  <Text style={styles.linkButtonText}>📘 Facebook</Text>
-                </Pressable>
-              ) : null}
-
-              {van.websiteUrl ? (
-                <Pressable
-                  style={styles.linkButton}
-                  onPress={() => Linking.openURL(ensureHttps(van.websiteUrl!))}
-                >
-                  <Text style={styles.linkButtonText}>🌐 Website</Text>
-                </Pressable>
-              ) : null}
-            </View>
-          ) : null}
-
-          {isOwner && isFreeTier(van.subscriptionTier) ? (
+          {!isOwner ? (
             <Pressable
-              style={styles.lockHint}
-              onPress={() => router.push("/vendor/upgrade")}
+              style={[styles.circleButton, isFavourite && styles.circleButtonActive]}
+              onPress={toggleFavourite}
+              disabled={isSavingFavourite}
             >
-              <Text style={styles.lockHintText}>
-                Upgrade to Growth or Pro to display social links on your listing.
-              </Text>
+              <MaterialCommunityIcons
+                name={isFavourite ? "heart" : "heart-outline"}
+                size={22}
+                color={isFavourite ? "#FF6B7A" : WHITE}
+              />
             </Pressable>
-          ) : null}
-        </View>
-      </Section>
-
-      <Section title="Menu">
-        <View style={styles.infoCard}>
-          <Text style={styles.infoText}>{van.menu || "Menu coming soon"}</Text>
-
-          {van.menuPdfName ? (
+          ) : (
             <Pressable
-              style={[
-                styles.secondaryButton,
-                isOpeningMenuPdf && styles.disabledButton,
-              ]}
-              onPress={openMenuPdf}
-              disabled={isOpeningMenuPdf}
-            >
-              <Text style={styles.secondaryButtonText}>
-                {isOpeningMenuPdf
-                  ? "Opening menu..."
-                  : `View Menu PDF${van.menuPdfName ? ` (${van.menuPdfName})` : ""}`}
-              </Text>
-            </Pressable>
-          ) : null}
-        </View>
-      </Section>
-
-      <Section title="Schedule">
-        <View style={styles.infoCard}>
-          <Text style={styles.infoText}>
-            {van.schedule || "Schedule coming soon"}
-          </Text>
-        </View>
-      </Section>
-
-      {showPreciseLocation ? (
-        <Section title="Precise Location">
-          <View style={styles.infoCard}>
-            <Text style={styles.infoPrimary}>///{van.what3words}</Text>
-
-            <Pressable
-              style={styles.secondaryButton}
+              style={styles.circleButton}
               onPress={() =>
-                Linking.openURL(`https://what3words.com/${van.what3words}`)
+                router.push({ pathname: "/vendor/dashboard", params: { id: van.id } })
               }
             >
-              <Text style={styles.secondaryButtonText}>Open in what3words</Text>
+              <MaterialCommunityIcons name="cog-outline" size={22} color="#F4B547" />
             </Pressable>
-          </View>
-        </Section>
-      ) : null}
-
-      {isOwner && isFreeTier(van.subscriptionTier) ? (
-        <Section title="Precise Location">
-          <View style={styles.infoCard}>
-            <Pressable
-              style={styles.lockHint}
-              onPress={() => router.push("/vendor/upgrade")}
-            >
-              <Text style={styles.lockHintText}>
-                Upgrade to Growth or Pro to display what3words on your listing.
-              </Text>
-            </Pressable>
-          </View>
-        </Section>
-      ) : null}
-
-      {!isOwner ? (
-        <Section title="Rate this vendor">
-          <View style={styles.rateCard}>
-            <View style={styles.ratingRow}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Pressable
-                  key={star}
-                  onPress={() => submitRating(star)}
-                  disabled={isSubmittingRating}
-                  style={isSubmittingRating ? styles.disabledButton : undefined}
-                >
-                  <Text style={styles.ratingStar}>
-                    {userRating && star <= userRating ? "★" : "☆"}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            <Text style={styles.rateHelp}>
-              Tap a star to leave your rating.
-            </Text>
-          </View>
-        </Section>
-      ) : null}
-
-      <Section title="Actions">
-        <View style={styles.actionCard}>
-          {isOwner ? (
-            <>
-              <View style={styles.ownerStatusCard}>
-                <Text style={styles.ownerStatusLabel}>Listing status</Text>
-                <View
-                  style={[
-                    styles.ownerStatusPill,
-                    van.isLive ? styles.ownerStatusPillLive : styles.ownerStatusPillOffline,
-                  ]}
-                >
-                  <Text style={styles.ownerStatusPillText}>
-                    {van.isLive ? "LIVE" : "OFFLINE"}
-                  </Text>
-                </View>
-              </View>
-
-              <Pressable
-                style={[
-                  styles.secondaryActionButton,
-                  isOpeningDirections && styles.disabledButton,
-                ]}
-                onPress={openDirections}
-                disabled={isOpeningDirections}
-              >
-                <Text style={styles.secondaryActionButtonText}>
-                  {isOpeningDirections ? "Opening..." : "Get Directions"}
-                </Text>
-              </Pressable>
-
-              <Pressable
-                style={styles.secondaryActionButton}
-                onPress={() =>
-                  router.push({
-                    pathname: "/vendor/dashboard",
-                    params: { id: van.id },
-                  })
-                }
-              >
-                <Text style={styles.secondaryActionButtonText}>Manage Listing</Text>
-              </Pressable>
-            </>
-          ) : van.listingSource === "user_spotted" &&
-            !(van.expiresAt && new Date(van.expiresAt) < new Date()) ? (
-            <>
-              <Pressable
-                style={[
-                  styles.secondaryActionButton,
-                  isOpeningDirections && styles.disabledButton,
-                ]}
-                onPress={openDirections}
-                disabled={isOpeningDirections}
-              >
-                <Text style={styles.secondaryActionButtonText}>
-                  {isOpeningDirections ? "Opening..." : "Get Directions"}
-                </Text>
-              </Pressable>
-
-              <Pressable style={styles.primaryOrangeButton} onPress={openClaimScreen}>
-                <Text style={styles.primaryOrangeButtonText}>Claim This Van</Text>
-              </Pressable>
-
-              <Pressable
-                style={styles.reportButton}
-                onPress={() =>
-                  router.push({
-                    pathname: "/vendor/report",
-                    params: { id: van.id },
-                  })
-                }
-              >
-                <Text style={styles.reportButtonText}>Report Listing</Text>
-              </Pressable>
-            </>
-          ) : (
-            <>
-              <Pressable
-                style={[
-                  styles.secondaryActionButton,
-                  isOpeningDirections && styles.disabledButton,
-                ]}
-                onPress={openDirections}
-                disabled={isOpeningDirections}
-              >
-                <Text style={styles.secondaryActionButtonText}>
-                  {isOpeningDirections ? "Opening..." : "Get Directions"}
-                </Text>
-              </Pressable>
-
-              <Pressable
-                style={[
-                  styles.secondaryActionButton,
-                  isSavingFavourite && styles.disabledButton,
-                ]}
-                onPress={toggleFavourite}
-                disabled={isSavingFavourite}
-              >
-                <Text style={styles.secondaryActionButtonText}>
-                  {isSavingFavourite
-                    ? "Updating..."
-                    : isFavourite
-                      ? "★ Saved to Favourites"
-                      : "☆ Save to Favourites"}
-                </Text>
-              </Pressable>
-
-              <Pressable
-                style={styles.reportButton}
-                onPress={() =>
-                  router.push({
-                    pathname: "/vendor/report",
-                    params: { id: van.id },
-                  })
-                }
-              >
-                <Text style={styles.reportButtonText}>Report Listing</Text>
-              </Pressable>
-            </>
           )}
         </View>
-      </Section>
 
-      {galleryPhotos.length > 0 ? (
-        <Section title="Gallery">
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.galleryRow}
+        <View style={[styles.heroShell, !hasMainPhoto && styles.heroShellCompact]}>
+          <CardGlowBorder
+            accentColor={van.isLive ? "#45E27B" : "#F4B547"}
+            borderColor={van.isLive ? "rgba(69,226,123,0.40)" : "rgba(244,181,71,0.42)"}
+            borderRadius={28}
+          />
+
+          <MetallicFrame
+            tone={van.isLive ? "blue" : "gold"}
+            borderWidth={3}
+            style={styles.heroFrame}
+            contentStyle={{ borderRadius: 27 }}
           >
-            {galleryPhotos.map((photoUri, index) => (
-              <Image
-                key={`${photoUri}-${index}`}
-                source={{ uri: photoUri }}
-                style={styles.galleryImage}
-              />
-            ))}
-          </ScrollView>
-        </Section>
-      ) : null}
+            {hasMainPhoto ? (
+              <View style={styles.heroCard}>
+                <Image source={{ uri: galleryPhotos[0] }} style={styles.heroPhoto} />
+                <LinearGradient
+                  colors={["rgba(3,12,23,0.02)", "rgba(3,12,23,0.70)", "rgba(3,12,23,0.98)"]}
+                  locations={[0.15, 0.58, 1]}
+                  style={styles.heroOverlay}
+                />
 
-      <Pressable style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backButtonText}>Back</Text>
-      </Pressable>
-    </ScrollView>
+                <View style={styles.heroTopBadges}>
+                  <View
+                    style={[
+                      styles.statusPill,
+                      van.isLive && !isSpotted
+                        ? styles.statusPillLive
+                        : isSpotted
+                          ? styles.statusPillSpotted
+                          : styles.statusPillListed,
+                    ]}
+                  >
+                    <View style={styles.statusDot} />
+                    <AppText variant="label" style={styles.statusPillText}>{statusText}</AppText>
+                  </View>
+
+                  {isProTier(van.subscriptionTier) ? (
+                    <View style={styles.proPill}>
+                      <MaterialCommunityIcons name="crown" size={14} color="#F4B547" />
+                      <AppText variant="label" style={styles.proPillText}>PRO</AppText>
+                    </View>
+                  ) : null}
+                </View>
+
+                <View style={styles.heroBottom}>
+                  <View style={styles.heroTitleRow}>
+                    {canShowPremiumBranding && van.logoUrl ? <Image source={{ uri: van.logoUrl }} style={styles.logoBadge} /> : null}
+                    <View style={styles.heroTitleCopy}>
+                      <AppText variant="heading" style={styles.heroTitle}>{van.name}</AppText>
+                      {hasDistinctVendorName ? (
+                        <AppText variant="body" style={styles.heroVendorName}>{van.vendorName}</AppText>
+                      ) : null}
+                      <AppText variant="body" style={styles.heroCuisine}>
+                        {van.cuisine || "Street food vendor"}
+                      </AppText>
+                    </View>
+                  </View>
+
+                  <View style={styles.heroMetaRow}>
+                    <View style={styles.heroMetaItem}>
+                      <MaterialCommunityIcons name="star" size={17} color="#F4B547" />
+                      <AppText variant="body" style={styles.heroMetaValue}>{ratingDisplay}</AppText>
+                      {ratingCount > 0 ? <AppText variant="body" style={styles.heroMetaMuted}>({ratingCount})</AppText> : null}
+                    </View>
+                    {hasFoodCategories ? (
+                      <>
+                        <View style={styles.metaDivider} />
+                        <AppText variant="body" style={styles.heroMetaMuted} numberOfLines={1}>
+                          {(van.foodCategories ?? []).slice(0, 2).join(" · ")}
+                        </AppText>
+                      </>
+                    ) : null}
+                  </View>
+                </View>
+              </View>
+            ) : (
+              <LinearGradient
+                colors={["rgba(12,37,61,0.98)", "rgba(5,20,35,0.99)", "rgba(3,13,24,1)"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.compactHeroCard}
+              >
+                <View style={styles.compactHeroTop}>
+                  <View style={styles.compactIdentityVisual}>
+                    {canShowPremiumBranding && van.logoUrl ? (
+                      <Image source={{ uri: van.logoUrl }} style={styles.compactIdentityLogo} />
+                    ) : (
+                      <AppText variant="heading" style={styles.compactIdentityInitial}>
+                        {van.name?.charAt(0)?.toUpperCase() ?? "V"}
+                      </AppText>
+                    )}
+                  </View>
+                  <View style={styles.compactHeroCopy}>
+                    <AppText variant="heading" style={styles.heroTitle}>{van.name}</AppText>
+                    {hasDistinctVendorName ? (
+                      <AppText variant="body" style={styles.heroVendorName}>{van.vendorName}</AppText>
+                    ) : null}
+                    <AppText variant="body" style={styles.heroCuisine}>{van.cuisine || "Street food vendor"}</AppText>
+                  </View>
+                </View>
+                <View style={styles.compactHeroBottom}>
+                  <View style={[styles.statusPill, van.isLive && !isSpotted ? styles.statusPillLive : isSpotted ? styles.statusPillSpotted : styles.statusPillListed]}>
+                    <View style={styles.statusDot} />
+                    <AppText variant="label" style={styles.statusPillText}>{statusText}</AppText>
+                  </View>
+                  <View style={styles.heroMetaItem}>
+                    <MaterialCommunityIcons name="star" size={17} color="#F4B547" />
+                    <AppText variant="body" style={styles.heroMetaValue}>{ratingDisplay}</AppText>
+                    {ratingCount > 0 ? <AppText variant="body" style={styles.heroMetaMuted}>({ratingCount})</AppText> : null}
+                  </View>
+                </View>
+              </LinearGradient>
+            )}
+          </MetallicFrame>
+        </View>
+
+        <View style={styles.primaryActionsRow}>
+          <Pressable
+            style={[styles.primaryAction, styles.primaryActionGold]}
+            onPress={openDirections}
+            disabled={isOpeningDirections}
+          >
+            <MaterialCommunityIcons name="navigation-variant" size={20} color="#F4B547" />
+            <View style={styles.actionCopy}>
+              <AppText variant="button" style={styles.primaryActionTitle}>
+                {isOpeningDirections ? "Opening..." : "Directions"}
+              </AppText>
+              <AppText variant="body" style={styles.primaryActionHint}>Open in Maps</AppText>
+            </View>
+          </Pressable>
+
+          {isOwner ? (
+            <Pressable
+              style={[styles.primaryAction, styles.primaryActionBlue]}
+              onPress={() =>
+                router.push({ pathname: "/vendor/dashboard", params: { id: van.id } })
+              }
+            >
+              <MaterialCommunityIcons name="view-dashboard-outline" size={20} color="#62B5FF" />
+              <View style={styles.actionCopy}>
+                <AppText variant="button" style={styles.primaryActionTitle}>Manage</AppText>
+                <AppText variant="body" style={styles.primaryActionHint}>Vendor dashboard</AppText>
+              </View>
+            </Pressable>
+          ) : (
+            <Pressable
+              style={[styles.primaryAction, styles.primaryActionBlue]}
+              onPress={toggleFavourite}
+              disabled={isSavingFavourite}
+            >
+              <MaterialCommunityIcons
+                name={isFavourite ? "heart" : "heart-outline"}
+                size={20}
+                color={isFavourite ? "#FF6B7A" : "#62B5FF"}
+              />
+              <View style={styles.actionCopy}>
+                <AppText variant="button" style={styles.primaryActionTitle}>
+                  {isSavingFavourite ? "Updating..." : isFavourite ? "Saved" : "Favourite"}
+                </AppText>
+                <AppText variant="body" style={styles.primaryActionHint}>Keep for later</AppText>
+              </View>
+            </Pressable>
+          )}
+        </View>
+
+        {isOwner ? (
+          <View style={styles.ownerStrip}>
+            <MaterialCommunityIcons name="eye-check-outline" size={18} color="#62B5FF" />
+            <AppText variant="body" style={styles.ownerStripText}>
+              You are viewing the customer version of your listing.
+            </AppText>
+          </View>
+        ) : null}
+
+        {isOwner && ownerMissingText ? (
+          <View style={styles.ownerQualityCard}>
+            <View style={styles.ownerQualityIcon}>
+              <MaterialCommunityIcons name="storefront-outline" size={21} color="#F4B547" />
+            </View>
+            <View style={styles.ownerQualityCopy}>
+              <AppText variant="button" style={styles.ownerQualityTitle}>
+                Strengthen your public advert
+              </AppText>
+              <AppText variant="body" style={styles.ownerQualityText}>
+                {ownerMissingText}
+              </AppText>
+            </View>
+            <Pressable
+              style={styles.ownerQualityButton}
+              onPress={() =>
+                router.push({ pathname: "/vendor/dashboard", params: { id: van.id } })
+              }
+            >
+              <MaterialCommunityIcons name="pencil-outline" size={19} color="#F4B547" />
+            </Pressable>
+          </View>
+        ) : null}
+
+        {isSpotted ? (
+          <View style={styles.communityCard}>
+            <View style={styles.sectionHeadingRow}>
+              <View style={styles.sectionIconGold}>
+                <MaterialCommunityIcons name="map-marker-star-outline" size={20} color="#F4B547" />
+              </View>
+              <View style={styles.sectionHeadingCopy}>
+                <AppText variant="heading" style={styles.sectionTitleSmall}>Community spotted</AppText>
+                <AppText variant="body" style={styles.sectionSubtitle}>
+                  This listing was added by the BiteBeacon community and has not yet been claimed.
+                </AppText>
+              </View>
+            </View>
+            {getExpiryText(van.expiresAt) ? (
+              <View style={styles.expiryPill}>
+                <AppText variant="label" style={styles.expiryPillText}>{getExpiryText(van.expiresAt)}</AppText>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        {hasVendorMessage ? (
+          <View style={styles.messageShell}>
+            <CardGlowBorder
+              accentColor="#F4B547"
+              borderColor="rgba(244,181,71,0.32)"
+              borderRadius={22}
+            />
+            <LinearGradient
+              colors={["rgba(13,39,62,0.97)", "rgba(5,19,33,0.99)"]}
+              style={styles.messageCard}
+            >
+              <View style={styles.messageHeader}>
+                <MaterialCommunityIcons name="bullhorn-outline" size={19} color="#F4B547" />
+                <AppText variant="label" style={styles.messageEyebrow}>FROM THE VENDOR</AppText>
+              </View>
+              <AppText variant="heading" style={styles.messageTitle}>A note from {van.name}</AppText>
+              <AppText variant="body" style={styles.messageText}>{van.vendorMessage}</AppText>
+            </LinearGradient>
+          </View>
+        ) : null}
+
+        {hasFoodCategories ? (
+          <View style={styles.chipSection}>
+            <AppText variant="label" style={styles.sectionEyebrow}>FOOD & SPECIALITIES</AppText>
+            <View style={styles.chipWrap}>
+              {(van.foodCategories ?? []).map((category) => (
+                <View key={category} style={styles.chip}>
+                  <AppText variant="body" style={styles.chipText}>{category}</AppText>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        {hasGallery ? (
+          <View style={styles.gallerySection}>
+            <View style={styles.sectionHeadingRowStandalone}>
+              <View>
+                <AppText variant="label" style={styles.sectionEyebrow}>GALLERY</AppText>
+                <AppText variant="heading" style={styles.sectionTitle}>A closer look</AppText>
+              </View>
+              <AppText variant="body" style={styles.galleryCount}>{galleryPhotos.length} photos</AppText>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.galleryRow}
+            >
+              {galleryPhotos.map((photoUri, index) => (
+                <View key={`${photoUri}-${index}`} style={styles.galleryImageShell}>
+                  <Image source={{ uri: photoUri }} style={styles.galleryImage} />
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+
+        <MetallicFrame
+          tone="blue"
+          borderWidth={2}
+          style={styles.contentFrame}
+          contentStyle={{ borderRadius: 23 }}
+        >
+          <LinearGradient
+            colors={["rgba(9,31,50,0.97)", "rgba(4,17,29,0.99)"]}
+            style={styles.contentCard}
+          >
+            <View style={styles.sectionHeadingRow}>
+              <View style={styles.sectionIconBlue}>
+                <MaterialCommunityIcons name="silverware-fork-knife" size={20} color="#62B5FF" />
+              </View>
+              <View style={styles.sectionHeadingCopy}>
+                <AppText variant="heading" style={styles.sectionTitle}>Menu</AppText>
+                <AppText variant="body" style={styles.sectionSubtitle}>What’s on offer.</AppText>
+              </View>
+            </View>
+            <SectionGlowLine />
+            <AppText variant="body" style={styles.largeBodyText}>
+              {hasMenu ? van.menu : "Menu details coming soon."}
+            </AppText>
+
+            {canShowPremiumBranding && van.menuPdfName ? (
+              <Pressable
+                style={[styles.inlineButton, isOpeningMenuPdf && styles.disabledButton]}
+                onPress={openMenuPdf}
+                disabled={isOpeningMenuPdf}
+              >
+                <MaterialCommunityIcons name="file-pdf-box" size={20} color="#F4B547" />
+                <AppText variant="button" style={styles.inlineButtonText}>
+                  {isOpeningMenuPdf ? "Opening menu..." : "Open full menu PDF"}
+                </AppText>
+                <MaterialCommunityIcons name="arrow-top-right" size={18} color="#F4B547" />
+              </Pressable>
+            ) : null}
+          </LinearGradient>
+        </MetallicFrame>
+
+        <MetallicFrame
+          tone="gold"
+          borderWidth={1}
+          style={styles.contentFrame}
+          contentStyle={{ borderRadius: 23 }}
+        >
+          <LinearGradient
+            colors={["rgba(12,36,56,0.97)", "rgba(5,19,32,0.99)"]}
+            style={styles.contentCard}
+          >
+            <View style={styles.sectionHeadingRow}>
+              <View style={styles.sectionIconGold}>
+                <MaterialCommunityIcons name="clock-outline" size={20} color="#F4B547" />
+              </View>
+              <View style={styles.sectionHeadingCopy}>
+                <AppText variant="heading" style={styles.sectionTitle}>When to find us</AppText>
+                <AppText variant="body" style={styles.sectionSubtitle}>
+                  Trading times and current availability.
+                </AppText>
+              </View>
+            </View>
+            <SectionGlowLine />
+
+            <View style={styles.scheduleRow}>
+              <View style={styles.scheduleCopy}>
+                <AppText variant="label" style={styles.miniLabel}>SCHEDULE</AppText>
+                <AppText variant="body" style={styles.largeBodyText}>
+                  {hasSchedule ? van.schedule : "Schedule coming soon."}
+                </AppText>
+              </View>
+              <View
+                style={[
+                  styles.liveStatePill,
+                  van.isLive ? styles.liveStatePillLive : styles.liveStatePillOffline,
+                ]}
+              >
+                <View style={[styles.liveDot, !van.isLive && styles.liveDotOffline]} />
+                <AppText variant="label" style={styles.liveStateText}>
+                  {van.isLive ? "LIVE NOW" : "OFFLINE"}
+                </AppText>
+              </View>
+            </View>
+          </LinearGradient>
+        </MetallicFrame>
+
+        {showSocialLinks || showPreciseLocation ? (
+          <MetallicFrame
+            tone="blue"
+            borderWidth={1}
+            style={styles.contentFrame}
+            contentStyle={{ borderRadius: 23 }}
+          >
+            <LinearGradient
+              colors={["rgba(9,30,50,0.97)", "rgba(4,17,29,0.99)"]}
+              style={styles.contentCard}
+            >
+              <View style={styles.sectionHeadingRow}>
+                <View style={styles.sectionIconBlue}>
+                  <MaterialCommunityIcons name="link-variant" size={20} color="#62B5FF" />
+                </View>
+                <View style={styles.sectionHeadingCopy}>
+                  <AppText variant="heading" style={styles.sectionTitle}>Find & follow</AppText>
+                  <AppText variant="body" style={styles.sectionSubtitle}>Follow, browse and find out more.</AppText>
+                </View>
+              </View>
+              <SectionGlowLine />
+
+              {showSocialLinks ? (
+                <View style={styles.linkGrid}>
+                  {van.instagramUrl ? (
+                    <Pressable
+                      style={styles.linkTile}
+                      onPress={() => Linking.openURL(ensureHttps(van.instagramUrl!))}
+                    >
+                      <MaterialCommunityIcons name="instagram" size={21} color="#F4B547" />
+                      <AppText variant="button" style={styles.linkTileText}>Instagram</AppText>
+                    </Pressable>
+                  ) : null}
+
+                  {van.facebookUrl ? (
+                    <Pressable
+                      style={styles.linkTile}
+                      onPress={() => Linking.openURL(ensureHttps(van.facebookUrl!))}
+                    >
+                      <MaterialCommunityIcons name="facebook" size={21} color="#62B5FF" />
+                      <AppText variant="button" style={styles.linkTileText}>Facebook</AppText>
+                    </Pressable>
+                  ) : null}
+
+                  {van.websiteUrl ? (
+                    <Pressable
+                      style={styles.linkTile}
+                      onPress={() => Linking.openURL(ensureHttps(van.websiteUrl!))}
+                    >
+                      <MaterialCommunityIcons name="web" size={21} color="#45E27B" />
+                      <AppText variant="button" style={styles.linkTileText}>Website</AppText>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ) : null}
+
+              {showPreciseLocation ? (
+                <Pressable
+                  style={styles.preciseLocationRow}
+                  onPress={() => Linking.openURL(`https://what3words.com/${van.what3words}`)}
+                >
+                  <View style={styles.preciseLocationIcon}>
+                    <MaterialCommunityIcons name="map-marker-radius-outline" size={21} color="#F4B547" />
+                  </View>
+                  <View style={styles.preciseLocationCopy}>
+                    <AppText variant="label" style={styles.miniLabel}>PRECISE LOCATION</AppText>
+                    <AppText variant="body" style={styles.preciseLocationText}>///{van.what3words}</AppText>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={22} color="#F4B547" />
+                </Pressable>
+              ) : null}
+            </LinearGradient>
+          </MetallicFrame>
+        ) : null}
+
+        {!isOwner ? (
+          <MetallicFrame
+            tone="gold"
+            borderWidth={1}
+            style={styles.contentFrame}
+            contentStyle={{ borderRadius: 23 }}
+          >
+            <LinearGradient
+              colors={["rgba(12,35,54,0.97)", "rgba(5,18,31,0.99)"]}
+              style={styles.contentCard}
+            >
+              <View style={styles.sectionHeadingRow}>
+                <View style={styles.sectionIconGold}>
+                  <MaterialCommunityIcons name="star-outline" size={21} color="#F4B547" />
+                </View>
+                <View style={styles.sectionHeadingCopy}>
+                  <AppText variant="heading" style={styles.sectionTitle}>Rate this vendor</AppText>
+                  <AppText variant="body" style={styles.sectionSubtitle}>Help other customers discover great traders.</AppText>
+                </View>
+              </View>
+              <SectionGlowLine />
+
+              <View style={styles.ratingRow}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Pressable
+                    key={star}
+                    onPress={() => submitRating(star)}
+                    disabled={isSubmittingRating}
+                    style={styles.ratingStarButton}
+                  >
+                    <MaterialCommunityIcons
+                      name={userRating && star <= userRating ? "star" : "star-outline"}
+                      size={34}
+                      color="#F4B547"
+                    />
+                  </Pressable>
+                ))}
+              </View>
+              <AppText variant="body" style={styles.ratingHelp}>
+                {userRating ? `Your rating: ${userRating}/5` : "Tap a star to leave your rating."}
+              </AppText>
+            </LinearGradient>
+          </MetallicFrame>
+        ) : null}
+
+        {isSpotted && !isExpiredSpotted ? (
+          <View style={styles.spottedActionsCard}>
+            <AppText variant="heading" style={styles.sectionTitleSmall}>Is this your van?</AppText>
+            <AppText variant="body" style={styles.sectionSubtitle}>
+              Claim this community listing to manage its details on BiteBeacon.
+            </AppText>
+            <Pressable style={styles.claimButton} onPress={openClaimScreen}>
+              <MaterialCommunityIcons name="shield-check-outline" size={20} color="#081521" />
+              <AppText variant="button" style={styles.claimButtonText}>Claim this van</AppText>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {!isOwner ? (
+          <Pressable
+            style={styles.reportLink}
+            onPress={() => router.push({ pathname: "/vendor/report", params: { id: van.id } })}
+          >
+            <MaterialCommunityIcons name="flag-outline" size={17} color="rgba(255,255,255,0.56)" />
+            <AppText variant="body" style={styles.reportLinkText}>Report this listing</AppText>
+          </Pressable>
+        ) : null}
+
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <MaterialCommunityIcons name="chevron-left" size={20} color="#C7D2E0" />
+          <AppText variant="button" style={styles.backButtonText}>Back</AppText>
+        </Pressable>
+      </ScrollView>
+    </MapTextureBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG,
+    backgroundColor: "transparent",
   },
-
   content: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingTop: 18,
-    paddingBottom: 44,
+    paddingBottom: 46,
   },
-
   centeredScreen: {
     flex: 1,
     backgroundColor: BG,
@@ -1083,13 +1180,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 24,
   },
-
   loadingText: {
     color: WHITE,
     fontSize: 16,
     fontWeight: "700",
   },
-
   notFoundTitle: {
     color: WHITE,
     fontSize: 26,
@@ -1097,605 +1192,752 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     textAlign: "center",
   },
-
-  headerAccent: {
-    height: 4,
-    width: 96,
-    borderRadius: 999,
-    backgroundColor: ORANGE,
-    alignSelf: "center",
-    marginBottom: 16,
-    opacity: 0.95,
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 14,
   },
-
-  heroWrap: {
-    marginBottom: 18,
+  topBarEyebrow: {
+    color: "#F4B547",
+    letterSpacing: 1.7,
+    fontSize: 11,
+  },
+  circleButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(6,24,40,0.92)",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.40)",
+  },
+  circleButtonActive: {
+    borderColor: "rgba(255,107,122,0.60)",
+    backgroundColor: "rgba(54,19,29,0.80)",
+  },
+  heroShell: {
     position: "relative",
+    marginBottom: 14,
   },
-
-  heroGlow: {
-    position: "absolute",
-    top: 14,
-    left: 18,
-    right: 18,
-    height: 120,
+  heroFrame: {
     borderRadius: 28,
-    backgroundColor: "rgba(255,122,0,0.12)",
   },
-
   heroCard: {
-    backgroundColor: CARD,
-    borderRadius: 28,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: STROKE_STRONG,
-    shadowColor: "#000",
-    shadowOpacity: 0.22,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 7,
+    height: 410,
+    borderRadius: 27,
+    overflow: "hidden",
+    position: "relative",
+    backgroundColor: "#071827",
   },
-
-  heroTop: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 14,
+  heroPhoto: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
   },
-
-  heroCopy: {
-    flex: 1,
-  },
-
-  heroEyebrow: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: ORANGE_SOFT,
-    letterSpacing: 1,
-    textTransform: "uppercase",
-    marginBottom: 6,
-  },
-
-  heroTitle: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: WHITE,
-    marginBottom: 4,
-  },
-
-  heroSubtitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: TEXT_MUTED,
-    marginBottom: 12,
-  },
-
-  heroImage: {
-    width: 92,
-    height: 92,
-    borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: ORANGE_SOFT,
-    backgroundColor: CARD_ALT,
-  },
-
-  heroImagePlaceholder: {
-    width: 92,
-    height: 92,
-    borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: ORANGE_SOFT,
-    backgroundColor: CARD_ALT,
+  heroPhotoPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
   },
-
-  heroImagePlaceholderText: {
-    color: WHITE,
-    fontSize: 28,
-    fontWeight: "900",
+  heroLogoOnly: {
+    width: 132,
+    height: 132,
+    borderRadius: 32,
+    backgroundColor: "rgba(255,255,255,0.96)",
+    borderWidth: 2,
+    borderColor: "rgba(244,181,71,0.72)",
   },
-
-  badgeRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+  heroPhotoPlaceholderText: {
+    fontSize: 82,
+    color: "rgba(244,181,71,0.92)",
   },
-
-  badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 999,
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
   },
-
-  badgeText: {
-    color: WHITE,
-    fontSize: 11,
-    fontWeight: "800",
-  },
-
-  badgeOrange: {
-    backgroundColor: ORANGE,
-  },
-
-  badgeGreen: {
-    backgroundColor: GREEN,
-  },
-
-  badgeBlue: {
-    backgroundColor: OFFLINE,
-  },
-
-  badgeMuted: {
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.14)",
-  },
-
-  badgeOutline: {
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderWidth: 1,
-    borderColor: STROKE_STRONG,
-  },
-
-  badgeLight: {
-    backgroundColor: WHITE,
-  },
-
-  badgeLightText: {
-    color: ORANGE,
-  },
-
-  statsRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 16,
-  },
-
-  statCard: {
-    flex: 1,
-    backgroundColor: CARD_ALT,
-    borderRadius: 18,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: STROKE,
-    alignItems: "center",
-  },
-
-  statLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: TEXT_SOFT,
-    textTransform: "uppercase",
-    marginBottom: 5,
-    textAlign: "center",
-  },
-
-  statValue: {
-    fontSize: 18,
-    fontWeight: "900",
-    color: WHITE,
-  },
-
-  heroActionsInline: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 14,
-  },
-
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: WHITE,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: ORANGE,
-  },
-
-  iconButtonText: {
-    fontSize: 17,
-  },
-
-  sectionBlock: {
-    marginBottom: 22,
-  },
-
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: "900",
-    color: WHITE,
-    marginBottom: 12,
-  },
-
-  noticeCard: {
-    borderRadius: 22,
-    padding: 16,
-    marginBottom: 18,
-    borderWidth: 1,
-  },
-
-  noticeBlue: {
-    backgroundColor: BG_ALT,
-    borderColor: STROKE_STRONG,
-  },
-
-  noticeOrange: {
-    backgroundColor: "rgba(255,122,0,0.10)",
-    borderColor: STROKE_STRONG,
-  },
-
-  noticeGreen: {
-    backgroundColor: "rgba(29,185,84,0.10)",
-    borderColor: "rgba(29,185,84,0.45)",
-  },
-
-  noticeTitle: {
-    fontSize: 15,
-    fontWeight: "900",
-    color: WHITE,
-    marginBottom: 5,
-  },
-
-  noticeOrangeText: {
-    color: ORANGE_SOFT,
-  },
-
-  noticeGreenText: {
-    color: GREEN,
-  },
-
-  noticeText: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: TEXT_MUTED,
-  },
-
-  expiryPill: {
-    marginTop: 10,
-    alignSelf: "flex-start",
-    backgroundColor: ORANGE,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-
-  expiryPillText: {
-    color: WHITE,
-    fontSize: 11,
-    fontWeight: "800",
-  },
-
-  brandCard: {
-    backgroundColor: CARD_SOFT,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: STROKE_STRONG,
+  heroTopBadges: {
+    position: "absolute",
+    top: 16,
+    left: 16,
+    right: 16,
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
+    justifyContent: "space-between",
   },
-
-  brandLogo: {
-    width: 76,
-    height: 76,
-    borderRadius: 20,
-    backgroundColor: WHITE,
-    borderWidth: 1,
-    borderColor: STROKE,
-  },
-
-  brandContent: {
-    flex: 1,
-  },
-
-  brandTitle: {
-    fontSize: 17,
-    fontWeight: "900",
-    color: WHITE,
-    marginBottom: 4,
-  },
-
-  brandText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: TEXT_MUTED,
-  },
-
-  featureCard: {
-    backgroundColor: CARD,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: STROKE_STRONG,
-  },
-
-  featureText: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: "rgba(255,255,255,0.88)",
-  },
-
-  chipWrap: {
+  statusPill: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-
-  chip: {
-    backgroundColor: CARD_ALT,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: STROKE_STRONG,
-  },
-
-  chipText: {
-    color: WHITE,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-
-  infoCard: {
-    backgroundColor: CARD_SOFT,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: STROKE,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-
-  infoPrimary: {
-    fontSize: 16,
-    lineHeight: 23,
-    color: WHITE,
-    fontWeight: "800",
-  },
-
-  infoText: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: "rgba(255,255,255,0.90)",
-  },
-
-  linkList: {
-    marginTop: 14,
-    gap: 10,
-  },
-
-  linkButton: {
-    backgroundColor: WHITE,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: ORANGE,
-  },
-
-  linkButtonText: {
-    color: "#0B2A5B",
-    fontWeight: "800",
-    fontSize: 14,
-  },
-
-  lockHint: {
-    marginTop: 14,
-    backgroundColor: "rgba(255,122,0,0.12)",
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: ORANGE,
-  },
-
-  lockHintText: {
-    color: ORANGE_SOFT,
-    fontSize: 13,
-    fontWeight: "700",
-    lineHeight: 18,
-  },
-
-  rateCard: {
-    backgroundColor: CARD_SOFT,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: STROKE,
-  },
-
-  ratingRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-
-  ratingStar: {
-    fontSize: 30,
-    color: WHITE,
-  },
-
-  rateHelp: {
-    marginTop: 10,
-    fontSize: 13,
-    color: TEXT_MUTED,
-    lineHeight: 18,
-  },
-
-  ownerStatusCard: {
-    backgroundColor: CARD_ALT,
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    borderWidth: 1.2,
-    borderColor: "rgba(255,255,255,0.12)",
-    marginBottom: 12,
-  },
-
-  ownerStatusLabel: {
-    color: "rgba(255,255,255,0.68)",
-    fontSize: 12,
-    fontWeight: "700",
-    marginBottom: 8,
-    textTransform: "uppercase",
-  },
-
-  ownerStatusPill: {
-    alignSelf: "flex-start",
+    alignItems: "center",
+    gap: 7,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
-  },
-
-  ownerStatusPillLive: {
-    backgroundColor: GREEN,
-  },
-
-  ownerStatusPillOffline: {
-    backgroundColor: OFFLINE,
-  },
-
-  ownerStatusPillText: {
-    color: WHITE,
-    fontSize: 12,
-    fontWeight: "800",
-  },
-
-  actionCard: {
-    backgroundColor: BG_ALT,
-    borderRadius: 24,
-    padding: 16,
     borderWidth: 1,
-    borderColor: STROKE_STRONG,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 4,
+  },
+  statusPillLive: {
+    backgroundColor: "rgba(18,71,46,0.88)",
+    borderColor: "rgba(69,226,123,0.65)",
+  },
+  statusPillListed: {
+    backgroundColor: "rgba(9,28,45,0.88)",
+    borderColor: "rgba(98,181,255,0.45)",
+  },
+  statusPillSpotted: {
+    backgroundColor: "rgba(74,48,11,0.88)",
+    borderColor: "rgba(244,181,71,0.65)",
+  },
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#F4B547",
+  },
+  statusPillText: {
+    color: WHITE,
+    fontSize: 11,
+    letterSpacing: 0.5,
+  },
+  proPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: "rgba(7,20,33,0.86)",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.50)",
+  },
+  proPillText: {
+    color: "#F4B547",
+    fontSize: 11,
+  },
+  heroBottom: {
+    position: "absolute",
+    left: 18,
+    right: 18,
+    bottom: 18,
+  },
+  heroTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
-
-  primaryActionButton: {
-    paddingVertical: 16,
+  logoBadge: {
+    width: 54,
+    height: 54,
     borderRadius: 18,
-    alignItems: "center",
-    borderWidth: 1.5,
+    backgroundColor: "rgba(255,255,255,0.96)",
+    borderWidth: 2,
+    borderColor: "#F4B547",
   },
-
-  primaryActionButtonText: {
+  heroTitleCopy: {
+    flex: 1,
+  },
+  heroTitle: {
     color: WHITE,
-    fontSize: 16,
-    fontWeight: "900",
+    fontSize: 31,
+    lineHeight: 36,
   },
-
-  primaryActionLive: {
-    backgroundColor: GREEN,
-    borderColor: "rgba(255,255,255,0.22)",
+  heroCuisine: {
+    color: "rgba(255,255,255,0.76)",
+    marginTop: 2,
+    fontSize: 15,
   },
-
-  primaryActionOffline: {
-    backgroundColor: OFFLINE,
-    borderColor: "rgba(255,255,255,0.18)",
-  },
-
-  secondaryActionButton: {
-    backgroundColor: CARD_ALT,
-    paddingVertical: 15,
-    borderRadius: 18,
+  heroMetaRow: {
+    flexDirection: "row",
     alignItems: "center",
+    marginTop: 12,
+    minHeight: 26,
+  },
+  heroMetaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  heroMetaValue: {
+    color: WHITE,
+    fontWeight: "800",
+  },
+  heroMetaMuted: {
+    color: "rgba(255,255,255,0.66)",
+    flexShrink: 1,
+  },
+  metaDivider: {
+    width: 1,
+    height: 18,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    marginHorizontal: 12,
+  },
+  primaryActionsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 12,
+  },
+  primaryAction: {
+    flex: 1,
+    minHeight: 72,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: STROKE_STRONG,
-  },
-
-  secondaryActionButtonText: {
-    color: WHITE,
-    fontSize: 15,
-    fontWeight: "800",
-  },
-
-  primaryOrangeButton: {
-    backgroundColor: ORANGE,
-    paddingVertical: 15,
-    borderRadius: 18,
+    flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: ORANGE_SOFT,
+    paddingHorizontal: 14,
+    gap: 10,
   },
-
-  primaryOrangeButtonText: {
+  primaryActionGold: {
+    backgroundColor: "rgba(34,32,22,0.91)",
+    borderColor: "rgba(244,181,71,0.48)",
+  },
+  primaryActionBlue: {
+    backgroundColor: "rgba(8,31,51,0.94)",
+    borderColor: "rgba(98,181,255,0.42)",
+  },
+  actionCopy: {
+    flex: 1,
+  },
+  primaryActionTitle: {
     color: WHITE,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-
-  reportButton: {
-    backgroundColor: "transparent",
-    paddingVertical: 15,
-    borderRadius: 18,
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: RED,
-  },
-
-  reportButtonText: {
-    color: "#FFB3B3",
-    fontSize: 15,
-    fontWeight: "800",
-  },
-
-  secondaryButton: {
-    marginTop: 14,
-    backgroundColor: CARD_ALT,
-    borderWidth: 1,
-    borderColor: STROKE_STRONG,
-    paddingVertical: 14,
-    borderRadius: 16,
-    alignItems: "center",
-  },
-
-  secondaryButtonText: {
-    color: WHITE,
-    fontWeight: "800",
-    textAlign: "center",
     fontSize: 14,
   },
-
+  primaryActionHint: {
+    color: "rgba(255,255,255,0.54)",
+    fontSize: 11,
+    marginTop: 2,
+  },
+  ownerStrip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderRadius: 16,
+    backgroundColor: "rgba(8,31,51,0.82)",
+    borderWidth: 1,
+    borderColor: "rgba(98,181,255,0.28)",
+    marginBottom: 14,
+  },
+  ownerStripText: {
+    flex: 1,
+    color: "rgba(255,255,255,0.70)",
+    fontSize: 12,
+  },
+  communityCard: {
+    padding: 16,
+    borderRadius: 22,
+    backgroundColor: "rgba(48,37,19,0.92)",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.45)",
+    marginBottom: 14,
+  },
+  expiryPill: {
+    marginTop: 12,
+    alignSelf: "flex-start",
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    backgroundColor: "rgba(244,181,71,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.38)",
+  },
+  expiryPillText: {
+    color: "#F4B547",
+    fontSize: 10,
+  },
+  messageShell: {
+    position: "relative",
+    marginBottom: 14,
+  },
+  messageCard: {
+    padding: 18,
+    borderRadius: 22,
+    minHeight: 140,
+  },
+  messageHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  messageEyebrow: {
+    color: "#F4B547",
+    fontSize: 10,
+    letterSpacing: 1.35,
+  },
+  messageTitle: {
+    color: WHITE,
+    fontSize: 20,
+    marginBottom: 8,
+  },
+  messageText: {
+    color: "rgba(255,255,255,0.80)",
+    fontSize: 15,
+    lineHeight: 23,
+  },
+  chipSection: {
+    marginBottom: 16,
+  },
+  sectionEyebrow: {
+    color: "#F4B547",
+    fontSize: 10,
+    letterSpacing: 1.35,
+    marginBottom: 10,
+  },
+  chipWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  chip: {
+    borderRadius: 999,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    backgroundColor: "rgba(9,32,52,0.90)",
+    borderWidth: 1,
+    borderColor: "rgba(98,181,255,0.30)",
+  },
+  chipText: {
+    color: "rgba(255,255,255,0.82)",
+    fontSize: 12,
+  },
+  contentFrame: {
+    borderRadius: 24,
+    marginBottom: 14,
+  },
+  contentCard: {
+    borderRadius: 23,
+    padding: 18,
+  },
+  sectionHeadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  sectionHeadingRowStandalone: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  sectionHeadingCopy: {
+    flex: 1,
+  },
+  sectionIconGold: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(244,181,71,0.09)",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.28)",
+  },
+  sectionIconBlue: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(98,181,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(98,181,255,0.26)",
+  },
+  sectionTitle: {
+    color: WHITE,
+    fontSize: 20,
+  },
+  sectionTitleSmall: {
+    color: WHITE,
+    fontSize: 17,
+  },
+  sectionSubtitle: {
+    color: "rgba(255,255,255,0.60)",
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 2,
+  },
+  largeBodyText: {
+    color: "rgba(255,255,255,0.86)",
+    fontSize: 15,
+    lineHeight: 23,
+  },
+  inlineButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    marginTop: 16,
+    minHeight: 50,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    backgroundColor: "rgba(244,181,71,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.34)",
+  },
+  inlineButtonText: {
+    color: "#F4B547",
+    flex: 1,
+    fontSize: 13,
+  },
+  scheduleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  scheduleCopy: {
+    flex: 1,
+  },
+  miniLabel: {
+    color: "rgba(255,255,255,0.48)",
+    fontSize: 9,
+    letterSpacing: 1.1,
+    marginBottom: 5,
+  },
+  liveStatePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+  },
+  liveStatePillLive: {
+    backgroundColor: "rgba(24,76,49,0.80)",
+    borderColor: "rgba(69,226,123,0.44)",
+  },
+  liveStatePillOffline: {
+    backgroundColor: "rgba(20,33,46,0.80)",
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#45E27B",
+  },
+  liveDotOffline: {
+    backgroundColor: "#718197",
+  },
+  liveStateText: {
+    color: WHITE,
+    fontSize: 10,
+  },
+  linkGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  linkTile: {
+    flexGrow: 1,
+    minWidth: "30%",
+    minHeight: 50,
+    borderRadius: 15,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    backgroundColor: "rgba(13,39,62,0.84)",
+    borderWidth: 1,
+    borderColor: "rgba(98,181,255,0.22)",
+  },
+  linkTileText: {
+    color: WHITE,
+    fontSize: 11,
+  },
+  preciseLocationRow: {
+    marginTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+    paddingTop: 14,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  preciseLocationIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(244,181,71,0.08)",
+  },
+  preciseLocationCopy: {
+    flex: 1,
+    marginLeft: 11,
+  },
+  preciseLocationText: {
+    color: WHITE,
+    fontSize: 14,
+  },
+  gallerySection: {
+    marginBottom: 16,
+  },
+  galleryCount: {
+    color: "rgba(255,255,255,0.52)",
+    fontSize: 11,
+  },
   galleryRow: {
     paddingRight: 8,
+    gap: 12,
   },
-
+  galleryImageShell: {
+    width: 270,
+    height: 190,
+    borderRadius: 22,
+    padding: 2,
+    backgroundColor: "rgba(244,181,71,0.62)",
+  },
   galleryImage: {
-    width: 280,
-    height: 200,
-    borderRadius: 24,
-    marginRight: 12,
-    backgroundColor: CARD,
-    borderWidth: 1,
-    borderColor: STROKE_STRONG,
+    width: "100%",
+    height: "100%",
+    borderRadius: 20,
+    backgroundColor: "#0A2137",
   },
-
-  backButton: {
-    backgroundColor: CARD_ALT,
-    paddingVertical: 15,
-    borderRadius: 18,
+  ratingRow: {
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 6,
+    justifyContent: "space-between",
+    maxWidth: 300,
+    alignSelf: "center",
+    width: "100%",
+  },
+  ratingStarButton: {
+    padding: 4,
+  },
+  ratingHelp: {
+    marginTop: 10,
+    textAlign: "center",
+    color: "rgba(255,255,255,0.58)",
+    fontSize: 12,
+  },
+  spottedActionsCard: {
+    borderRadius: 22,
+    padding: 18,
+    marginBottom: 14,
+    backgroundColor: "rgba(40,32,18,0.92)",
     borderWidth: 1,
-    borderColor: STROKE_STRONG,
+    borderColor: "rgba(244,181,71,0.38)",
   },
-
-  backButtonText: {
+  claimButton: {
+    marginTop: 14,
+    minHeight: 52,
+    borderRadius: 16,
+    backgroundColor: "#F4B547",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  claimButtonText: {
+    color: "#081521",
+  },
+  reportLink: {
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+  },
+  reportLinkText: {
+    color: "rgba(255,255,255,0.52)",
+    fontSize: 12,
+  },
+  ownerQualityCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 16,
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: "rgba(19,34,39,0.94)",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.34)",
+  },
+  ownerQualityIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(244,181,71,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.22)",
+  },
+  ownerQualityCopy: {
+    flex: 1,
+  },
+  ownerQualityTitle: {
     color: WHITE,
-    fontSize: 15,
-    fontWeight: "900",
+    marginBottom: 3,
+  },
+  ownerQualityText: {
+    color: TEXT_MUTED,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  ownerQualityButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(244,181,71,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.32)",
+  },
+  backButton: {
+    minHeight: 50,
+    borderRadius: 17,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    backgroundColor: "rgba(8,29,48,0.88)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  backButtonText: {
+    color: "#C7D2E0",
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
 
-  disabledButton: {
-    opacity: 0.7,
+  // Legacy helper styles retained so existing helper components remain valid.
+  statCard: {
+    flex: 1,
+    backgroundColor: "rgba(13,40,65,0.90)",
+    borderRadius: 16,
+    padding: 12,
+    alignItems: "center",
   },
+  statLabel: {
+    color: "rgba(255,255,255,0.52)",
+    fontSize: 10,
+  },
+  statValue: {
+    color: WHITE,
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  sectionBlock: {
+    marginBottom: 18,
+  },
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  badgeText: {
+    color: WHITE,
+    fontSize: 10,
+    fontWeight: "800",
+  },
+  heroShellCompact: {
+    minHeight: 0,
+  },
+  compactHeroCard: {
+    padding: 22,
+    minHeight: 210,
+    justifyContent: "space-between",
+  },
+  compactHeroTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  compactIdentityVisual: {
+    width: 88,
+    height: 88,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: "rgba(244,181,71,0.55)",
+    backgroundColor: "rgba(19,52,106,0.72)",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  compactIdentityLogo: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  compactIdentityInitial: {
+    color: "#F4B547",
+    fontSize: 36,
+  },
+  compactHeroCopy: {
+    flex: 1,
+  },
+  compactHeroBottom: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 20,
+  },
+  heroVendorName: {
+    color: "rgba(255,255,255,0.82)",
+    marginBottom: 2,
+  },
+  snapshotFrame: {
+    marginBottom: 16,
+  },
+  snapshotCard: {
+    padding: 18,
+    borderRadius: 21,
+  },
+  snapshotHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  snapshotTitle: {
+    color: WHITE,
+    fontSize: 22,
+    marginTop: 2,
+  },
+  managedPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(69,226,123,0.34)",
+    backgroundColor: "rgba(69,226,123,0.08)",
+  },
+  managedPillText: {
+    color: "#45E27B",
+    fontSize: 9,
+  },
+  snapshotGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 2,
+  },
+  snapshotItem: {
+    width: "48%",
+    minHeight: 94,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(98,181,255,0.20)",
+    backgroundColor: "rgba(8,29,49,0.70)",
+    padding: 12,
+  },
+  snapshotLabel: {
+    color: "rgba(255,255,255,0.52)",
+    fontSize: 10,
+    marginTop: 8,
+    marginBottom: 3,
+  },
+  snapshotValue: {
+    color: "rgba(255,255,255,0.90)",
+    fontSize: 14,
+    lineHeight: 19,
+  },
+
 });
