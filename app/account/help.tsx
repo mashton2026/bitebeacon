@@ -9,7 +9,6 @@ import {
     TextInput,
     View,
 } from "react-native";
-import { theme } from "../../constants/theme";
 
 const SUPPORT_EMAIL = "support@bitebeacon.uk";
 
@@ -168,8 +167,8 @@ const FAQ_ITEMS: FAQItem[] = [
         category: "Vendors",
         title: "What happens when a subscription changes?",
         content: [
-            "If a vendor downgrades or cancels a paid plan, current paid features remain active until the end of the current billing period.",
-            "After that, unsupported features may be disabled and the listing will operate under the lower tier rules.",
+            "The timing and effect of upgrades, downgrades, cancellations, and renewals are shown during the relevant billing or subscription-management flow.",
+            "When a subscription tier changes, the vendor listing will operate under the features available to the active tier.",
             "Vendor listing data is not automatically deleted purely because of a downgrade.",
         ],
     },
@@ -200,8 +199,8 @@ const FAQ_ITEMS: FAQItem[] = [
         category: "Billing",
         title: "Are payments refundable?",
         content: [
-            "Payments are generally non-refundable.",
-            "If you believe there has been a billing error, please contact support and it can be reviewed.",
+            "Refunds and cancellation rights depend on the circumstances, the applicable billing terms, and any rights provided by law.",
+            "If you believe there has been a billing error, please contact support so it can be reviewed.",
         ],
     },
     {
@@ -240,18 +239,33 @@ function FAQCard({ item }: { item: FAQItem }) {
     const [open, setOpen] = useState(false);
 
     return (
-        <View style={styles.faqCard}>
-            <Pressable style={styles.faqHeader} onPress={() => setOpen((current) => !current)}>
+        <View style={[styles.faqCard, open && styles.faqCardOpen]}>
+            <Pressable
+                style={({ pressed }) => [
+                    styles.faqHeader,
+                    pressed && styles.faqHeaderPressed,
+                ]}
+                onPress={() => setOpen((current) => !current)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: open }}
+                accessibilityLabel={`${item.title}. ${open ? "Collapse" : "Expand"} answer`}
+            >
                 <Text style={styles.faqTitle}>{item.title}</Text>
-                <Text style={styles.faqIcon}>{open ? "−" : "+"}</Text>
+
+                <View style={[styles.faqIconWrap, open && styles.faqIconWrapOpen]}>
+                    <Text style={styles.faqIcon}>{open ? "−" : "+"}</Text>
+                </View>
             </Pressable>
 
             {open ? (
                 <View style={styles.faqBody}>
+                    <View style={styles.faqDivider} />
+
                     {item.content.map((line, index) => (
-                        <Text key={`${item.title}-${index}`} style={styles.faqText}>
-                            • {line}
-                        </Text>
+                        <View key={`${item.title}-${index}`} style={styles.answerRow}>
+                            <View style={styles.answerBullet} />
+                            <Text style={styles.faqText}>{line}</Text>
+                        </View>
                     ))}
                 </View>
             ) : null}
@@ -328,207 +342,373 @@ export default function HelpScreen() {
     }, [filteredItems]);
 
     return (
-        <ScrollView
-            style={styles.container}
-            contentContainerStyle={styles.content}
-            showsVerticalScrollIndicator={false}
-        >
-            <Text style={styles.kicker}>SUPPORT</Text>
-            <Text style={styles.title}>Help & FAQ</Text>
-            <Text style={styles.subtitle}>
-                Everything you need to know about using BiteBeacon, understanding
-                listings, vendor tools, ratings, subscriptions, billing, and getting
-                support.
-            </Text>
-
-            <View style={styles.searchWrap}>
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search help topics"
-                    placeholderTextColor="#7A7A7A"
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                />
-            </View>
-
-            <View style={styles.supportHero}>
-                <Text style={styles.supportHeroTitle}>Need direct help?</Text>
-                <Text style={styles.supportHeroText}>
-                    If you cannot find the answer here, contact BiteBeacon support and we
-                    will review your issue.
-                </Text>
-
-                <View style={styles.emailBox}>
-                    <Text style={styles.emailLabel}>Support Email</Text>
-                    <Text style={styles.emailValue}>{SUPPORT_EMAIL}</Text>
-                </View>
-
-                <Pressable style={styles.primaryButton} onPress={handleContactSupport}>
-                    <Text style={styles.primaryButtonText}>Email Support</Text>
-                </Pressable>
-
-                <Pressable style={styles.secondaryButton} onPress={handleReportIssue}>
-                    <Text style={styles.secondaryButtonText}>Report an Issue</Text>
-                </Pressable>
-
-            </View>
-
-            {(
-                [
-                    "Getting Started",
-                    "Map & Discovery",
-                    "Accounts",
-                    "Vendors",
-                    "Billing",
-                    "Support",
-                ] as FAQItem["category"][]
-            ).map((category) =>
-                groupedItems[category].length > 0 ? (
-                    <View key={category} style={styles.categoryBlock}>
-                        <Text style={styles.categoryTitle}>{category}</Text>
-
-                        {groupedItems[category].map((item) => (
-                            <FAQCard key={item.title} item={item} />
-                        ))}
-                    </View>
-                ) : null
-            )}
-
-            {filteredItems.length === 0 ? (
-                <View style={styles.emptyState}>
-                    <Text style={styles.emptyStateTitle}>No matching help topics</Text>
-                    <Text style={styles.emptyStateText}>
-                        Try a different search term or contact support directly.
+        <View style={styles.screen}>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={styles.content}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
+                <View style={styles.hero}>
+                    <Text style={styles.kicker}>SUPPORT</Text>
+                    <Text style={styles.title}>Help & FAQ</Text>
+                    <Text style={styles.subtitle}>
+                        Find answers about BiteBeacon, vendor listings, the map,
+                        subscriptions, billing, and account support.
                     </Text>
                 </View>
-            ) : null}
 
-            <Pressable style={styles.backButton} onPress={() => router.back()}>
-                <Text style={styles.backButtonText}>Back</Text>
-            </Pressable>
-        </ScrollView>
+                <View style={styles.searchWrap}>
+                    <View style={styles.searchIconWrap}>
+                        <Text style={styles.searchIcon}>⌕</Text>
+                    </View>
+
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search help topics"
+                        placeholderTextColor="rgba(255,255,255,0.38)"
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        selectionColor="#F4B547"
+                        returnKeyType="search"
+                        accessibilityLabel="Search help topics"
+                    />
+
+                    {searchQuery.length > 0 ? (
+                        <Pressable
+                            style={styles.clearButton}
+                            onPress={() => setSearchQuery("")}
+                            accessibilityRole="button"
+                            accessibilityLabel="Clear help search"
+                        >
+                            <Text style={styles.clearButtonText}>×</Text>
+                        </Pressable>
+                    ) : null}
+                </View>
+
+                <View style={styles.supportHero}>
+                    <View style={styles.supportTopRow}>
+                        <View style={styles.supportBadge}>
+                            <Text style={styles.supportBadgeText}>HELP</Text>
+                        </View>
+
+                        <View style={styles.supportHeading}>
+                            <Text style={styles.supportHeroTitle}>Need direct help?</Text>
+                            <Text style={styles.supportHeroText}>
+                                If you cannot find the answer here, contact BiteBeacon
+                                support and we will review your issue.
+                            </Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.emailBox}>
+                        <Text style={styles.emailLabel}>SUPPORT EMAIL</Text>
+                        <Text style={styles.emailValue}>{SUPPORT_EMAIL}</Text>
+                    </View>
+
+                    <Pressable
+                        style={({ pressed }) => [
+                            styles.primaryButton,
+                            pressed && styles.buttonPressed,
+                        ]}
+                        onPress={handleContactSupport}
+                    >
+                        <Text style={styles.primaryButtonText}>Email Support</Text>
+                    </Pressable>
+
+                    <Pressable
+                        style={({ pressed }) => [
+                            styles.secondaryButton,
+                            pressed && styles.buttonPressed,
+                        ]}
+                        onPress={handleReportIssue}
+                    >
+                        <Text style={styles.secondaryButtonText}>Report an Issue</Text>
+                    </Pressable>
+                </View>
+
+                {(
+                    [
+                        "Getting Started",
+                        "Map & Discovery",
+                        "Accounts",
+                        "Vendors",
+                        "Billing",
+                        "Support",
+                    ] as FAQItem["category"][]
+                ).map((category) =>
+                    groupedItems[category].length > 0 ? (
+                        <View key={category} style={styles.categoryBlock}>
+                            <Text style={styles.categoryTitle}>{category}</Text>
+
+                            <View style={styles.categoryCards}>
+                                {groupedItems[category].map((item) => (
+                                    <FAQCard key={item.title} item={item} />
+                                ))}
+                            </View>
+                        </View>
+                    ) : null
+                )}
+
+                {filteredItems.length === 0 ? (
+                    <View style={styles.emptyState}>
+                        <Text style={styles.emptyStateKicker}>NO RESULTS</Text>
+                        <Text style={styles.emptyStateTitle}>
+                            No matching help topics
+                        </Text>
+                        <Text style={styles.emptyStateText}>
+                            Try a different search term or contact BiteBeacon support
+                            directly.
+                        </Text>
+                    </View>
+                ) : null}
+
+                <Pressable
+                    style={({ pressed }) => [
+                        styles.backButton,
+                        pressed && styles.backButtonPressed,
+                    ]}
+                    onPress={() => router.back()}
+                    accessibilityRole="button"
+                    accessibilityLabel="Go back"
+                >
+                    <Text style={styles.backButtonText}>Back</Text>
+                </Pressable>
+            </ScrollView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
+    screen: {
+        flex: 1,
+        backgroundColor: "#07131F",
+    },
+
     container: {
         flex: 1,
-        backgroundColor: theme.colors.background,
     },
 
     content: {
-        padding: 24,
+        paddingHorizontal: 20,
+        paddingTop: 24,
         paddingBottom: 40,
     },
 
+    hero: {
+        marginBottom: 18,
+    },
+
     kicker: {
-        fontSize: 12,
-        fontWeight: "800",
-        color: theme.colors.secondary,
-        letterSpacing: 1.2,
+        fontSize: 11,
+        fontWeight: "900",
+        color: "#F4B547",
+        letterSpacing: 1.8,
         marginBottom: 8,
     },
 
     title: {
-        fontSize: 30,
-        fontWeight: "800",
-        color: theme.colors.textOnDark,
-        marginBottom: 8,
+        fontSize: 31,
+        lineHeight: 36,
+        fontWeight: "900",
+        letterSpacing: -0.6,
+        color: "#FFFFFF",
+        marginBottom: 10,
     },
 
     subtitle: {
+        maxWidth: 540,
         fontSize: 15,
         lineHeight: 22,
-        color: "rgba(255,255,255,0.75)",
-        marginBottom: 20,
+        fontWeight: "600",
+        color: "rgba(255,255,255,0.68)",
     },
 
     searchWrap: {
-        marginBottom: 20,
+        minHeight: 56,
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "rgba(14,29,45,0.98)",
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: "rgba(244,181,71,0.32)",
+        paddingHorizontal: 12,
+        marginBottom: 16,
+    },
+
+    searchIconWrap: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(244,181,71,0.08)",
+        borderWidth: 1,
+        borderColor: "rgba(244,181,71,0.22)",
+        marginRight: 9,
+    },
+
+    searchIcon: {
+        color: "#F4B547",
+        fontSize: 22,
+        lineHeight: 24,
+        fontWeight: "700",
+        marginTop: -2,
     },
 
     searchInput: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 16,
-        borderWidth: 2,
-        borderColor: theme.colors.border,
-        paddingHorizontal: 14,
-        paddingVertical: 14,
-        color: "#222222",
+        flex: 1,
+        minHeight: 54,
+        color: "#FFFFFF",
         fontSize: 15,
+        fontWeight: "600",
+        paddingVertical: 0,
+    },
+
+    clearButton: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+
+    clearButtonText: {
+        color: "rgba(255,255,255,0.58)",
+        fontSize: 24,
+        lineHeight: 26,
     },
 
     supportHero: {
-        backgroundColor: "rgba(255,255,255,0.06)",
-        borderWidth: 2,
-        borderColor: theme.colors.border,
-        borderRadius: 20,
-        padding: 18,
+        backgroundColor: "rgba(14,29,45,0.98)",
+        borderWidth: 1,
+        borderColor: "rgba(244,181,71,0.42)",
+        borderRadius: 22,
+        padding: 16,
         marginBottom: 24,
+        shadowColor: "#000000",
+        shadowOpacity: 0.22,
+        shadowRadius: 14,
+        shadowOffset: {
+            width: 0,
+            height: 6,
+        },
+        elevation: 6,
     },
 
-    supportHeroTitle: {
-        fontSize: 18,
-        fontWeight: "800",
-        color: theme.colors.textOnDark,
-        marginBottom: 8,
-    },
-
-    supportHeroText: {
-        fontSize: 14,
-        lineHeight: 21,
-        color: "rgba(255,255,255,0.78)",
+    supportTopRow: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: 12,
         marginBottom: 14,
     },
 
-    emailBox: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 14,
-        padding: 14,
-        marginBottom: 14,
+    supportBadge: {
+        minWidth: 50,
+        height: 32,
+        borderRadius: 16,
+        paddingHorizontal: 10,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(244,181,71,0.1)",
+        borderWidth: 1,
+        borderColor: "rgba(244,181,71,0.4)",
     },
 
-    emailLabel: {
-        fontSize: 12,
-        fontWeight: "800",
-        color: theme.colors.primary,
-        marginBottom: 4,
+    supportBadgeText: {
+        color: "#F4B547",
+        fontSize: 10,
+        fontWeight: "900",
         letterSpacing: 1,
     },
 
+    supportHeading: {
+        flex: 1,
+    },
+
+    supportHeroTitle: {
+        fontSize: 17,
+        fontWeight: "900",
+        color: "#FFFFFF",
+        marginBottom: 5,
+    },
+
+    supportHeroText: {
+        fontSize: 13,
+        lineHeight: 19,
+        fontWeight: "600",
+        color: "rgba(255,255,255,0.62)",
+    },
+
+    emailBox: {
+        backgroundColor: "rgba(255,255,255,0.035)",
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.08)",
+        paddingHorizontal: 14,
+        paddingVertical: 13,
+        marginBottom: 12,
+    },
+
+    emailLabel: {
+        fontSize: 10,
+        fontWeight: "900",
+        color: "#F4B547",
+        marginBottom: 5,
+        letterSpacing: 1.3,
+    },
+
     emailValue: {
-        fontSize: 16,
-        fontWeight: "700",
-        color: theme.colors.background,
+        fontSize: 15,
+        fontWeight: "800",
+        color: "#FFFFFF",
     },
 
     primaryButton: {
-        backgroundColor: theme.colors.primary,
-        paddingVertical: 14,
-        borderRadius: 16,
+        minHeight: 50,
+        backgroundColor: "#FF7A00",
+        borderRadius: 15,
+        borderWidth: 1,
+        borderColor: "#FFB24D",
         alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 16,
+        shadowColor: "#FF7A00",
+        shadowOpacity: 0.2,
+        shadowRadius: 10,
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        elevation: 5,
     },
 
     primaryButtonText: {
         color: "#FFFFFF",
-        fontSize: 16,
-        fontWeight: "800",
+        fontSize: 15,
+        fontWeight: "900",
     },
 
     secondaryButton: {
-        backgroundColor: "rgba(255,255,255,0.12)",
-        paddingVertical: 14,
-        borderRadius: 16,
-        alignItems: "center",
+        minHeight: 50,
         marginTop: 10,
+        backgroundColor: "rgba(244,181,71,0.07)",
+        borderRadius: 15,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.12)",
+        borderColor: "rgba(244,181,71,0.5)",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 16,
     },
 
     secondaryButtonText: {
-        color: "#FFFFFF",
-        fontSize: 16,
-        fontWeight: "800",
+        color: "#F4B547",
+        fontSize: 15,
+        fontWeight: "900",
+    },
+
+    buttonPressed: {
+        opacity: 0.82,
     },
 
     categoryBlock: {
@@ -536,46 +716,84 @@ const styles = StyleSheet.create({
     },
 
     categoryTitle: {
-        fontSize: 13,
-        fontWeight: "800",
-        color: theme.colors.secondary,
-        letterSpacing: 1,
+        fontSize: 11,
+        fontWeight: "900",
+        color: "#F4B547",
+        letterSpacing: 1.6,
         textTransform: "uppercase",
         marginBottom: 10,
     },
 
+    categoryCards: {
+        gap: 10,
+    },
+
     faqCard: {
-        backgroundColor: "rgba(255,255,255,0.05)",
+        overflow: "hidden",
+        backgroundColor: "rgba(14,29,45,0.96)",
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.08)",
-        borderRadius: 18,
-        marginBottom: 12,
-        overflow: "hidden",
+        borderRadius: 20,
+    },
+
+    faqCardOpen: {
+        backgroundColor: "rgba(13,28,44,0.99)",
+        borderColor: "rgba(244,181,71,0.46)",
+        shadowColor: "#F4B547",
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        elevation: 3,
     },
 
     faqHeader: {
+        minHeight: 70,
         paddingHorizontal: 16,
-        paddingVertical: 16,
+        paddingVertical: 13,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         gap: 12,
     },
 
+    faqHeaderPressed: {
+        backgroundColor: "rgba(255,255,255,0.025)",
+    },
+
     faqTitle: {
         flex: 1,
         fontSize: 16,
-        fontWeight: "800",
-        color: theme.colors.textOnDark,
-        lineHeight: 22,
+        fontWeight: "900",
+        color: "#FFFFFF",
+        lineHeight: 21,
+    },
+
+    faqIconWrap: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(244,181,71,0.06)",
+        borderWidth: 1,
+        borderColor: "rgba(244,181,71,0.34)",
+    },
+
+    faqIconWrapOpen: {
+        backgroundColor: "rgba(244,181,71,0.13)",
+        borderColor: "rgba(244,181,71,0.68)",
     },
 
     faqIcon: {
         width: 22,
         textAlign: "center",
-        fontSize: 22,
-        fontWeight: "800",
-        color: theme.colors.primary,
+        fontSize: 21,
+        lineHeight: 23,
+        fontWeight: "700",
+        color: "#F4B547",
     },
 
     faqBody: {
@@ -583,46 +801,84 @@ const styles = StyleSheet.create({
         paddingBottom: 16,
     },
 
+    faqDivider: {
+        height: 1,
+        backgroundColor: "rgba(244,181,71,0.16)",
+        marginBottom: 14,
+    },
+
+    answerRow: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: 10,
+        marginBottom: 10,
+    },
+
+    answerBullet: {
+        width: 6,
+        height: 6,
+        borderRadius: 999,
+        backgroundColor: "#F4B547",
+        marginTop: 7,
+    },
+
     faqText: {
+        flex: 1,
         fontSize: 14,
         lineHeight: 21,
-        color: "rgba(255,255,255,0.8)",
-        marginBottom: 8,
+        fontWeight: "600",
+        color: "rgba(255,255,255,0.74)",
     },
 
     emptyState: {
-        backgroundColor: "rgba(255,255,255,0.06)",
-        borderWidth: 2,
-        borderColor: theme.colors.border,
-        borderRadius: 18,
-        padding: 18,
-        marginTop: 6,
+        backgroundColor: "rgba(14,29,45,0.98)",
+        borderWidth: 1,
+        borderColor: "rgba(244,181,71,0.3)",
+        borderRadius: 20,
+        padding: 17,
+        marginBottom: 20,
+    },
+
+    emptyStateKicker: {
+        color: "#F4B547",
+        fontSize: 10,
+        fontWeight: "900",
+        letterSpacing: 1.4,
+        marginBottom: 5,
     },
 
     emptyStateTitle: {
-        fontSize: 18,
-        fontWeight: "800",
-        color: theme.colors.textOnDark,
-        marginBottom: 6,
+        fontSize: 17,
+        fontWeight: "900",
+        color: "#FFFFFF",
+        marginBottom: 5,
     },
 
     emptyStateText: {
-        fontSize: 14,
-        lineHeight: 20,
-        color: "rgba(255,255,255,0.72)",
+        fontSize: 13,
+        lineHeight: 19,
+        fontWeight: "600",
+        color: "rgba(255,255,255,0.6)",
     },
 
     backButton: {
-        marginTop: 10,
-        backgroundColor: "#D9D9D9",
-        paddingVertical: 14,
-        borderRadius: 16,
+        minHeight: 48,
+        marginTop: 2,
+        borderRadius: 15,
         alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(255,255,255,0.06)",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.12)",
+    },
+
+    backButtonPressed: {
+        backgroundColor: "rgba(255,255,255,0.1)",
     },
 
     backButtonText: {
-        color: "#222222",
-        fontSize: 16,
-        fontWeight: "700",
+        color: "rgba(255,255,255,0.8)",
+        fontSize: 14,
+        fontWeight: "800",
     },
 });
