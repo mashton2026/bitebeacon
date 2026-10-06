@@ -48,58 +48,135 @@ const DEFAULT_REGION: Region = {
 };
 
 const BITEBEACON_MAP_STYLE = [
-  { elementType: "geometry", stylers: [{ color: "#eaf0f6" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#355070" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#ffffff" }] },
+  // PASS 3 — keep the strong BiteBeacon identity from Pass 2,
+  // but lift navigation detail and separate land from water more clearly.
+  { elementType: "geometry", stylers: [{ color: "#1b3348" }] },
+  { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#dce9f3" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#102536" }, { weight: 3 }] },
+
   {
     featureType: "administrative",
     elementType: "geometry.stroke",
-    stylers: [{ color: "#cfd8e3" }],
+    stylers: [{ color: "#45647c" }],
+  },
+  {
+    featureType: "administrative.locality",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#f4f8fb" }],
+  },
+  {
+    featureType: "administrative.neighborhood",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#adc1d1" }],
+  },
+
+  {
+    featureType: "landscape",
+    elementType: "geometry",
+    stylers: [{ color: "#1c374c" }],
+  },
+  {
+    featureType: "landscape.natural",
+    elementType: "geometry",
+    stylers: [{ color: "#203d53" }],
   },
   {
     featureType: "poi",
     elementType: "geometry",
-    stylers: [{ color: "#f6efe8" }],
+    stylers: [{ color: "#203f4c" }],
+  },
+  {
+    featureType: "poi",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#91a9ba" }],
   },
   {
     featureType: "poi.park",
     elementType: "geometry",
-    stylers: [{ color: "#dfeee1" }],
+    stylers: [{ color: "#1d4946" }],
   },
+  {
+    featureType: "poi.park",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#91b8aa" }],
+  },
+
+  // Local roads are now visible enough for real navigation without becoming a bright web.
   {
     featureType: "road",
     elementType: "geometry",
-    stylers: [{ color: "#ffffff" }],
+    stylers: [{ color: "#38556b" }],
   },
   {
     featureType: "road",
     elementType: "geometry.stroke",
-    stylers: [{ color: "#dbe4ef" }],
+    stylers: [{ color: "#142b3c" }],
   },
+  {
+    featureType: "road.local",
+    elementType: "geometry",
+    stylers: [{ color: "#345168" }],
+  },
+  {
+    featureType: "road.local",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#a6bbca" }],
+  },
+
+  // PASS 3G — metallic-gold road treatment. Map logic and all other styling remain unchanged.
   {
     featureType: "road.arterial",
     elementType: "geometry",
-    stylers: [{ color: "#fff7ef" }],
+    stylers: [{ color: "#8a6a28" }],
+  },
+  {
+    featureType: "road.arterial",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#d6aa3a" }],
+  },
+  {
+    featureType: "road.arterial",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#f7dfa0" }],
   },
   {
     featureType: "road.highway",
     elementType: "geometry",
-    stylers: [{ color: "#ffe4cc" }],
+    stylers: [{ color: "#b88a22" }],
   },
   {
     featureType: "road.highway",
     elementType: "geometry.stroke",
-    stylers: [{ color: "#ffb979" }],
+    stylers: [{ color: "#f3c64d" }],
   },
+  {
+    featureType: "road.highway",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#fff0bd" }],
+  },
+
   {
     featureType: "transit",
     elementType: "geometry",
-    stylers: [{ color: "#e5eaf0" }],
+    stylers: [{ color: "#2a475b" }],
   },
+  {
+    featureType: "transit",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#91a8b8" }],
+  },
+
+  // Darker water against the lifted land makes coastlines immediately readable.
   {
     featureType: "water",
     elementType: "geometry",
-    stylers: [{ color: "#bfd8f5" }],
+    stylers: [{ color: "#082238" }],
+  },
+  {
+    featureType: "water",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#69b6e8" }],
   },
 ];
 
@@ -157,18 +234,26 @@ function matchesSearchQuery(van: Van, query: string) {
   );
 }
 
-function getMarkerColor(van: Van) {
-  if (isVendorLiveNow(van)) return "#1DB954";
+const MARKER_IMAGES = {
+  blue: require("../../assets/markers/marker-blue.png"),
+  red: require("../../assets/markers/marker-red.png"),
+  green: require("../../assets/markers/marker-green.png"),
+  orange: require("../../assets/markers/marker-orange.png"),
+  gold: require("../../assets/markers/marker-gold.png"),
+};
+
+function getMarkerImage(van: Van) {
+  // Marker priority: LIVE > community spotted > Pro > normal listed vendor.
+  // Red is intentionally kept out of the normal public map for now.
+  if (isVendorLiveNow(van)) return MARKER_IMAGES.green;
 
   if (van.listingSource === "user_spotted") {
-    if ((van.confirmationCount ?? 0) >= 1) {
-      return "#FF7A00";
-    }
-
-    return "#3B82F6";
+    return MARKER_IMAGES.orange;
   }
 
-  return "#E53935";
+  if (van.subscriptionTier === "pro") return MARKER_IMAGES.gold;
+
+  return MARKER_IMAGES.blue;
 }
 
 export default function MapScreen() {
@@ -686,7 +771,7 @@ export default function MapScreen() {
       cancelSpotFlow();
 
       Alert.alert(
-        "Vendor submitted 🔥",
+        "Vendor submitted ðŸ”¥",
         "Your spotted vendor has been submitted for admin approval.\n\nOnce approved, it will appear on the BiteBeacon map for the community to discover.\n\nThanks for helping grow BiteBeacon."
       );
 
@@ -756,7 +841,8 @@ export default function MapScreen() {
                 longitude: lng,
               }}
               onPress={() => handleMarkerPress(van)}
-              pinColor={getMarkerColor(van)}
+              image={getMarkerImage(van)}
+              anchor={{ x: 0.5, y: 1 }}
             />
           );
         })}
@@ -773,131 +859,251 @@ export default function MapScreen() {
       ) : null}
 
       <View style={styles.topOverlay}>
-        <View style={styles.topControlsRow}>
-          <View style={styles.filterBar}>
+        <View style={styles.topControlsRowBB}>
+          <View style={styles.pillControlsRow}>
             <Pressable
-              style={[styles.filterChip, filtersOpen && styles.filterChipActive]}
-              onPress={() => setFiltersOpen((current) => !current)}
+              style={({ pressed }) => [
+                styles.assetPressable,
+                pressed && styles.assetPressablePressed,
+              ]}
+              onPress={() => {
+                setFiltersOpen((current) => !current);
+                setLegendOpen(false);
+              }}
             >
-              <Text
+              <Image
+                source={require("../../assets/map-controls/pills/filters.png")}
                 style={[
-                  styles.filterChipText,
-                  filtersOpen && styles.filterChipTextActive,
+                  styles.filterPillImage,
+                  filtersOpen && styles.assetImageActive,
                 ]}
-              >
-                Filters
-              </Text>
+                resizeMode="contain"
+              />
             </Pressable>
 
-            {!legendOpen ? (
-              <Pressable
-                style={styles.legendButton}
-                onPress={() => setLegendOpen(true)}
-              >
-                <Text style={styles.legendButtonText}>Map Guide</Text>
-              </Pressable>
-            ) : (
-              <Pressable
-                style={styles.legendCard}
-                onPress={() => setLegendOpen(false)}
-              >
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, styles.legendDotPro]} />
-                  <Text style={styles.legendText}>Pro Vendor</Text>
-                </View>
-
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, styles.legendDotLive]} />
-                  <Text style={styles.legendText}>Live Now</Text>
-                </View>
-
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, styles.legendDotSpottedPending]} />
-                  <Text style={styles.legendText}>Spotted - new sighting</Text>
-                </View>
-
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, styles.legendDotSpotted]} />
-                  <Text style={styles.legendText}>Spotted - active sighting</Text>
-                </View>
-
-                <View style={styles.legendItemLast}>
-                  <View style={[styles.legendDot, styles.legendDotListed]} />
-                  <Text style={styles.legendText}>Listed / Offline</Text>
-                </View>
-              </Pressable>
-            )}
+            <Pressable
+              style={({ pressed }) => [
+                styles.assetPressable,
+                pressed && styles.assetPressablePressed,
+              ]}
+              onPress={() => {
+                setLegendOpen((current) => !current);
+                setFiltersOpen(false);
+              }}
+            >
+              <Image
+                source={require("../../assets/map-controls/pills/map-guide.png")}
+                style={[
+                  styles.mapGuidePillImage,
+                  legendOpen && styles.assetImageActive,
+                ]}
+                resizeMode="contain"
+              />
+            </Pressable>
           </View>
 
-          <View style={styles.mapActionButtons}>
+          <View style={styles.mapActionButtonsBB}>
             <Pressable
-              style={styles.searchIconButton}
+              style={({ pressed }) => [
+                styles.assetPressable,
+                pressed && styles.assetPressablePressed,
+              ]}
               onPress={() => {
                 if (searchVisible) {
                   closeSearch();
                 } else {
                   setSearchVisible(true);
+                  setFiltersOpen(false);
+                  setLegendOpen(false);
                 }
               }}
             >
-              <Text style={styles.searchIconText}>
-                {searchVisible ? "✕" : "🔍"}
-              </Text>
+              <Image
+                source={
+                  searchVisible
+                    ? require("../../assets/map-controls/circular/close.png")
+                    : require("../../assets/map-controls/circular/search.png")
+                }
+                style={styles.circularControlImage}
+                resizeMode="contain"
+              />
             </Pressable>
 
             <Pressable
-              style={styles.searchIconButton}
-              onPress={() =>
-                setMapType((current) =>
-                  current === "standard" ? "satellite" : "standard"
-                )
-              }
+              style={({ pressed }) => [
+                styles.assetPressable,
+                pressed && styles.assetPressablePressed,
+              ]}
+              onPress={recenterMap}
             >
-              <Text style={styles.searchIconText}>
-                {mapType === "standard" ? "🛰️" : "🗺️"}
-              </Text>
+              <Image
+                source={require("../../assets/map-controls/circular/location.png")}
+                style={styles.circularControlImage}
+                resizeMode="contain"
+              />
             </Pressable>
+
           </View>
         </View>
 
         {filtersOpen ? (
-          <View style={styles.extraFiltersRow}>
-            {[
-              { key: "all", label: "All" },
-              { key: "live", label: `Live (${liveVendorCount})` },
-              { key: "spotted", label: "Spotted" },
-              { key: "food_van", label: "🚚 Vans" },
-              { key: "restaurant_takeaway", label: "🍔 Restaurants" },
-              { key: "event_vendor", label: "🎪 Events" },
-              { key: "market_stall", label: "🛍️ Markets" },
-            ].map((filter) => (
+          <View style={styles.bbControlPanel}>
+            <View style={styles.bbPanelHeader}>
+              <Text style={styles.bbPanelTitle}>Filters</Text>
+
               <Pressable
-                key={filter.key}
-                style={[
-                  styles.filterChip,
-                  selectedFilter === filter.key && styles.filterChipActive,
+                style={({ pressed }) => [
+                  styles.bbPanelCloseButton,
+                  pressed && styles.assetPressablePressed,
                 ]}
-                onPress={() => {
-                  setSelectedFilter(filter.key as FilterType);
-                  setSelectedVan(null);
-                  setFiltersOpen(false);
-                }}
+                onPress={() => setFiltersOpen(false)}
               >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    selectedFilter === filter.key && styles.filterChipTextActive,
-                  ]}
-                >
-                  {filter.label}
-                </Text>
+                <Image
+                  source={require("../../assets/map-controls/circular/close.png")}
+                  style={styles.bbPanelCloseImage}
+                  resizeMode="contain"
+                />
               </Pressable>
-            ))}
+            </View>
+
+            <View style={styles.bbFilterGrid}>
+              {[
+                { key: "all", label: "All" },
+                { key: "live", label: `Live (${liveVendorCount})` },
+                { key: "spotted", label: "Spotted" },
+                { key: "food_van", label: "Food Van" },
+                { key: "restaurant_takeaway", label: "Restaurant" },
+                { key: "event_vendor", label: "Event Vendor" },
+                { key: "market_stall", label: "Market Stall" },
+              ].map((filter) => {
+                const active = selectedFilter === filter.key;
+
+                return (
+                  <Pressable
+                    key={filter.key}
+                    style={({ pressed }) => [
+                      styles.bbFilterOption,
+                      active && styles.bbFilterOptionActive,
+                      pressed && styles.bbFilterOptionPressed,
+                    ]}
+                    onPress={() => {
+                      setSelectedFilter(filter.key as FilterType);
+                      setSelectedVan(null);
+                      setFiltersOpen(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.bbFilterOptionText,
+                        active && styles.bbFilterOptionTextActive,
+                      ]}
+                    >
+                      {filter.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
+
+        {legendOpen ? (
+          <View style={styles.bbControlPanel}>
+            <View style={styles.bbPanelHeader}>
+              <Text style={styles.bbPanelTitle}>Map Guide</Text>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.bbPanelCloseButton,
+                  pressed && styles.assetPressablePressed,
+                ]}
+                onPress={() => setLegendOpen(false)}
+              >
+                <Image
+                  source={require("../../assets/map-controls/circular/close.png")}
+                  style={styles.bbPanelCloseImage}
+                  resizeMode="contain"
+                />
+              </Pressable>
+            </View>
+
+            <View style={styles.bbLegendList}>
+              <View style={styles.bbLegendRow}>
+                <Image source={MARKER_IMAGES.blue} style={styles.bbLegendMarker} resizeMode="contain" />
+                <View style={styles.bbLegendCopy}>
+                  <Text style={styles.bbLegendTitle}>Listed Vendor</Text>
+                  <Text style={styles.bbLegendDescription}>A BiteBeacon registered vendor.</Text>
+                </View>
+              </View>
+
+              <View style={styles.bbLegendRow}>
+                <Image source={MARKER_IMAGES.green} style={styles.bbLegendMarker} resizeMode="contain" />
+                <View style={styles.bbLegendCopy}>
+                  <Text style={styles.bbLegendTitle}>LIVE Now</Text>
+                  <Text style={styles.bbLegendDescription}>Currently trading.</Text>
+                </View>
+              </View>
+
+              <View style={styles.bbLegendRow}>
+                <Image source={MARKER_IMAGES.gold} style={styles.bbLegendMarker} resizeMode="contain" />
+                <View style={styles.bbLegendCopy}>
+                  <Text style={styles.bbLegendTitle}>Pro Vendor</Text>
+                  <Text style={styles.bbLegendDescription}>Premium BiteBeacon vendor.</Text>
+                </View>
+              </View>
+
+              <View style={styles.bbLegendRowLast}>
+                <Image source={MARKER_IMAGES.orange} style={styles.bbLegendMarker} resizeMode="contain" />
+                <View style={styles.bbLegendCopy}>
+                  <Text style={styles.bbLegendTitle}>Community Spotted</Text>
+                  <Text style={styles.bbLegendDescription}>Spotted by a user in the community.</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.bbMapTypeSection}>
+              <Text style={styles.bbMapTypeLabel}>Map style</Text>
+              <View style={styles.bbMapTypeRow}>
+                <Pressable
+                  style={[
+                    styles.bbMapTypeButton,
+                    mapType === "standard" && styles.bbMapTypeButtonActive,
+                  ]}
+                  onPress={() => setMapType("standard")}
+                >
+                  <Text
+                    style={[
+                      styles.bbMapTypeButtonText,
+                      mapType === "standard" && styles.bbMapTypeButtonTextActive,
+                    ]}
+                  >
+                    Map
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  style={[
+                    styles.bbMapTypeButton,
+                    mapType === "satellite" && styles.bbMapTypeButtonActive,
+                  ]}
+                  onPress={() => setMapType("satellite")}
+                >
+                  <Text
+                    style={[
+                      styles.bbMapTypeButtonText,
+                      mapType === "satellite" && styles.bbMapTypeButtonTextActive,
+                    ]}
+                  >
+                    Satellite
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
           </View>
         ) : null}
 
         {searchVisible ? (
-          <View style={styles.searchRow}>
+          <View style={[styles.searchRow, styles.searchRowBB]}>
             <TextInput
               style={styles.searchInput}
               placeholder="Search vendor or cuisine"
@@ -916,15 +1122,34 @@ export default function MapScreen() {
             </Text>
           </View>
         ) : null}
-
       </View>
 
       {spotMode ? (
-        <View style={styles.spotInstructionWrap}>
-          <Text style={styles.spotInstructionTitle}>📍 Spot a Vendor</Text>
-          <Text style={styles.spotInstructionText}>
-            Tap the map where you found a food vendor. Your submission will be reviewed before appearing on BiteBeacon.
-          </Text>
+        <View style={styles.bbSpotModeBanner}>
+          <View style={styles.bbSpotModeIconWrap}>
+            <Image
+              source={require("../../assets/map-controls/circular/spot.png")}
+              style={styles.bbSpotModeIcon}
+              resizeMode="contain"
+            />
+          </View>
+
+          <View style={styles.bbSpotModeCopy}>
+            <Text style={styles.bbSpotModeTitle}>Spot mode active</Text>
+            <Text style={styles.bbSpotModeText}>
+              Tap the map where you found the vendor.
+            </Text>
+          </View>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.bbSpotModeCancel,
+              pressed && styles.bbSpotModeCancelPressed,
+            ]}
+            onPress={cancelSpotFlow}
+          >
+            <Text style={styles.bbSpotModeCancelText}>Cancel</Text>
+          </Pressable>
         </View>
       ) : null}
 
@@ -947,13 +1172,6 @@ export default function MapScreen() {
           </Pressable>
         </View>
       ) : null}
-
-      <Pressable
-        style={[styles.recenterButton, { bottom: insets.bottom + 240 }]}
-        onPress={recenterMap}
-      >
-        <Text style={styles.recenterButtonText}>📍</Text>
-      </Pressable>
 
       {selectedVan ? (
         <Animated.View
@@ -1013,12 +1231,12 @@ export default function MapScreen() {
 
                   <Text style={styles.bottomCardTrustText}>
                     {selectedVan.vendorType === "food_van"
-                      ? "🚚 Food Van"
+                      ? "ðŸšš Food Van"
                       : selectedVan.vendorType === "restaurant_takeaway"
-                        ? "🍔 Restaurant / Takeaway"
+                        ? "ðŸ” Restaurant / Takeaway"
                         : selectedVan.vendorType === "event_vendor"
-                          ? "🎪 Event Vendor"
-                          : "🛍️ Market Stall"}
+                          ? "ðŸŽª Event Vendor"
+                          : "ðŸ›ï¸ Market Stall"}
                   </Text>
 
                   <Text style={styles.bottomCardTrustText}>
@@ -1098,243 +1316,221 @@ export default function MapScreen() {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 40}
           >
-            <View style={styles.modalCard}>
+            <View style={styles.bbSpotSheet}>
               <ScrollView
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode="interactive"
-                contentContainerStyle={styles.modalScrollContent}
+                contentContainerStyle={styles.bbSpotScrollContent}
               >
-                <View style={styles.spotHeader}>
-                  <Pressable style={styles.spotCloseButton} onPress={cancelSpotFlow}>
-                    <Text style={styles.spotCloseText}>×</Text>
-                  </Pressable>
-
-                  <View style={styles.spotHeaderIcon}>
+                <View style={styles.bbSpotHeader}>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.bbSpotCloseButton,
+                      pressed && styles.assetPressablePressed,
+                    ]}
+                    onPress={cancelSpotFlow}
+                  >
                     <Image
-                      source={require("../../assets/icons/spot.png")}
-                      style={styles.spotHeaderIconImage}
+                      source={require("../../assets/map-controls/circular/close.png")}
+                      style={styles.bbSpotCloseImage}
                       resizeMode="contain"
                     />
-                  </View>
+                  </Pressable>
 
-                  <Text style={styles.modalTitle}>Spot a Vendor</Text>
+                  <Image
+                    source={require("../../assets/map-controls/circular/spot.png")}
+                    style={styles.bbSpotHeroIcon}
+                    resizeMode="contain"
+                  />
 
-                  <Text style={styles.modalSubtitle}>
-                    Help the community by adding vendors you’ve found on the map.
+                  <Text style={styles.bbSpotTitle}>Spot a Vendor</Text>
+                  <Text style={styles.bbSpotSubtitle}>
+                    Help the community discover a great food spot. Your submission will be reviewed before appearing on BiteBeacon.
                   </Text>
                 </View>
 
-                <View style={styles.spotCard}>
-                  <View style={styles.spotCardIcon}>
-                    <Text style={styles.spotCardEmoji}>📍</Text>
+                <View style={styles.bbLocationConfirmedCard}>
+                  <View style={styles.bbLocationTick}>
+                    <Text style={styles.bbLocationTickText}>✓</Text>
                   </View>
 
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.spotCardTitle}>1. Pin set on map</Text>
-
-                    <Text style={styles.spotCardSubtitle}>
-                      Your location has been pinned.
+                  <View style={styles.bbLocationConfirmedCopy}>
+                    <Text style={styles.bbLocationConfirmedTitle}>Location confirmed</Text>
+                    <Text style={styles.bbLocationConfirmedText}>
+                      Your map pin is set and ready to use.
                     </Text>
-                  </View>
-
-                  <View style={styles.pinBadge}>
-                    <Text style={styles.pinBadgeText}>✓ Pin set</Text>
                   </View>
                 </View>
 
-                <View style={styles.spotFormCard}>
-                  <View style={styles.spotFormCardHeader}>
-                    <View style={styles.spotCardIcon}>
-                      <Text style={styles.spotCardEmoji}>🏪</Text>
+                <View style={styles.bbSpotSection}>
+                  <View style={styles.bbSpotSectionHeader}>
+                    <View style={styles.bbStepBadge}>
+                      <Text style={styles.bbStepBadgeText}>1</Text>
                     </View>
-
-                    <Text style={styles.spotFormCardTitle}>2. Business Name</Text>
+                    <View style={styles.bbSpotSectionHeadingWrap}>
+                      <Text style={styles.bbSpotSectionTitle}>Business name</Text>
+                      <Text style={styles.bbSpotSectionHint}>Enter the vendor name.</Text>
+                    </View>
                   </View>
 
                   <TextInput
-                    style={styles.input}
-                    placeholder="Business name (if known)"
-                    placeholderTextColor="rgba(255,255,255,0.42)"
+                    style={styles.bbSpotInput}
+                    placeholder="e.g. The Burger Van"
+                    placeholderTextColor="rgba(255,255,255,0.38)"
                     value={spotName}
                     onChangeText={setSpotName}
                     returnKeyType="next"
                   />
-
                 </View>
 
-                <View style={styles.spotFormCard}>
-                  <View style={styles.spotFormCardHeader}>
-                    <View style={styles.spotCardIcon}>
-                      <Text style={styles.spotCardEmoji}>🚚</Text>
+                <View style={styles.bbSpotSection}>
+                  <View style={styles.bbSpotSectionHeader}>
+                    <View style={styles.bbStepBadge}>
+                      <Text style={styles.bbStepBadgeText}>2</Text>
                     </View>
-
-                    <Text style={styles.spotFormCardTitle}>
-                      3. What did you find?
-                    </Text>
+                    <View style={styles.bbSpotSectionHeadingWrap}>
+                      <Text style={styles.bbSpotSectionTitle}>Type of vendor</Text>
+                      <Text style={styles.bbSpotSectionHint}>Choose the closest match.</Text>
+                    </View>
                   </View>
 
-                  <View style={styles.typeGrid}>
+                  <View style={styles.bbTypeGrid}>
+                    {[
+                      { key: "food_van", label: "Food Van" },
+                      { key: "restaurant_takeaway", label: "Restaurant" },
+                      { key: "event_vendor", label: "Event Vendor" },
+                      { key: "market_stall", label: "Market Stall" },
+                    ].map((type) => {
+                      const active = spotVendorType === type.key;
 
-                    <Pressable
-                      style={[
-                        styles.typeCard,
-                        spotVendorType === "food_van" && styles.typeCardActive,
-                      ]}
-                      onPress={() => setSpotVendorType("food_van")}
-                    >
-                      <Text style={styles.typeCardEmoji}>🚚</Text>
-                      <Text
-                        style={[
-                          styles.typeCardText,
-                          spotVendorType === "food_van" && styles.typeCardTextActive,
-                        ]}
-                      >
-                        Food Van
-                      </Text>
-                    </Pressable>
-
-                    <Pressable
-                      style={[
-                        styles.typeCard,
-                        spotVendorType === "restaurant_takeaway" && styles.typeCardActive,
-                      ]}
-                      onPress={() => setSpotVendorType("restaurant_takeaway")}
-                    >
-                      <Text style={styles.typeCardEmoji}>🍔</Text>
-                      <Text
-                        style={[
-                          styles.typeCardText,
-                          spotVendorType === "restaurant_takeaway" && styles.typeCardTextActive,
-                        ]}
-                      >
-                        Restaurant
-                      </Text>
-                    </Pressable>
-
-                    <Pressable
-                      style={[
-                        styles.typeCard,
-                        spotVendorType === "event_vendor" && styles.typeCardActive,
-                      ]}
-                      onPress={() => setSpotVendorType("event_vendor")}
-                    >
-                      <Text style={styles.typeCardEmoji}>🎪</Text>
-                      <Text
-                        style={[
-                          styles.typeCardText,
-                          spotVendorType === "event_vendor" && styles.typeCardTextActive,
-                        ]}
-                      >
-                        Event
-                      </Text>
-                    </Pressable>
-
-                    <Pressable
-                      style={[
-                        styles.typeCard,
-                        spotVendorType === "market_stall" && styles.typeCardActive,
-                      ]}
-                      onPress={() => setSpotVendorType("market_stall")}
-                    >
-                      <Text style={styles.typeCardEmoji}>🛍️</Text>
-                      <Text
-                        style={[
-                          styles.typeCardText,
-                          spotVendorType === "market_stall" && styles.typeCardTextActive,
-                        ]}
-                      >
-                        Market
-                      </Text>
-                    </Pressable>
-
+                      return (
+                        <Pressable
+                          key={type.key}
+                          style={({ pressed }) => [
+                            styles.bbTypeOption,
+                            active && styles.bbTypeOptionActive,
+                            pressed && styles.bbTypeOptionPressed,
+                          ]}
+                          onPress={() =>
+                            setSpotVendorType(
+                              type.key as
+                                | "food_van"
+                                | "restaurant_takeaway"
+                                | "event_vendor"
+                                | "market_stall"
+                            )
+                          }
+                        >
+                          <Text
+                            style={[
+                              styles.bbTypeOptionText,
+                              active && styles.bbTypeOptionTextActive,
+                            ]}
+                          >
+                            {type.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
                   </View>
                 </View>
-                <View style={styles.spotFormCard}>
-                  <View style={styles.spotFormCardHeader}>
-                    <View style={styles.spotCardIcon}>
-                      <Text style={styles.spotCardEmoji}>🍔</Text>
-                    </View>
 
-                    <Text style={styles.spotFormCardTitle}>4. Food or cuisine</Text>
+                <View style={styles.bbSpotSection}>
+                  <View style={styles.bbSpotSectionHeader}>
+                    <View style={styles.bbStepBadge}>
+                      <Text style={styles.bbStepBadgeText}>3</Text>
+                    </View>
+                    <View style={styles.bbSpotSectionHeadingWrap}>
+                      <Text style={styles.bbSpotSectionTitle}>Food or cuisine</Text>
+                      <Text style={styles.bbSpotSectionHint}>Optional, but useful for discovery.</Text>
+                    </View>
                   </View>
 
                   <TextInput
-                    style={styles.input}
+                    style={styles.bbSpotInput}
                     placeholder="e.g. Burgers, tacos, coffee"
-                    placeholderTextColor="rgba(255,255,255,0.42)"
+                    placeholderTextColor="rgba(255,255,255,0.38)"
                     value={spotCuisine}
                     onChangeText={setSpotCuisine}
                     returnKeyType="done"
                   />
                 </View>
 
-                <View style={styles.spotFormCard}>
-                  <View style={styles.spotFormCardHeader}>
-                    <View style={styles.spotCardIcon}>
-                      <Text style={styles.spotCardEmoji}>📝</Text>
+                <View style={styles.bbSpotSection}>
+                  <View style={styles.bbSpotSectionHeader}>
+                    <View style={styles.bbStepBadge}>
+                      <Text style={styles.bbStepBadgeText}>4</Text>
                     </View>
-
-                    <Text style={styles.spotFormCardTitle}>5. Extra information</Text>
+                    <View style={styles.bbSpotSectionHeadingWrap}>
+                      <Text style={styles.bbSpotSectionTitle}>Extra information</Text>
+                      <Text style={styles.bbSpotSectionHint}>Optional details that help others find it.</Text>
+                    </View>
                   </View>
 
                   <TextInput
-                    style={[styles.input, { height: 110, textAlignVertical: "top" }]}
-                    placeholder="Anything useful? Opening hours, landmarks, colours, queues..."
-                    placeholderTextColor="rgba(255,255,255,0.42)"
+                    style={[styles.bbSpotInput, styles.bbSpotNotesInput]}
+                    placeholder="Opening hours, landmarks, what they sell, anything useful..."
+                    placeholderTextColor="rgba(255,255,255,0.38)"
                     value={spotNotes}
                     onChangeText={setSpotNotes}
                     multiline
                   />
                 </View>
 
-                <View style={styles.spotFormCard}>
-                  <View style={styles.spotFormCardHeader}>
-                    <View style={styles.spotCardIcon}>
-                      <Text style={styles.spotCardEmoji}>📷</Text>
+                <View style={styles.bbSpotSection}>
+                  <View style={styles.bbSpotSectionHeader}>
+                    <View style={styles.bbStepBadge}>
+                      <Text style={styles.bbStepBadgeText}>5</Text>
                     </View>
-
-                    <Text style={styles.spotFormCardTitle}>6. Add a photo</Text>
+                    <View style={styles.bbSpotSectionHeadingWrap}>
+                      <Text style={styles.bbSpotSectionTitle}>Add a photo</Text>
+                      <Text style={styles.bbSpotSectionHint}>Optional, but helps the community identify the vendor.</Text>
+                    </View>
                   </View>
 
-                  <Pressable style={styles.photoUploadCard} onPress={pickSpotPhoto}>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.bbPhotoCard,
+                      pressed && styles.bbPhotoCardPressed,
+                    ]}
+                    onPress={pickSpotPhoto}
+                  >
                     {spotPhotoUri ? (
                       <Image
                         source={{ uri: spotPhotoUri }}
-                        style={styles.photoUploadPreview}
+                        style={styles.bbPhotoPreview}
                         resizeMode="cover"
                       />
                     ) : (
-                      <>
-                        <Text style={styles.photoUploadIcon}>📷</Text>
-                        <Text style={styles.photoUploadTitle}>Tap to add photo</Text>
-                        <Text style={styles.photoUploadSubtitle}>
-                          Optional, but helps us verify the spot
-                        </Text>
-                      </>
+                      <View style={styles.bbPhotoEmptyState}>
+                        <View style={styles.bbPhotoGlyph}>
+                          <Text style={styles.bbPhotoGlyphText}>+</Text>
+                        </View>
+                        <Text style={styles.bbPhotoTitle}>Tap to add a photo</Text>
+                        <Text style={styles.bbPhotoSubtitle}>Choose an image from your device</Text>
+                      </View>
                     )}
                   </Pressable>
                 </View>
 
-                <View style={styles.spotActionCard}>
-
-                  <View style={styles.spotActionRow}>
-                    <Text style={styles.spotActionIcon}>⭐</Text>
-
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.spotActionTitle}>
-                        Thank you for helping BiteBeacon
-                      </Text>
-
-                      <Text style={styles.spotActionSubtitle}>
-                        Every approved spot helps more people discover great food.
+                <View style={styles.bbSubmitCard}>
+                  <View style={styles.bbSubmitHeaderRow}>
+                    <View style={styles.bbStepBadge}>
+                      <Text style={styles.bbStepBadgeText}>6</Text>
+                    </View>
+                    <View style={styles.bbSpotSectionHeadingWrap}>
+                      <Text style={styles.bbSpotSectionTitle}>Review & submit</Text>
+                      <Text style={styles.bbSpotSectionHint}>
+                        Approved spots help more people discover great food.
                       </Text>
                     </View>
                   </View>
 
                   <Pressable
-                    style={[
-                      styles.primaryButton,
+                    style={({ pressed }) => [
+                      styles.bbSubmitButton,
+                      pressed && !submittingSpot && styles.bbSubmitButtonPressed,
                       submittingSpot && styles.primaryButtonDisabled,
                     ]}
                     onPress={() => {
@@ -1344,13 +1540,10 @@ export default function MapScreen() {
                     }}
                     disabled={submittingSpot}
                   >
-                    <Text style={styles.primaryButtonText}>
-                      {submittingSpot
-                        ? "Submitting..."
-                        : "🚀 Submit Community Spot"}
+                    <Text style={styles.bbSubmitButtonText}>
+                      {submittingSpot ? "Submitting..." : "Submit Community Spot"}
                     </Text>
                   </Pressable>
-
                 </View>
               </ScrollView>
             </View>
@@ -1362,6 +1555,648 @@ export default function MapScreen() {
 }
 
 const styles = StyleSheet.create({
+
+  // BiteBeacon Explore control system — production assets + themed panels.
+  topControlsRowBB: {
+    minHeight: 62,
+    paddingRight: 64,
+    marginBottom: 8,
+  },
+
+  pillControlsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+
+  assetPressable: {
+    alignSelf: "flex-start",
+  },
+
+  assetPressablePressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.96 }],
+  },
+
+  assetImageActive: {
+    opacity: 1,
+    transform: [{ scale: 1.03 }],
+  },
+
+  filterPillImage: {
+    width: 108,
+    height: 54,
+  },
+
+  mapGuidePillImage: {
+    width: 125,
+    height: 62,
+    marginLeft: -3,
+    marginTop: -4,
+  },
+
+  mapActionButtonsBB: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    gap: 6,
+    zIndex: 30,
+  },
+
+  circularControlImage: {
+    width: 49,
+    height: 49,
+    opacity: 0.94,
+  },
+
+  bbControlPanel: {
+    marginTop: 4,
+    marginRight: 64,
+    backgroundColor: "rgba(5,15,25,0.97)",
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: "rgba(244,181,71,0.88)",
+    padding: 14,
+    shadowColor: "#F4B547",
+    shadowOpacity: 0.22,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 10,
+  },
+
+  bbPanelHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+
+  bbPanelTitle: {
+    color: "#FFFFFF",
+    fontSize: 20,
+    fontWeight: "900",
+    letterSpacing: -0.3,
+  },
+
+  bbPanelCloseButton: {
+    width: 34,
+    height: 34,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  bbPanelCloseImage: {
+    width: 34,
+    height: 34,
+  },
+
+  bbFilterGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 9,
+  },
+
+  bbFilterOption: {
+    minWidth: "30%",
+    flexGrow: 1,
+    backgroundColor: "rgba(7,22,36,0.94)",
+    borderWidth: 1,
+    borderColor: "rgba(83,135,175,0.52)",
+    borderRadius: 999,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  bbFilterOptionActive: {
+    backgroundColor: "rgba(244,181,71,0.20)",
+    borderColor: "#F4B547",
+    shadowColor: "#F4B547",
+    shadowOpacity: 0.24,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 5,
+  },
+
+  bbFilterOptionPressed: {
+    opacity: 0.78,
+  },
+
+  bbFilterOptionText: {
+    color: "rgba(255,255,255,0.84)",
+    fontSize: 12,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+
+  bbFilterOptionTextActive: {
+    color: "#F7DFA0",
+  },
+
+  bbLegendList: {
+    gap: 4,
+  },
+
+  bbLegendRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.07)",
+  },
+
+  bbLegendRowLast: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 5,
+  },
+
+  bbLegendMarker: {
+    width: 34,
+    height: 42,
+    marginRight: 10,
+  },
+
+  bbLegendCopy: {
+    flex: 1,
+  },
+
+  bbLegendTitle: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "900",
+    marginBottom: 1,
+  },
+
+  bbLegendDescription: {
+    color: "rgba(255,255,255,0.62)",
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: "600",
+  },
+
+  bbMapTypeSection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(244,181,71,0.18)",
+  },
+
+  bbMapTypeLabel: {
+    color: "rgba(255,255,255,0.64)",
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    marginBottom: 8,
+  },
+
+  bbMapTypeRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+
+  bbMapTypeButton: {
+    flex: 1,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(83,135,175,0.52)",
+    backgroundColor: "rgba(7,22,36,0.94)",
+    paddingVertical: 9,
+    alignItems: "center",
+  },
+
+  bbMapTypeButtonActive: {
+    borderColor: "#F4B547",
+    backgroundColor: "rgba(244,181,71,0.18)",
+  },
+
+  bbMapTypeButtonText: {
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+
+  bbMapTypeButtonTextActive: {
+    color: "#F7DFA0",
+  },
+
+  searchRowBB: {
+    marginTop: 6,
+    marginRight: 64,
+  },
+
+
+  // Spot-a-Vendor visual refresh. Behaviour and submission logic are unchanged.
+  bbSpotModeBanner: {
+    position: "absolute",
+    top: 128,
+    left: 16,
+    right: 16,
+    minHeight: 70,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(5,15,25,0.96)",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.72)",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    shadowColor: "#000000",
+    shadowOpacity: 0.24,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 9,
+  },
+
+  bbSpotModeIconWrap: {
+    width: 48,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+
+  bbSpotModeIcon: {
+    width: 48,
+    height: 48,
+  },
+
+  bbSpotModeCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  bbSpotModeTitle: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "900",
+    marginBottom: 2,
+  },
+
+  bbSpotModeText: {
+    color: "rgba(255,255,255,0.66)",
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: "600",
+  },
+
+  bbSpotModeCancel: {
+    marginLeft: 10,
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.62)",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "rgba(244,181,71,0.08)",
+  },
+
+  bbSpotModeCancelPressed: {
+    opacity: 0.72,
+  },
+
+  bbSpotModeCancelText: {
+    color: "#F7DFA0",
+    fontSize: 11,
+    fontWeight: "900",
+  },
+
+  bbSpotSheet: {
+    backgroundColor: "#071522",
+    paddingTop: 12,
+    paddingHorizontal: 18,
+    paddingBottom: 24,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.36)",
+    maxHeight: "88%",
+    minHeight: 360,
+    shadowColor: "#000000",
+    shadowOpacity: 0.38,
+    shadowRadius: 28,
+    shadowOffset: { width: 0, height: -8 },
+    elevation: 20,
+  },
+
+  bbSpotScrollContent: {
+    paddingBottom: 30,
+  },
+
+  bbSpotHeader: {
+    alignItems: "center",
+    paddingTop: 4,
+    marginBottom: 18,
+  },
+
+  bbSpotCloseButton: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    width: 42,
+    height: 42,
+    zIndex: 3,
+  },
+
+  bbSpotCloseImage: {
+    width: 42,
+    height: 42,
+  },
+
+  bbSpotHeroIcon: {
+    width: 78,
+    height: 78,
+    marginBottom: 4,
+  },
+
+  bbSpotTitle: {
+    color: "#FFFFFF",
+    fontSize: 27,
+    fontWeight: "900",
+    letterSpacing: -0.5,
+    marginBottom: 7,
+  },
+
+  bbSpotSubtitle: {
+    maxWidth: 330,
+    color: "rgba(255,255,255,0.62)",
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+
+  bbLocationConfirmedCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(10,27,42,0.92)",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(75,205,125,0.34)",
+    padding: 14,
+    marginBottom: 14,
+  },
+
+  bbLocationTick: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(29,185,84,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(75,205,125,0.52)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+
+  bbLocationTickText: {
+    color: "#71E09B",
+    fontSize: 18,
+    fontWeight: "900",
+  },
+
+  bbLocationConfirmedCopy: {
+    flex: 1,
+  },
+
+  bbLocationConfirmedTitle: {
+    color: "#71E09B",
+    fontSize: 13,
+    fontWeight: "900",
+    marginBottom: 2,
+  },
+
+  bbLocationConfirmedText: {
+    color: "rgba(255,255,255,0.62)",
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: "600",
+  },
+
+  bbSpotSection: {
+    backgroundColor: "rgba(10,27,42,0.72)",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.18)",
+    padding: 15,
+    marginBottom: 12,
+  },
+
+  bbSpotSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  bbSubmitHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+
+  bbStepBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1.5,
+    borderColor: "#F4B547",
+    backgroundColor: "rgba(244,181,71,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 11,
+    shadowColor: "#F4B547",
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+
+  bbStepBadgeText: {
+    color: "#F7DFA0",
+    fontSize: 15,
+    fontWeight: "900",
+  },
+
+  bbSpotSectionHeadingWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  bbSpotSectionTitle: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "900",
+    letterSpacing: -0.2,
+  },
+
+  bbSpotSectionHint: {
+    marginTop: 2,
+    color: "rgba(255,255,255,0.48)",
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: "600",
+  },
+
+  bbSpotInput: {
+    minHeight: 50,
+    backgroundColor: "rgba(4,14,23,0.92)",
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.25)",
+    paddingHorizontal: 15,
+    paddingVertical: 13,
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+
+  bbSpotNotesInput: {
+    height: 118,
+    textAlignVertical: "top",
+  },
+
+  bbTypeGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 9,
+  },
+
+  bbTypeOption: {
+    width: "48%",
+    minHeight: 46,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(82,135,175,0.48)",
+    backgroundColor: "rgba(4,14,23,0.78)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+
+  bbTypeOptionActive: {
+    borderColor: "#F4B547",
+    backgroundColor: "rgba(244,181,71,0.16)",
+    shadowColor: "#F4B547",
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+
+  bbTypeOptionPressed: {
+    opacity: 0.78,
+  },
+
+  bbTypeOptionText: {
+    color: "rgba(255,255,255,0.78)",
+    fontSize: 12,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+
+  bbTypeOptionTextActive: {
+    color: "#F7DFA0",
+  },
+
+  bbPhotoCard: {
+    minHeight: 170,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "rgba(244,181,71,0.38)",
+    backgroundColor: "rgba(4,14,23,0.76)",
+    overflow: "hidden",
+  },
+
+  bbPhotoCardPressed: {
+    opacity: 0.82,
+  },
+
+  bbPhotoPreview: {
+    width: "100%",
+    height: 210,
+  },
+
+  bbPhotoEmptyState: {
+    flex: 1,
+    minHeight: 170,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 18,
+  },
+
+  bbPhotoGlyph: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.46)",
+    backgroundColor: "rgba(244,181,71,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 9,
+  },
+
+  bbPhotoGlyphText: {
+    color: "#F7DFA0",
+    fontSize: 25,
+    lineHeight: 27,
+    fontWeight: "500",
+  },
+
+  bbPhotoTitle: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "900",
+    marginBottom: 4,
+  },
+
+  bbPhotoSubtitle: {
+    color: "rgba(255,255,255,0.48)",
+    fontSize: 11,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+
+  bbSubmitCard: {
+    backgroundColor: "rgba(10,27,42,0.86)",
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.30)",
+    padding: 16,
+    marginTop: 3,
+  },
+
+  bbSubmitButton: {
+    minHeight: 56,
+    borderRadius: 28,
+    backgroundColor: "#F4B547",
+    borderWidth: 1,
+    borderColor: "#FFE0A0",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 18,
+    shadowColor: "#F4B547",
+    shadowOpacity: 0.30,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+
+  bbSubmitButtonPressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.985 }],
+  },
+
+  bbSubmitButtonText: {
+    color: "#071522",
+    fontSize: 15,
+    fontWeight: "900",
+    letterSpacing: 0.1,
+  },
+
 
   label: {
     fontSize: 14,
