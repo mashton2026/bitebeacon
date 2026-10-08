@@ -193,11 +193,14 @@ export default function EditVendorScreen() {
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+            <Text style={styles.kicker}>ADMIN  /  VENDORS</Text>
             <Text style={styles.title}>Edit Vendor</Text>
+            <Text style={styles.subtitle}>Update listing information, photos and status.</Text>
 
             {vendor.photos && vendor.photos.length > 0 ? (
                 <View style={styles.photosSection}>
-                    <Text style={styles.photosTitle}>Photos</Text>
+                    <Text style={styles.sectionEyebrow}>MEDIA</Text>
+                    <Text style={styles.photosTitle}>Vendor photos</Text>
 
                     {(vendor.photos ?? []).map((photoUri, index) => {
                         const isRemovingThisPhoto = removingPhotoUri === photoUri;
@@ -224,6 +227,8 @@ export default function EditVendorScreen() {
                 </View>
             ) : null}
 
+            <Text style={styles.sectionEyebrow}>LISTING INFORMATION</Text>
+            <Text style={styles.fieldLabel}>Listing name</Text>
             <TextInput
                 style={styles.input}
                 value={name}
@@ -233,6 +238,7 @@ export default function EditVendorScreen() {
                 editable={!isBusy}
             />
 
+            <Text style={styles.fieldLabel}>Trading name</Text>
             <TextInput
                 style={styles.input}
                 value={vendorName}
@@ -242,6 +248,7 @@ export default function EditVendorScreen() {
                 editable={!isBusy}
             />
 
+            <Text style={styles.fieldLabel}>Cuisine</Text>
             <TextInput
                 style={styles.input}
                 value={cuisine}
@@ -251,6 +258,7 @@ export default function EditVendorScreen() {
                 editable={!isBusy}
             />
 
+            <Text style={styles.fieldLabel}>Menu</Text>
             <TextInput
                 style={styles.input}
                 value={menu}
@@ -261,6 +269,7 @@ export default function EditVendorScreen() {
                 multiline
             />
 
+            <Text style={styles.fieldLabel}>Schedule</Text>
             <TextInput
                 style={styles.input}
                 value={schedule}
@@ -271,7 +280,8 @@ export default function EditVendorScreen() {
                 multiline
             />
 
-            <Text style={styles.fieldLabel}>Subscription Tier</Text>
+            <Text style={styles.sectionEyebrow}>ADMIN CONTROLS</Text>
+            <Text style={styles.fieldLabel}>Subscription tier</Text>
             <View style={styles.tierRow}>
                 {(["free", "growth", "pro"] as const).map((tier) => (
                     <Pressable
@@ -296,7 +306,7 @@ export default function EditVendorScreen() {
                 ))}
             </View>
 
-            <Text style={styles.fieldLabel}>Live Status</Text>
+            <Text style={styles.fieldLabel}>Live status</Text>
             <Pressable
                 style={[
                     styles.liveToggle,
@@ -319,6 +329,8 @@ export default function EditVendorScreen() {
                 </Text>
             </Pressable>
 
+            <Text style={styles.dangerTitle}>DANGER ZONE</Text>
+            <Text style={styles.dangerDescription}>Deleting a vendor permanently removes this listing. This action cannot be undone.</Text>
             <Pressable
                 style={[styles.deleteButton, isBusy && styles.buttonDisabled]}
                 onPress={() => {
@@ -343,163 +355,61 @@ export default function EditVendorScreen() {
                     {isDeleting ? "Deleting..." : "Delete Vendor"}
                 </Text>
             </Pressable>
+            <Pressable style={styles.bottomBack} onPress={() => router.back()} disabled={isBusy}>
+                <Text style={styles.bottomBackText}>Back to vendors</Text>
+            </Pressable>
         </ScrollView>
     );
 }
 
+const GOLD = "#D7AC60";
+const GOLD_SOFT = "rgba(215,172,96,0.52)";
+const BG = "#080F1D";
+const PANEL = "#101D30";
+const TEXT = "#F5F2E9";
+const MUTED = "#A7B3C3";
+
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: "#0B2A5B",
-    },
-    content: {
-        padding: 20,
-        paddingBottom: 40,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: "800",
-        color: "#fff",
-        marginBottom: 20,
-    },
+    container: { flex: 1, backgroundColor: BG },
+    content: { paddingHorizontal: 20, paddingTop: 28, paddingBottom: 56 },
+    kicker: { fontSize: 11, fontWeight: "800", color: GOLD, letterSpacing: 2.2, marginBottom: 10 },
+    title: { fontSize: 31, fontWeight: "800", color: TEXT, marginBottom: 7 },
+    subtitle: { fontSize: 14, lineHeight: 21, color: MUTED, marginBottom: 30 },
+    sectionEyebrow: { color: GOLD, fontSize: 11, letterSpacing: 1.8, fontWeight: "800", marginTop: 16, marginBottom: 16 },
+    fieldLabel: { color: "#D6DCE5", fontSize: 13, fontWeight: "700", marginBottom: 8, marginTop: 3 },
     input: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 14,
-        padding: 12,
-        marginBottom: 12,
-        borderWidth: 2,
-        borderColor: "#FF7A00",
-        color: "#222222",
+        backgroundColor: PANEL, color: TEXT, fontSize: 15,
+        borderWidth: 1, borderColor: GOLD_SOFT, borderRadius: 14,
+        paddingHorizontal: 15, paddingVertical: 14, marginBottom: 17,
+        minHeight: 51,
     },
-    button: {
-        backgroundColor: "#FF7A00",
-        padding: 14,
-        borderRadius: 12,
-        alignItems: "center",
-    },
-    buttonText: {
-        color: "#fff",
-        fontWeight: "800",
-    },
-    buttonDisabled: {
-        opacity: 0.6,
-    },
-    removeButton: {
-        marginTop: 6,
-        backgroundColor: "#C62828",
-        paddingVertical: 8,
-        borderRadius: 10,
-        alignItems: "center",
-    },
-    removeButtonText: {
-        color: "#fff",
-        fontWeight: "700",
-    },
-    center: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "#0B2A5B",
-        padding: 20,
-    },
-    loadingText: {
-        color: "#fff",
-        fontSize: 16,
-        textAlign: "center",
-    },
-    retryButton: {
-        marginTop: 16,
-        backgroundColor: "#FF7A00",
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderRadius: 12,
-        alignItems: "center",
-    },
-    retryButtonText: {
-        color: "#fff",
-        fontWeight: "800",
-    },
-    deleteButton: {
-        backgroundColor: "#C62828",
-        padding: 14,
-        borderRadius: 12,
-        alignItems: "center",
-        marginTop: 12,
-    },
-    deleteButtonText: {
-        color: "#fff",
-        fontWeight: "800",
-    },
-    fieldLabel: {
-        color: "#FFFFFF",
-        fontWeight: "800",
-        marginBottom: 8,
-        marginTop: 4,
-    },
-    tierRow: {
-        flexDirection: "row",
-        gap: 8,
-        marginBottom: 14,
-    },
-    tierButton: {
-        flex: 1,
-        backgroundColor: "#FFFFFF",
-        borderWidth: 2,
-        borderColor: "#FF7A00",
-        borderRadius: 12,
-        paddingVertical: 12,
-        alignItems: "center",
-    },
-    tierButtonActive: {
-        backgroundColor: "#FF7A00",
-    },
-    tierButtonText: {
-        color: "#0B2A5B",
-        fontWeight: "800",
-    },
-    tierButtonTextActive: {
-        color: "#FFFFFF",
-    },
-    liveToggle: {
-        backgroundColor: "#6F84AA",
-        paddingVertical: 12,
-        borderRadius: 12,
-        alignItems: "center",
-        marginBottom: 14,
-    },
-    liveToggleActive: {
-        backgroundColor: "#1DB954",
-    },
-    liveToggleText: {
-        color: "#FFFFFF",
-        fontWeight: "800",
-    },
-    photosSection: {
-        marginBottom: 20,
-    },
-    photosTitle: {
-        color: "#fff",
-        fontWeight: "800",
-        marginBottom: 10,
-    },
-    photoCard: {
-        marginBottom: 10,
-    },
-    photoImage: {
-        width: "100%",
-        height: 180,
-        borderRadius: 12,
-    },
-    backButtonStandalone: {
-        marginTop: 12,
-        backgroundColor: "#D9D9D9",
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderRadius: 12,
-        alignItems: "center",
-    },
-    backButtonText: {
-        color: "#222222",
-        fontWeight: "700",
-    },
+    photosSection: { marginBottom: 12 },
+    photosTitle: { color: TEXT, fontSize: 18, fontWeight: "800", marginBottom: 14 },
+    photoCard: { backgroundColor: PANEL, borderWidth: 1, borderColor: GOLD_SOFT, borderRadius: 16, padding: 11, marginBottom: 12 },
+    photoImage: { width: "100%", height: 190, borderRadius: 11 },
+    removeButton: { marginTop: 11, backgroundColor: "#3B1C27", borderWidth: 1, borderColor: "#A85D65", paddingVertical: 11, borderRadius: 11, alignItems: "center" },
+    removeButtonText: { color: "#FFD5D7", fontWeight: "800", fontSize: 13 },
+    tierRow: { flexDirection: "row", gap: 9, marginBottom: 23 },
+    tierButton: { flex: 1, backgroundColor: PANEL, borderWidth: 1, borderColor: GOLD_SOFT, borderRadius: 12, paddingVertical: 13, alignItems: "center" },
+    tierButtonActive: { backgroundColor: "#4C3820", borderColor: GOLD, borderWidth: 1.5 },
+    tierButtonText: { color: MUTED, fontWeight: "800", fontSize: 12, letterSpacing: 0.6 },
+    tierButtonTextActive: { color: "#FFE1A4" },
+    liveToggle: { backgroundColor: PANEL, borderWidth: 1, borderColor: "#63758C", paddingVertical: 14, borderRadius: 12, alignItems: "center", marginBottom: 27 },
+    liveToggleActive: { backgroundColor: "#123C32", borderColor: "#45C28B" },
+    liveToggleText: { color: TEXT, fontWeight: "800", letterSpacing: 1 },
+    button: { backgroundColor: "#B98A42", borderWidth: 1, borderColor: "#F1CA80", paddingVertical: 16, borderRadius: 14, alignItems: "center" },
+    buttonText: { color: "#101726", fontWeight: "900", fontSize: 15 },
+    buttonDisabled: { opacity: 0.45 },
+    dangerTitle: { color: "#E7A0A4", fontWeight: "800", fontSize: 11, letterSpacing: 1.8, marginTop: 36, marginBottom: 9 },
+    dangerDescription: { color: MUTED, fontSize: 13, lineHeight: 20 },
+    deleteButton: { backgroundColor: "#371923", borderColor: "#A6535C", borderWidth: 1, paddingVertical: 15, borderRadius: 13, alignItems: "center", marginTop: 15 },
+    deleteButtonText: { color: "#FFD8DA", fontWeight: "800", fontSize: 14 },
+    bottomBack: { alignItems: "center", paddingVertical: 18, marginTop: 15 },
+    bottomBackText: { color: GOLD, fontWeight: "700", fontSize: 14 },
+    center: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: BG, padding: 24 },
+    loadingText: { color: TEXT, fontSize: 16, textAlign: "center" },
+    retryButton: { marginTop: 19, backgroundColor: "#B98A42", paddingVertical: 13, paddingHorizontal: 28, borderRadius: 12, alignItems: "center" },
+    retryButtonText: { color: BG, fontWeight: "800" },
+    backButtonStandalone: { marginTop: 12, backgroundColor: PANEL, borderWidth: 1, borderColor: GOLD_SOFT, paddingVertical: 13, paddingHorizontal: 28, borderRadius: 12, alignItems: "center" },
+    backButtonText: { color: GOLD, fontWeight: "700" },
 });

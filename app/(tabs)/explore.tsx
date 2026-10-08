@@ -2233,21 +2233,21 @@ const styles = StyleSheet.create({
 
   permissionButton: {
     marginTop: 10,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F4B547",
     paddingVertical: 10,
     borderRadius: 12,
     alignItems: "center",
   },
 
   permissionButtonText: {
-    color: "#0B2A5B",
+    color: "#071522",
     fontWeight: "800",
     fontSize: 13,
   },
 
   container: {
     flex: 1,
-    backgroundColor: "#0B2A5B",
+    backgroundColor: "#071522",
   },
 
   map: {
@@ -2262,7 +2262,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(11,42,91,0.08)",
+    backgroundColor: "rgba(5,15,25,0.10)",
     pointerEvents: "none",
   },
 
@@ -2270,10 +2270,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#FFFFFF",
-    backgroundColor: "rgba(11,42,91,0.76)",
+    backgroundColor: "rgba(5,15,25,0.94)",
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: 16,
   },
 
   topOverlay: {
@@ -2316,13 +2316,13 @@ const styles = StyleSheet.create({
 
   vendorLoadingPill: {
     alignSelf: "flex-start",
-    backgroundColor: "rgba(11,42,91,0.92)",
+    backgroundColor: "rgba(5,15,25,0.96)",
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 10,
     borderWidth: 1.5,
-    borderColor: "#FF7A00",
+    borderColor: "#F4B547",
   },
 
   vendorLoadingPillText: {
@@ -2556,12 +2556,12 @@ const styles = StyleSheet.create({
     top: 164,
     left: 16,
     right: 16,
-    backgroundColor: "rgba(11,42,91,0.96)",
+    backgroundColor: "rgba(5,15,25,0.97)",
     borderRadius: 18,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    borderWidth: 2,
-    borderColor: "#FF7A00",
+    borderWidth: 1.5,
+    borderColor: "#F4B547",
     shadowColor: "#000",
     shadowOpacity: 0.12,
     shadowRadius: 10,
@@ -2658,12 +2658,12 @@ const styles = StyleSheet.create({
   },
 
   bottomCard: {
-    backgroundColor: "rgba(11,42,91,0.96)",
+    backgroundColor: "rgba(5,15,25,0.97)",
     borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 15,
-    borderWidth: 2,
-    borderColor: "#FF7A00",
+    borderWidth: 1.5,
+    borderColor: "#F4B547",
     shadowColor: "#000",
     shadowOpacity: 0.16,
     shadowRadius: 12,
@@ -2691,7 +2691,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: "#FFFFFF",
     borderWidth: 1.5,
-    borderColor: "#FF7A00",
+    borderColor: "#F4B547",
   },
 
   bottomCardTitleBlock: {
@@ -2713,27 +2713,27 @@ const styles = StyleSheet.create({
   },
 
   bottomCardFeaturedBadge: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F4B547",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
   },
 
   bottomCardTrendingBadge: {
-    backgroundColor: "#FF7A00",
+    backgroundColor: "#F4B547",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
   },
 
   bottomCardTrendingBadgeText: {
-    color: "#FFFFFF",
+    color: "#071522",
     fontSize: 10,
     fontWeight: "800",
   },
 
   bottomCardFeaturedBadgeText: {
-    color: "#FF7A00",
+    color: "#071522",
     fontSize: 10,
     fontWeight: "800",
   },
@@ -2805,7 +2805,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.14)",
+    borderColor: "rgba(244,181,71,0.28)",
   },
 
   bottomCardStatLabel: {
@@ -2837,14 +2837,14 @@ const styles = StyleSheet.create({
   },
 
   bottomCardActionPill: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F4B547",
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
 
   bottomCardActionPillText: {
-    color: "#0B2A5B",
+    color: "#071522",
     fontSize: 13,
     fontWeight: "800",
   },

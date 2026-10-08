@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
@@ -17,7 +18,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AppText from "../../components/AppText";
 import HeroHeader from "../../components/HeroHeader";
 import MapTextureBackground from "../../components/MapTextureBackground";
-import PremiumCard from "../../components/PremiumCard";
 import PremiumInput from "../../components/PremiumInput";
 import PrimaryButton from "../../components/PrimaryButton";
 import SecondaryButton from "../../components/SecondaryButton";
@@ -168,13 +168,20 @@ export default function UserLoginScreen() {
                 subtitle="Log in to access your favourites, account settings and personalised BiteBeacon experience."
               />
 
-              <PremiumCard>
+              <View style={styles.cardGlow}>
+                <LinearGradient
+                  colors={["#805000", "#FFDC68", "#FFF9DC", "#F4B82F", "#9C6000"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.metallicBorder}
+                >
+                  <View style={styles.metallicCard}>
                 <View style={styles.cardHeading}>
                   <View style={styles.accountIcon}>
                     <MaterialCommunityIcons
                       name="account-outline"
                       size={30}
-                      color="#FFB547"
+                      color="#FFE27A"
                     />
                   </View>
 
@@ -242,7 +249,7 @@ export default function UserLoginScreen() {
                     <MaterialCommunityIcons
                       name={showPassword ? "eye-off-outline" : "eye-outline"}
                       size={21}
-                      color="#FFB547"
+                      color="#FFE27A"
                     />
 
                     <AppText
@@ -276,7 +283,7 @@ export default function UserLoginScreen() {
                   <MaterialCommunityIcons
                     name="lock-question"
                     size={18}
-                    color="#FF8A1F"
+                    color="#FFD34F"
                   />
 
                   <AppText variant="bodyBold" style={styles.textLinkLabel}>
@@ -299,7 +306,7 @@ export default function UserLoginScreen() {
                   <MaterialCommunityIcons
                     name="email-sync-outline"
                     size={18}
-                    color="#FF8A1F"
+                    color="#FFD34F"
                   />
 
                   <AppText variant="bodyBold" style={styles.textLinkLabel}>
@@ -333,7 +340,9 @@ export default function UserLoginScreen() {
                 >
                   Back
                 </SecondaryButton>
-              </PremiumCard>
+                  </View>
+                </LinearGradient>
+              </View>
             </ScrollView>
           </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
@@ -343,6 +352,27 @@ export default function UserLoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  cardGlow: {
+    marginTop: 18,
+    borderRadius: 30,
+    shadowColor: "#FFC83D",
+    shadowOpacity: 0.24,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 9,
+  },
+  metallicBorder: {
+    padding: 2,
+    borderRadius: 30,
+  },
+  metallicCard: {
+    backgroundColor: "#10151C",
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: "rgba(255,249,220,0.10)",
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: "transparent",
@@ -371,12 +401,12 @@ const styles = StyleSheet.create({
     borderRadius: 27,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,122,0,0.08)",
+    backgroundColor: "rgba(255,211,79,0.10)",
     borderWidth: 1,
-    borderColor: "rgba(255,181,71,0.28)",
+    borderColor: "rgba(255,220,104,0.62)",
     marginRight: 14,
 
-    shadowColor: "#FF7A00",
+    shadowColor: "#FFD34F",
     shadowOpacity: 0.2,
     shadowRadius: 9,
     shadowOffset: {
@@ -405,13 +435,13 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    color: "#FFB547",
+    color: "#FFE27A",
     fontSize: 13,
     marginBottom: 8,
   },
 
   passwordLabel: {
-    color: "#FFB547",
+    color: "#FFE27A",
     fontSize: 13,
     marginTop: 15,
     marginBottom: 8,
@@ -436,10 +466,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 2,
+    borderWidth: 1,
+    borderColor: "rgba(255,220,104,0.70)",
+    backgroundColor: "rgba(255,211,79,0.08)",
   },
 
   showPasswordText: {
-    color: "#FFB547",
+    color: "#FFE27A",
     fontSize: 11,
   },
 
@@ -461,7 +494,7 @@ const styles = StyleSheet.create({
   },
 
   textLinkLabel: {
-    color: "#FF7A00",
+    color: "#FFD34F",
     fontSize: 13,
     textAlign: "center",
   },
@@ -476,11 +509,11 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "rgba(255,181,71,0.2)",
+    backgroundColor: "rgba(255,211,79,0.38)",
   },
 
   dividerText: {
-    color: "rgba(255,181,71,0.7)",
+    color: "#FFD34F",
     fontSize: 8.5,
     letterSpacing: 1.3,
     marginHorizontal: 10,

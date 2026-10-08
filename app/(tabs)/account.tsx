@@ -41,6 +41,7 @@ export default function AccountScreen() {
   async function loadUser() {
     setLoading(true);
     setAccountSummaryLoading(true);
+    setIsSuspended(false);
 
     try {
       const user = await getCurrentUser();
@@ -537,23 +538,23 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   loadingCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    backgroundColor: "#0B1A29",
+    borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 16,
-    borderWidth: 2,
-    borderColor: theme.colors.secondary,
+    borderWidth: 1,
+    borderColor: "rgba(255,214,90,0.55)",
   },
   loadingCardTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#0B2A5B",
+    color: "#FFE29A",
     marginBottom: 6,
   },
   loadingCardText: {
     fontSize: 14,
     lineHeight: 20,
-    color: "#355070",
+    color: "rgba(255,255,255,0.78)",
     fontWeight: "600",
   },
   scoutCard: {

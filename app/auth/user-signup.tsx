@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
@@ -129,13 +130,22 @@ export default function UserSignupScreen() {
                 subtitle="Create your free account to save favourites, personalise your experience and get more from BiteBeacon."
               />
 
-              <PremiumCard>
+              <View style={styles.metallicOuterGlow}>
+                <LinearGradient
+                  colors={["#684006", "#FFD66B", "#FFF5CC", "#B7750E", "#FFE59A", "#7A4B09"]}
+                  locations={[0, 0.18, 0.34, 0.59, 0.81, 1]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.metallicFrame}
+                >
+                  <View style={styles.metallicInner}>
+                    <PremiumCard>
                 <View style={styles.cardHeading}>
                   <View style={styles.accountIcon}>
                     <MaterialCommunityIcons
                       name="account-plus-outline"
                       size={30}
-                      color="#FFB547"
+                      color="#FFE59A"
                     />
                   </View>
 
@@ -203,7 +213,7 @@ export default function UserSignupScreen() {
                     <MaterialCommunityIcons
                       name={showPassword ? "eye-off-outline" : "eye-outline"}
                       size={21}
-                      color="#FFB547"
+                      color="#FFE59A"
                     />
 
                     <AppText
@@ -234,7 +244,7 @@ export default function UserSignupScreen() {
                   <MaterialCommunityIcons
                     name="shield-check-outline"
                     size={17}
-                    color="#FFB547"
+                    color="#FFE59A"
                   />
 
                   <AppText variant="body" style={styles.passwordHintText}>
@@ -266,7 +276,10 @@ export default function UserSignupScreen() {
                 >
                   Back to Login
                 </SecondaryButton>
-              </PremiumCard>
+                    </PremiumCard>
+                  </View>
+                </LinearGradient>
+              </View>
             </ScrollView>
           </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
@@ -276,6 +289,23 @@ export default function UserSignupScreen() {
 }
 
 const styles = StyleSheet.create({
+  metallicOuterGlow: {
+    borderRadius: 27,
+    shadowColor: "#FFCC55",
+    shadowOpacity: 0.35,
+    shadowRadius: 19,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 9,
+  },
+  metallicFrame: {
+    borderRadius: 27,
+    padding: 2,
+  },
+  metallicInner: {
+    borderRadius: 25,
+    overflow: "hidden",
+    backgroundColor: "#081725",
+  },
   safeArea: {
     flex: 1,
     backgroundColor: "transparent",
@@ -304,11 +334,11 @@ const styles = StyleSheet.create({
     borderRadius: 27,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,122,0,0.08)",
+    backgroundColor: "rgba(255,214,107,0.09)",
     borderWidth: 1,
-    borderColor: "rgba(255,181,71,0.28)",
+    borderColor: "rgba(255,229,154,0.78)",
     marginRight: 14,
-    shadowColor: "#FF7A00",
+    shadowColor: "#FFD66B",
     shadowOpacity: 0.2,
     shadowRadius: 9,
     shadowOffset: {
@@ -336,20 +366,20 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    color: "#FFB547",
+    color: "#FFE59A",
     fontSize: 13,
     marginBottom: 8,
   },
 
   passwordLabel: {
-    color: "#FFB547",
+    color: "#FFE59A",
     fontSize: 13,
     marginTop: 15,
     marginBottom: 8,
   },
 
   confirmLabel: {
-    color: "#FFB547",
+    color: "#FFE59A",
     fontSize: 13,
     marginTop: 15,
     marginBottom: 8,
@@ -365,6 +395,9 @@ const styles = StyleSheet.create({
   },
 
   showPasswordButton: {
+    borderWidth: 1,
+    borderColor: "rgba(255,229,154,0.8)",
+    backgroundColor: "rgba(255,214,107,0.08)",
     minWidth: 74,
     minHeight: 50,
     marginLeft: 8,
@@ -376,7 +409,7 @@ const styles = StyleSheet.create({
   },
 
   showPasswordText: {
-    color: "#FFB547",
+    color: "#FFE59A",
     fontSize: 11,
   },
 
@@ -407,11 +440,11 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "rgba(255,181,71,0.2)",
+    backgroundColor: "rgba(255,229,154,0.58)",
   },
 
   dividerText: {
-    color: "rgba(255,181,71,0.7)",
+    color: "rgba(255,229,154,0.95)",
     fontSize: 8.5,
     letterSpacing: 1.2,
     marginHorizontal: 10,

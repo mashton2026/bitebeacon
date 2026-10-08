@@ -8,7 +8,6 @@ import {
     Text,
     View,
 } from "react-native";
-import { theme } from "../../constants/theme";
 import {
     approveListingRemovalRequest,
     getAllAccountDeletionRequests,
@@ -115,7 +114,7 @@ export default function AdminDeletionRequestsScreen() {
                     {item.email ?? "Unknown account"}
                 </Text>
 
-                <Text style={styles.requestType}>
+                <Text style={[styles.requestType, item.request_type === "listing_removal" ? styles.listingType : styles.accountType]}>
                     {item.request_type === "listing_removal"
                         ? "LISTING REMOVAL"
                         : "ACCOUNT DELETION"}
@@ -136,7 +135,8 @@ export default function AdminDeletionRequestsScreen() {
                     Requested: {new Date(item.created_at).toLocaleString()}
                 </Text>
 
-                <Text style={styles.reasonLabel}>Reason</Text>
+                <View style={styles.divider} />
+                <Text style={styles.reasonLabel}>REASON PROVIDED</Text>
                 <Text style={styles.reasonText}>
                     {item.reason?.trim() || "No reason provided."}
                 </Text>
@@ -213,19 +213,24 @@ export default function AdminDeletionRequestsScreen() {
                 showsVerticalScrollIndicator={false}
                 ListHeaderComponent={
                     <View style={styles.headerBlock}>
-                        <Text style={styles.kicker}>ADMIN</Text>
+                        <Text style={styles.kicker}>ADMINISTRATION</Text>
                         <Text style={styles.title}>Deletion Requests</Text>
                         <Text style={styles.subtitle}>
-                            Review account deletion and listing removal requests.
+                            Review account deletion and listing removal requests securely.
                         </Text>
                     </View>
                 }
                 ListEmptyComponent={
-                    <Text style={styles.helperText}>
-                        {loading
-                            ? "Loading deletion requests..."
-                            : "No deletion requests waiting for review."}
-                    </Text>
+                    <View style={styles.emptyCard}>
+                        <Text style={styles.emptyTitle}>
+                            {loading ? "Loading requests" : "All caught up"}
+                        </Text>
+                        <Text style={styles.helperText}>
+                            {loading
+                                ? "Loading deletion requests..."
+                                : "No deletion requests waiting for review."}
+                        </Text>
+                    </View>
                 }
                 ListFooterComponent={
                     <Pressable style={styles.backButton} onPress={() => router.back()}>
@@ -237,83 +242,112 @@ export default function AdminDeletionRequestsScreen() {
     );
 }
 
+const COLORS = {
+    background: "#071426",
+    surface: "#0D2038",
+    raised: "#112844",
+    gold: "#F5B942",
+    border: "rgba(245,185,66,0.26)",
+    text: "#F8F5EC",
+    muted: "#A9B8CA",
+    subtle: "#7890A9",
+    green: "#248A65",
+    red: "#8D3942",
+};
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.background,
-        paddingHorizontal: 24,
-        paddingTop: 24,
+        backgroundColor: COLORS.background,
+        paddingHorizontal: 20,
+        paddingTop: 28,
     },
-    headerBlock: {
-        marginBottom: 20,
-    },
+    headerBlock: { marginBottom: 26 },
     kicker: {
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: "800",
-        color: theme.colors.secondary,
-        letterSpacing: 1.2,
-        marginBottom: 8,
+        color: COLORS.gold,
+        letterSpacing: 2,
+        marginBottom: 10,
     },
     title: {
         fontSize: 30,
         fontWeight: "800",
-        color: "#FFFFFF",
-        marginBottom: 8,
+        color: COLORS.text,
+        marginBottom: 10,
     },
     subtitle: {
-        fontSize: 15,
-        color: "rgba(255,255,255,0.75)",
+        fontSize: 14,
+        color: COLORS.muted,
         lineHeight: 22,
     },
     helperText: {
-        fontSize: 15,
-        color: "rgba(255,255,255,0.75)",
-        lineHeight: 22,
-        marginBottom: 20,
+        fontSize: 14,
+        color: COLORS.muted,
+        lineHeight: 21,
+        textAlign: "center",
     },
     listContent: {
-        paddingBottom: 20,
+        paddingBottom: 48,
         flexGrow: 1,
     },
     card: {
-        backgroundColor: "#FFFFFF",
+        backgroundColor: COLORS.surface,
         borderRadius: 18,
-        padding: 16,
+        padding: 18,
         marginBottom: 14,
-        borderWidth: 2,
-        borderColor: theme.colors.border,
+        borderWidth: 1,
+        borderColor: COLORS.border,
     },
     cardTitle: {
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: "800",
-        color: "#0B2A5B",
-        marginBottom: 8,
+        color: COLORS.text,
+        marginBottom: 10,
     },
     requestType: {
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: "800",
-        color: "#FF7A00",
-        letterSpacing: 0.8,
-        marginBottom: 8,
+        letterSpacing: 1.1,
+        marginBottom: 14,
+        alignSelf: "flex-start",
+        paddingHorizontal: 10,
+        paddingVertical: 7,
+        borderRadius: 9,
+        overflow: "hidden",
+    },
+    listingType: {
+        color: "#8ED7C0",
+        backgroundColor: "rgba(36,138,101,0.18)",
+    },
+    accountType: {
+        color: COLORS.gold,
+        backgroundColor: "rgba(245,185,66,0.13)",
     },
     meta: {
-        fontSize: 14,
-        color: "#444444",
-        marginBottom: 4,
+        fontSize: 12,
+        color: COLORS.muted,
+        marginBottom: 7,
+        lineHeight: 19,
+    },
+    divider: {
+        height: 1,
+        backgroundColor: "rgba(245,185,66,0.16)",
+        marginTop: 12,
+        marginBottom: 15,
     },
     reasonLabel: {
-        fontSize: 13,
+        fontSize: 11,
         fontWeight: "800",
-        color: "#FF7A00",
-        marginTop: 10,
-        marginBottom: 6,
-        letterSpacing: 0.5,
+        color: COLORS.gold,
+        marginBottom: 9,
+        letterSpacing: 1.1,
     },
     reasonText: {
         fontSize: 14,
-        color: "#222222",
-        lineHeight: 20,
-        marginBottom: 12,
+        color: COLORS.text,
+        lineHeight: 21,
+        marginBottom: 20,
     },
     actionsRow: {
         flexDirection: "row",
@@ -322,32 +356,47 @@ const styles = StyleSheet.create({
     actionButton: {
         flex: 1,
         paddingVertical: 14,
-        borderRadius: 14,
+        borderRadius: 13,
         alignItems: "center",
+        justifyContent: "center",
+        minHeight: 48,
     },
-    approveButton: {
-        backgroundColor: "#1DB954",
-    },
-    rejectButton: {
-        backgroundColor: "#C62828",
-    },
+    approveButton: { backgroundColor: COLORS.green },
+    rejectButton: { backgroundColor: COLORS.red },
     actionButtonText: {
         color: "#FFFFFF",
         fontWeight: "800",
+        fontSize: 14,
     },
-    buttonDisabled: {
-        opacity: 0.5,
-    },
+    buttonDisabled: { opacity: 0.5 },
     backButton: {
-        backgroundColor: "#D9D9D9",
-        paddingVertical: 14,
-        borderRadius: 16,
+        backgroundColor: COLORS.raised,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        paddingVertical: 15,
+        borderRadius: 14,
         alignItems: "center",
-        marginTop: 8,
+        marginTop: 16,
     },
     backButtonText: {
-        color: "#222222",
-        fontSize: 16,
+        color: COLORS.text,
+        fontSize: 14,
         fontWeight: "700",
+    },
+    emptyCard: {
+        backgroundColor: COLORS.surface,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        borderRadius: 18,
+        paddingVertical: 28,
+        paddingHorizontal: 18,
+        marginBottom: 14,
+        alignItems: "center",
+    },
+    emptyTitle: {
+        color: COLORS.gold,
+        fontSize: 18,
+        fontWeight: "800",
+        marginBottom: 9,
     },
 });

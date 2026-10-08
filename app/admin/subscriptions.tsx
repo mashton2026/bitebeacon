@@ -9,7 +9,6 @@ import {
     TextInput,
     View,
 } from "react-native";
-import { theme } from "../../constants/theme";
 import {
     getAllVendors,
     updateVendorSubscriptionTier,
@@ -214,7 +213,7 @@ export default function AdminSubscriptionsScreen() {
                         <TextInput
                             style={styles.searchInput}
                             placeholder="Search by van, vendor, or cuisine"
-                            placeholderTextColor="rgba(255,255,255,0.6)"
+                            placeholderTextColor="#718693"
                             value={searchQuery}
                             onChangeText={setSearchQuery}
                             editable={!processingVendorId}
@@ -236,120 +235,49 @@ export default function AdminSubscriptionsScreen() {
     );
 }
 
+const BG = "#061522";
+const PANEL = "#0B2030";
+const GOLD = "#D9A441";
+const GOLD_SOFT = "rgba(217,164,65,0.38)";
+const TEXT = "#F7F5EE";
+const MUTED = "#9AAAB5";
+
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: theme.colors.background,
-        paddingHorizontal: 24,
-        paddingTop: 24,
-    },
-    kicker: {
-        fontSize: 12,
-        fontWeight: "800",
-        color: theme.colors.secondary,
-        letterSpacing: 1.2,
-        marginBottom: 8,
-    },
-    title: {
-        fontSize: 30,
-        fontWeight: "800",
-        color: "#FFFFFF",
-        marginBottom: 8,
-    },
-    subtitle: {
-        fontSize: 15,
-        color: "rgba(255,255,255,0.75)",
-        lineHeight: 22,
-        marginBottom: 20,
-    },
+    container: { flex: 1, backgroundColor: BG, paddingHorizontal: 20, paddingTop: 25 },
+    kicker: { fontSize: 11, fontWeight: "800", color: GOLD, letterSpacing: 2.2, marginBottom: 9 },
+    title: { fontSize: 28, fontWeight: "900", color: TEXT, marginBottom: 9, letterSpacing: 0.2 },
+    subtitle: { fontSize: 14, color: MUTED, lineHeight: 21, marginBottom: 23 },
     searchInput: {
-        backgroundColor: "rgba(255,255,255,0.12)",
-        borderWidth: 2,
-        borderColor: theme.colors.border,
-        borderRadius: 14,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
-        marginBottom: 20,
-        color: "#FFFFFF",
+        backgroundColor: PANEL, borderWidth: 1, borderColor: GOLD_SOFT,
+        borderRadius: 15, paddingHorizontal: 16, paddingVertical: 14,
+        marginBottom: 20, color: TEXT, fontSize: 14, minHeight: 51,
     },
-    helperText: {
-        fontSize: 15,
-        color: "rgba(255,255,255,0.75)",
-        lineHeight: 22,
-        marginBottom: 20,
-    },
-    listContent: {
-        paddingBottom: 20,
-        flexGrow: 1,
-    },
+    helperText: { fontSize: 14, color: MUTED, lineHeight: 22, marginBottom: 20, textAlign: "center", paddingVertical: 28 },
+    listContent: { paddingBottom: 30, flexGrow: 1 },
     card: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 18,
-        padding: 16,
-        marginBottom: 14,
-        borderWidth: 2,
-        borderColor: theme.colors.border,
+        backgroundColor: PANEL, borderRadius: 20, padding: 19, marginBottom: 14,
+        borderWidth: 1, borderColor: GOLD_SOFT,
     },
-    vendorName: {
-        fontSize: 18,
-        fontWeight: "800",
-        color: theme.colors.background,
-        marginBottom: 4,
-    },
-    vendorMeta: {
-        fontSize: 14,
-        color: "#555555",
-        marginBottom: 10,
-    },
+    vendorName: { fontSize: 18, fontWeight: "800", color: TEXT, marginBottom: 6 },
+    vendorMeta: { fontSize: 13, color: MUTED, marginBottom: 17, lineHeight: 19 },
     currentTier: {
-        fontSize: 14,
-        fontWeight: "700",
-        color: theme.colors.primary,
-        marginBottom: 12,
+        fontSize: 12, fontWeight: "800", color: GOLD,
+        marginBottom: 13, letterSpacing: 0.8,
     },
-    tierRow: {
-        flexDirection: "row",
-        gap: 10,
-    },
+    tierRow: { flexDirection: "row", gap: 9 },
     tierButton: {
-        flex: 1,
-        backgroundColor: "#FFFFFF",
-        borderWidth: 2,
-        borderColor: theme.colors.border,
-        borderRadius: 12,
-        paddingVertical: 12,
-        alignItems: "center",
+        flex: 1, backgroundColor: "#071724", borderWidth: 1,
+        borderColor: "#315064", borderRadius: 13, paddingVertical: 13,
+        alignItems: "center", justifyContent: "center", minHeight: 45,
     },
-    tierButtonActive: {
-        backgroundColor: theme.colors.background,
-        borderColor: theme.colors.background,
-    },
-    tierButtonDisabled: {
-        opacity: 0.5,
-    },
-    tierButtonText: {
-        color: theme.colors.background,
-        fontWeight: "800",
-    },
-    tierButtonTextActive: {
-        color: "#FFFFFF",
-    },
-    processingText: {
-        marginTop: 10,
-        fontSize: 13,
-        fontWeight: "700",
-        color: theme.colors.primary,
-    },
+    tierButtonActive: { backgroundColor: "#4C3820", borderColor: GOLD },
+    tierButtonDisabled: { opacity: 0.45 },
+    tierButtonText: { color: MUTED, fontWeight: "800", fontSize: 13 },
+    tierButtonTextActive: { color: "#FFE6A5" },
+    processingText: { marginTop: 12, fontSize: 13, fontWeight: "700", color: GOLD },
     backButton: {
-        backgroundColor: "#D9D9D9",
-        paddingVertical: 14,
-        borderRadius: 16,
-        alignItems: "center",
-        marginTop: 8,
+        backgroundColor: PANEL, borderWidth: 1, borderColor: GOLD_SOFT,
+        paddingVertical: 16, borderRadius: 15, alignItems: "center", marginTop: 12,
     },
-    backButtonText: {
-        color: "#222222",
-        fontSize: 16,
-        fontWeight: "700",
-    },
+    backButtonText: { color: GOLD, fontSize: 14, fontWeight: "800" },
 });

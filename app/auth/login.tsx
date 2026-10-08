@@ -1,3 +1,4 @@
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
@@ -18,7 +19,6 @@ import PremiumCard from "../../components/PremiumCard";
 import PremiumInput from "../../components/PremiumInput";
 import PrimaryButton from "../../components/PrimaryButton";
 import SecondaryButton from "../../components/SecondaryButton";
-import { theme } from "../../constants/theme";
 import { supabase } from "../../lib/supabase";
 import { isCurrentUserAdmin } from "../../services/adminService";
 import { getCurrentUser } from "../../services/authService";
@@ -186,7 +186,15 @@ export default function VendorLoginScreen() {
               subtitle="Log in to manage your BiteBeacon listing, keep your van live, and stay visible to hungry customers."
             />
 
-            <View style={{ marginTop: 24 }}>
+            <View style={styles.formSection}>
+              <LinearGradient
+                colors={["#9D6100", "#FFEAA0", "#E8A600", "#FFF4BB", "#B67600"]}
+                locations={[0, 0.24, 0.51, 0.74, 1]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.metallicFrame}
+              >
+              <View style={styles.metallicInset}>
               <PremiumCard>
                 <AppText variant="heading" style={styles.sectionTitle}>
                   Vendor / Admin Login
@@ -196,7 +204,7 @@ export default function VendorLoginScreen() {
                   Email
                 </AppText>
                 <PremiumInput
-                  style={{ flex: 1 }}
+                  style={styles.emailInput}
                   placeholder="Enter your email"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -275,11 +283,13 @@ export default function VendorLoginScreen() {
                 <SecondaryButton
                   onPress={() => router.replace("/welcome")}
                   disabled={isLoggingIn}
-                  style={{ marginTop: 8 }}
+                  style={styles.backButton}
                 >
                   Back
                 </SecondaryButton>
               </PremiumCard>
+              </View>
+              </LinearGradient>
             </View>
           </ScrollView>
         </TouchableWithoutFeedback>
@@ -300,42 +310,76 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
   },
 
+  formSection: {
+    marginTop: 24,
+    shadowColor: "#F7C44A",
+    shadowOpacity: 0.24,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 8,
+  },
+  metallicFrame: {
+    padding: 2,
+    borderRadius: 28,
+  },
+  metallicInset: {
+    borderRadius: 26,
+    overflow: "hidden",
+    backgroundColor: "#0C121B",
+  },
   sectionTitle: {
-    color: "#FFB547",
-    marginBottom: 18,
+    color: "#FFF0BD",
+    fontSize: 23,
+    fontWeight: "800",
+    letterSpacing: 0.3,
+    marginBottom: 22,
+  },
+  emailInput: {
+    flex: 1,
   },
 
   label: {
-    color: theme.colors.background,
-    marginBottom: 8,
+    color: "#FFE59A",
+    fontSize: 14,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+    marginBottom: 10,
   },
 
   passwordWrap: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 18,
   },
 
   showPasswordButton: {
     marginLeft: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: "#E8B323",
+    borderRadius: 12,
+    backgroundColor: "rgba(255,212,91,0.10)",
     justifyContent: "center",
   },
 
   showPasswordButtonText: {
-    color: "#FFB547",
+    color: "#FFE59A",
   },
 
   linkButton: {
-    marginTop: 6,
+    marginTop: 12,
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 10,
+    paddingVertical: 5,
   },
   linkButtonText: {
-    color: "#FF7A00",
+    color: "#FFE59A",
   },
 
+  backButton: {
+    marginTop: 10,
+  },
   buttonDisabled: {
     opacity: 0.6,
   },

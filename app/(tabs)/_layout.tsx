@@ -11,12 +11,12 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         lazy: true,
-        tabBarActiveTintColor: "#FF7A00",
-        tabBarInactiveTintColor: "rgba(255,255,255,0.5)",
+        tabBarActiveTintColor: "#FFE29A",
+        tabBarInactiveTintColor: "rgba(231,220,190,0.58)",
         tabBarStyle: {
-          backgroundColor: "#0B2A5B",
-          borderTopWidth: 2,
-          borderTopColor: "#FF7A00",
+          backgroundColor: "#07131F",
+          borderTopWidth: 1,
+          borderTopColor: "#D9A83E",
           height: 70 + insets.bottom,
           paddingTop: 8,
           paddingBottom: Math.max(insets.bottom, 10),
@@ -70,10 +70,7 @@ export default function TabLayout() {
             >
               <Image
                 source={require("../../assets/icons/spot.png")}
-                style={{
-                  width: 92,
-                  height: 92,
-                }}
+                style={{ width: 92, height: 92 }}
                 resizeMode="contain"
               />
             </Pressable>

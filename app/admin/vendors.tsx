@@ -11,7 +11,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { theme } from "../../constants/theme";
 import {
   adminDeleteVendor,
   approveVendor,
@@ -467,7 +466,7 @@ export default function AdminVendorsScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="Add suspension reason"
-                  placeholderTextColor="#7A7A7A"
+                  placeholderTextColor="rgba(235,241,250,0.45)"
                   value={suspensionReasons[item.id] ?? ""}
                   onChangeText={(text) =>
                     setSuspensionReasons((current) => ({
@@ -580,7 +579,7 @@ export default function AdminVendorsScreen() {
             <Text style={styles.kicker}>ADMIN</Text>
             <Text style={styles.title}>Manage Vendors</Text>
             <Text style={styles.subtitle}>
-              Suspend or restore vendors safely before launch.
+              Review vendor listings, approvals and community moderation.
             </Text>
 
             <View style={styles.filterRow}>
@@ -642,328 +641,58 @@ export default function AdminVendorsScreen() {
 }
 
 const styles = StyleSheet.create({
-
-  filterRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 16,
-  },
-
-  filterChip: {
-    backgroundColor: "rgba(255,255,255,0.08)",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-  },
-
-  filterChipActive: {
-    backgroundColor: theme.colors.primary,
-  },
-
-  filterChipText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-
-  filterChipTextActive: {
-    color: "#FFFFFF",
-  },
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-  },
-  kicker: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: theme.colors.secondary,
-    letterSpacing: 1.2,
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: "800",
-    color: "#FFFFFF",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: "rgba(255,255,255,0.75)",
-    lineHeight: 22,
-    marginBottom: 20,
-  },
-  searchInput: {
-    backgroundColor: "rgba(255,255,255,0.12)",
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 20,
-    color: "#FFFFFF",
-  },
-  helperText: {
-    fontSize: 15,
-    color: "rgba(255,255,255,0.75)",
-    lineHeight: 22,
-    marginBottom: 20,
-  },
-  listContent: {
-    paddingBottom: 20,
-    flexGrow: 1,
-  },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-  },
-  topRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
-    marginBottom: 10,
-  },
-  textBlock: {
-    flex: 1,
-  },
-  vendorName: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: theme.colors.background,
-    marginBottom: 4,
-  },
-  editLink: {
-    color: "#FF7A00",
-    fontWeight: "700",
-    marginTop: 6,
-    marginBottom: 6,
-  },
-  vendorMeta: {
-    fontSize: 14,
-    color: "#555555",
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    alignSelf: "flex-start",
-  },
-  statusActive: {
-    backgroundColor: "#1DB954",
-  },
-  statusSuspended: {
-    backgroundColor: "#C62828",
-  },
-  statusPending: {
-    backgroundColor: "#FF7A00",
-  },
-  statusBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "800",
-  },
-  detailText: {
-    fontSize: 14,
-    color: "#333333",
-    marginBottom: 6,
-  },
-
-  missingInfo: {
-    color: "#C62828",
-    fontWeight: "700",
-  },
-  noteLabel: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: theme.colors.primary,
-    marginTop: 10,
-    marginBottom: 6,
-  },
-  noteText: {
-    fontSize: 14,
-    color: "#222222",
-    lineHeight: 20,
-    marginBottom: 10,
-  },
-  input: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 12,
-    color: "#222222",
-    minHeight: 52,
-    textAlignVertical: "top",
-  },
-  actionButton: {
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: "center",
-  },
-  suspendButton: {
-    backgroundColor: "#C62828",
-  },
-  unsuspendButton: {
-    backgroundColor: "#1DB954",
-  },
-  deleteButton: {
-    backgroundColor: "#7A1F1F",
-    marginTop: 10,
-  },
-  actionButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "800",
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  backButton: {
-    backgroundColor: "#D9D9D9",
-    paddingVertical: 14,
-    borderRadius: 16,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  backButtonText: {
-    color: "#222222",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-
-  approveButton: {
-    backgroundColor: "#FF7A00",
-    marginTop: 10,
-  },
-
-  loadMoreButton: {
-    backgroundColor: "#444",
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: "center",
-    marginBottom: 10,
-  },
-
-  loadMoreText: {
-    color: "#FFF",
-    fontWeight: "800",
-  },
-
-  adminVehiclePhoto: {
-    width: "100%",
-    height: 220,
-    borderRadius: 14,
-    marginTop: 10,
-    marginBottom: 12,
-  },
-
-  mapButton: {
-    backgroundColor: "#0B2A5B",
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    marginBottom: 10,
-  },
-
-  mapButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "800",
-  },
-
-  linkText: {
-    color: "#FF7A00",
-    fontWeight: "800",
-    marginBottom: 8,
-  },
-
-  checklistBox: {
-    backgroundColor: "#F8FBFF",
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "rgba(11,42,91,0.18)",
-    marginTop: 8,
-    marginBottom: 12,
-  },
-
-  checklistTitle: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#0B2A5B",
-    marginBottom: 8,
-  },
-
-  checklistItem: {
-    fontSize: 14,
-    color: "#333333",
-    marginBottom: 5,
-    fontWeight: "700",
-  },
-
-  adminSectionTitle: {
-    fontSize: 15,
-    fontWeight: "900",
-    color: "#0B2A5B",
-    marginTop: 12,
-    marginBottom: 8,
-  },
-
-  summaryBox: {
-    backgroundColor: "#FFF8E8",
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "#FFD27A",
-    marginBottom: 14,
-  },
-
-  summaryTitle: {
-    fontSize: 14,
-    fontWeight: "900",
-    color: "#0B2A5B",
-    marginBottom: 6,
-  },
-
-  summaryText: {
-    fontSize: 13,
-    color: "#444444",
-    lineHeight: 20,
-  },
-
-  socialLinkBox: {
-    backgroundColor: "#F8FBFF",
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "rgba(11,42,91,0.16)",
-    marginBottom: 8,
-  },
-
-  socialLinkLabel: {
-    fontSize: 12,
-    fontWeight: "900",
-    color: "#0B2A5B",
-    marginBottom: 4,
-    textTransform: "uppercase",
-  },
-
-  socialLinkValue: {
-    fontSize: 13,
-    color: "#FF7A00",
-    fontWeight: "800",
-  },
-
-  checklistScore: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#0B2A5B",
-    marginBottom: 10,
-  },
+  container: { flex: 1, backgroundColor: "#071426", paddingHorizontal: 20, paddingTop: 22 },
+  listContent: { paddingBottom: 48, flexGrow: 1 },
+  kicker: { fontSize: 12, fontWeight: "900", color: "#F7B733", letterSpacing: 2, marginBottom: 12 },
+  title: { fontSize: 32, fontWeight: "800", color: "#F7F8FC", marginBottom: 10 },
+  subtitle: { fontSize: 15, color: "#A9B9CE", lineHeight: 23, marginBottom: 24 },
+  filterRow: { flexDirection: "row", flexWrap: "wrap", gap: 9, marginBottom: 18 },
+  filterChip: { backgroundColor: "#10243E", borderWidth: 1, borderColor: "#31435A", paddingVertical: 10, paddingHorizontal: 13, borderRadius: 999 },
+  filterChipActive: { backgroundColor: "#332813", borderColor: "#E3A93A" },
+  filterChipText: { color: "#BBC8D8", fontSize: 12, fontWeight: "800" },
+  filterChipTextActive: { color: "#FFD77D" },
+  searchInput: { backgroundColor: "#10243E", borderWidth: 1, borderColor: "#8D6D36", borderRadius: 15, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 20, color: "#F8FAFC", fontSize: 15 },
+  helperText: { fontSize: 15, color: "#A9B9CE", lineHeight: 23, marginBottom: 20 },
+  card: { backgroundColor: "#10223A", borderRadius: 20, padding: 17, marginBottom: 13, borderWidth: 1, borderColor: "#665532" },
+  topRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 4 },
+  textBlock: { flex: 1 },
+  vendorName: { fontSize: 17, fontWeight: "800", color: "#F7F8FC", marginBottom: 7 },
+  vendorMeta: { fontSize: 13, lineHeight: 19, color: "#A8B8CD" },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, alignSelf: "flex-start", borderWidth: 1 },
+  statusActive: { backgroundColor: "#12382F", borderColor: "#2AB989" },
+  statusSuspended: { backgroundColor: "#401F2A", borderColor: "#E46A78" },
+  statusPending: { backgroundColor: "#3A2D18", borderColor: "#DFA943" },
+  statusBadgeText: { color: "#F7F8FC", fontSize: 10, fontWeight: "900" },
+  editLink: { color: "#FFD17A", fontWeight: "800", marginTop: 15, marginBottom: 12, fontSize: 14 },
+  adminSectionTitle: { fontSize: 13, fontWeight: "900", color: "#F3C66A", marginTop: 19, marginBottom: 10, letterSpacing: 0.6 },
+  detailText: { fontSize: 14, color: "#D0DAE8", lineHeight: 21, marginBottom: 8 },
+  missingInfo: { color: "#E6A6A6", fontWeight: "700" },
+  adminVehiclePhoto: { width: "100%", height: 220, borderRadius: 14, marginTop: 8, marginBottom: 12 },
+  mapButton: { backgroundColor: "#1A3554", borderWidth: 1, borderColor: "#6C6B60", paddingVertical: 13, borderRadius: 12, alignItems: "center", marginBottom: 12 },
+  mapButtonText: { color: "#F5E4C3", fontWeight: "800" },
+  socialLinkBox: { backgroundColor: "#0B1A2D", borderRadius: 12, padding: 13, borderWidth: 1, borderColor: "#34435B", marginBottom: 9 },
+  socialLinkLabel: { fontSize: 11, fontWeight: "900", color: "#C4D1E1", marginBottom: 5, textTransform: "uppercase" },
+  socialLinkValue: { fontSize: 13, color: "#F0BC5E", fontWeight: "700", lineHeight: 19 },
+  checklistBox: { backgroundColor: "#0B1A2D", borderRadius: 14, padding: 15, borderWidth: 1, borderColor: "#4E503E", marginTop: 12, marginBottom: 13 },
+  checklistTitle: { fontSize: 14, fontWeight: "900", color: "#F6E4C1", marginBottom: 8 },
+  checklistScore: { fontSize: 13, fontWeight: "800", color: "#F0BC5E", marginBottom: 12 },
+  checklistItem: { fontSize: 13, color: "#CFD9E6", marginBottom: 8, fontWeight: "600" },
+  summaryBox: { backgroundColor: "#172A3B", borderRadius: 14, padding: 15, borderWidth: 1, borderColor: "#786137", marginBottom: 16 },
+  summaryTitle: { fontSize: 14, fontWeight: "900", color: "#F6E4C1", marginBottom: 7 },
+  summaryText: { fontSize: 13, color: "#CFD9E6", lineHeight: 21 },
+  noteLabel: { fontSize: 13, fontWeight: "900", color: "#F3C66A", marginTop: 14, marginBottom: 9 },
+  noteText: { fontSize: 14, color: "#D0DAE8", lineHeight: 21, marginBottom: 12 },
+  input: { backgroundColor: "#0B1A2D", borderWidth: 1, borderColor: "#7B6746", borderRadius: 13, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 13, color: "#FFFFFF", minHeight: 75, textAlignVertical: "top" },
+  actionButton: { paddingVertical: 15, paddingHorizontal: 12, borderRadius: 13, alignItems: "center", marginTop: 8 },
+  approveButton: { backgroundColor: "#B97D1F" },
+  suspendButton: { backgroundColor: "#8C3842" },
+  unsuspendButton: { backgroundColor: "#176C54" },
+  deleteButton: { backgroundColor: "#49232C", borderWidth: 1, borderColor: "#A7515A", marginTop: 13 },
+  actionButtonText: { color: "#FFFFFF", fontWeight: "900", fontSize: 14 },
+  buttonDisabled: { opacity: 0.5 },
+  loadMoreButton: { backgroundColor: "#172E4A", borderWidth: 1, borderColor: "#8D6D36", paddingVertical: 15, borderRadius: 14, alignItems: "center", marginBottom: 14 },
+  loadMoreText: { color: "#F5D28C", fontWeight: "800" },
+  backButton: { backgroundColor: "#10243E", borderWidth: 1, borderColor: "#39495E", paddingVertical: 15, borderRadius: 15, alignItems: "center", marginTop: 10 },
+  backButtonText: { color: "#D4DDEA", fontSize: 15, fontWeight: "800" },
+  linkText: { color: "#F0BC5E", fontWeight: "800", marginBottom: 8 },
 });

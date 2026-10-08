@@ -1,5 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -207,19 +208,21 @@ export default function RegisterVendorScreen() {
           keyboardDismissMode="interactive"
           showsVerticalScrollIndicator={false}
         >
+          <Text style={styles.kicker}>VENDOR SETUP</Text>
           <Text style={styles.title}>Create Vendor</Text>
 
           <Text style={styles.subtitle}>
             Build your listing, place it on the map, and get ready to go live.
           </Text>
 
+          <LinearGradient colors={["#FFF1B0", "#B97919", "#FFE59A", "#77500E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cardFrame}>
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Basic Info</Text>
 
             <TextInput
               style={styles.input}
               placeholder="Van name"
-              placeholderTextColor="#7A7A7A"
+              placeholderTextColor="#91A3B5"
               value={name}
               onChangeText={setName}
             />
@@ -227,7 +230,7 @@ export default function RegisterVendorScreen() {
             <TextInput
               style={styles.input}
               placeholder="Vendor name"
-              placeholderTextColor="#7A7A7A"
+              placeholderTextColor="#91A3B5"
               value={vendorName}
               onChangeText={setVendorName}
             />
@@ -235,19 +238,21 @@ export default function RegisterVendorScreen() {
             <TextInput
               style={styles.input}
               placeholder="Cuisine"
-              placeholderTextColor="#7A7A7A"
+              placeholderTextColor="#91A3B5"
               value={cuisine}
               onChangeText={setCuisine}
             />
           </View>
+          </LinearGradient>
 
+          <LinearGradient colors={["#FFF1B0", "#B97919", "#FFE59A", "#77500E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cardFrame}>
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Listing Details</Text>
 
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Menu"
-              placeholderTextColor="#7A7A7A"
+              placeholderTextColor="#91A3B5"
               value={menu}
               onChangeText={setMenu}
               multiline
@@ -257,7 +262,7 @@ export default function RegisterVendorScreen() {
             <TextInput
               style={[styles.input, styles.textAreaSmall]}
               placeholder="Schedule"
-              placeholderTextColor="#7A7A7A"
+              placeholderTextColor="#91A3B5"
               value={schedule}
               onChangeText={setSchedule}
               multiline
@@ -269,12 +274,14 @@ export default function RegisterVendorScreen() {
             <TextInput
               style={styles.input}
               placeholder="what3words (e.g. filled.count.soap)"
-              placeholderTextColor="#7A7A7A"
+              placeholderTextColor="#91A3B5"
               value={what3words}
               onChangeText={setWhat3words}
             />
           </View>
+          </LinearGradient>
 
+          <LinearGradient colors={["#FFF1B0", "#B97919", "#FFE59A", "#77500E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cardFrame}>
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Online Presence</Text>
 
@@ -290,7 +297,7 @@ export default function RegisterVendorScreen() {
             <TextInput
               style={styles.input}
               placeholder="@myfoodvan or https://instagram.com/myfoodvan"
-              placeholderTextColor="#7A7A7A"
+              placeholderTextColor="#91A3B5"
               value={instagramUrl}
               onChangeText={setInstagramUrl}
               autoCapitalize="none"
@@ -303,7 +310,7 @@ export default function RegisterVendorScreen() {
             <TextInput
               style={styles.input}
               placeholder="Facebook business page link"
-              placeholderTextColor="#7A7A7A"
+              placeholderTextColor="#91A3B5"
               value={facebookUrl}
               onChangeText={setFacebookUrl}
               autoCapitalize="none"
@@ -316,7 +323,7 @@ export default function RegisterVendorScreen() {
             <TextInput
               style={styles.input}
               placeholder="https://www.mybusiness.co.uk"
-              placeholderTextColor="#7A7A7A"
+              placeholderTextColor="#91A3B5"
               value={websiteUrl}
               onChangeText={setWebsiteUrl}
               autoCapitalize="none"
@@ -326,7 +333,9 @@ export default function RegisterVendorScreen() {
               Leave blank if you do not have a website.
             </Text>
           </View>
+          </LinearGradient>
 
+          <LinearGradient colors={["#FFF1B0", "#B97919", "#FFE59A", "#77500E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cardFrame}>
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Vehicle Verification</Text>
 
@@ -357,7 +366,9 @@ export default function RegisterVendorScreen() {
               />
             ) : null}
           </View>
+          </LinearGradient>
 
+          <LinearGradient colors={["#FFF1B0", "#B97919", "#FFE59A", "#77500E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cardFrame}>
           <View style={styles.card}>
             <View style={styles.locationHeader}>
               <View style={styles.locationTextWrap}>
@@ -398,7 +409,9 @@ export default function RegisterVendorScreen() {
               </View>
             </View>
           </View>
+          </LinearGradient>
 
+          <LinearGradient colors={["#FFF4BF", "#E5A832", "#FFF0A5", "#A86B10"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.buttonFrame}>
           <Pressable
             style={[styles.button, isSaving && styles.buttonDisabled]}
             onPress={handleCreateVendor}
@@ -408,24 +421,28 @@ export default function RegisterVendorScreen() {
               {isSaving ? "Creating..." : "Create Vendor"}
             </Text>
           </Pressable>
+          </LinearGradient>
         </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }
 
-const NAVY = "#0B2A5B";
-const ORANGE = "#FF7A00";
-const LIGHT_BLUE = "#EAF2FF";
-const INPUT_BG = "#F8FBFF";
-const TEXT_DARK = "#16335C";
-const TEXT_MUTED = "#5D6F8F";
-const BORDER = "rgba(255,122,0,0.75)";
+const NAVY = "#081725";
+const ORANGE = "#FFD66B";
+const LIGHT_BLUE = "#102538";
+const INPUT_BG = "#091A2B";
+const TEXT_DARK = "#FFF0BB";
+const TEXT_MUTED = "#B7C5D2";
+const BORDER = "rgba(255,214,107,0.8)";
 
 const styles = StyleSheet.create({
   keyboardContainer: { flex: 1 },
   container: { flex: 1, backgroundColor: NAVY },
   content: { padding: 20, paddingBottom: 140, flexGrow: 1 },
+  kicker: { fontSize: 12, fontWeight: "900", letterSpacing: 1.6, color: ORANGE, marginBottom: 8 },
+  cardFrame: { borderRadius: 22, padding: 1.5, marginBottom: 16 },
+  buttonFrame: { borderRadius: 16, padding: 1.5, marginTop: 6 },
 
   title: {
     fontSize: 28,
@@ -445,9 +462,9 @@ const styles = StyleSheet.create({
     backgroundColor: LIGHT_BLUE,
     borderRadius: 20,
     padding: 16,
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: BORDER,
+    marginBottom: 0,
+    borderWidth: 1,
+    borderColor: "rgba(255,233,166,0.28)",
   },
 
   sectionTitle: {
@@ -465,7 +482,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1.5,
     borderColor: BORDER,
-    color: "#222222",
+    color: "#FFFFFF",
   },
 
   textArea: { minHeight: 96 },
@@ -489,7 +506,7 @@ const styles = StyleSheet.create({
   },
 
   clearChip: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#122B3E",
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -507,7 +524,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: BORDER,
+    borderColor: "#FFE29A",
   },
 
   map: { width: "100%", height: 270 },
@@ -517,31 +534,31 @@ const styles = StyleSheet.create({
     left: 12,
     right: 12,
     bottom: 12,
-    backgroundColor: "rgba(11,42,91,0.88)",
+    backgroundColor: "rgba(8,23,37,0.91)",
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 12,
   },
 
   mapOverlayText: {
-    color: "#FFFFFF",
+    color: "#FFE6A0",
     fontSize: 13,
     fontWeight: "700",
     textAlign: "center",
   },
 
   button: {
-    backgroundColor: ORANGE,
+    backgroundColor: "#A96D16",
     paddingVertical: 16,
     borderRadius: 14,
     alignItems: "center",
-    marginTop: 6,
+    marginTop: 0,
   },
 
   buttonDisabled: { opacity: 0.7 },
 
   buttonText: {
-    color: "#FFFFFF",
+    color: "#FFF7DB",
     fontWeight: "800",
     fontSize: 16,
   },
@@ -555,11 +572,11 @@ const styles = StyleSheet.create({
   },
 
   infoBox: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#122B3E",
     borderRadius: 14,
     padding: 14,
     borderWidth: 1.5,
-    borderColor: "rgba(255,122,0,0.35)",
+    borderColor: "rgba(255,214,107,0.4)",
     marginBottom: 14,
   },
 
@@ -585,7 +602,9 @@ const styles = StyleSheet.create({
   },
 
   uploadButton: {
-    backgroundColor: ORANGE,
+    backgroundColor: "#9A6416",
+    borderWidth: 1,
+    borderColor: "#FFE6A0",
     paddingVertical: 15,
     borderRadius: 14,
     alignItems: "center",

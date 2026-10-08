@@ -9,7 +9,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { theme } from "../../constants/theme";
 import {
   getAllVendorReports,
   updateVendorReportStatus,
@@ -352,7 +351,7 @@ export default function AdminReportsScreen() {
               : styles.vendorStateActive,
           ]}
         >
-          {vendorSuspended ? "Vendor status: Suspended" : "Vendor status: Active"}
+          {vendorSuspended ? "Vendor status: Suspended" : "Vendor status: Not suspended"}
         </Text>
 
         <Text style={styles.meta}>Vendor tier: {getVendorTier(item.vendor_id)}</Text>
@@ -369,7 +368,7 @@ export default function AdminReportsScreen() {
 
         {isHighRisk ? (
           <Text style={styles.highRiskText}>
-            High-risk vendor: this listing has been reported 3 or more times.
+            Multiple reports: this listing has received 3 or more reports. Review the evidence before taking action.
           </Text>
         ) : null}
 
@@ -412,7 +411,7 @@ export default function AdminReportsScreen() {
         <TextInput
           style={styles.input}
           placeholder="Add decision note"
-          placeholderTextColor="#7A7A7A"
+          placeholderTextColor="#758496"
           value={adminNotes[item.id] ?? ""}
           onChangeText={(text) =>
             setAdminNotes((current) => ({
@@ -627,7 +626,7 @@ export default function AdminReportsScreen() {
                     styles.reasonChipTextActive,
                   ]}
                 >
-                  high risk ({highRiskVendorCount})
+                  3+ reports ({highRiskVendorCount})
                 </Text>
               </Pressable>
 
@@ -662,12 +661,12 @@ export default function AdminReportsScreen() {
 
             <View style={styles.summaryCardsRow}>
               <View style={styles.summaryCard}>
-                <Text style={styles.summaryCardLabel}>Open Reports</Text>
+                <Text style={styles.summaryCardLabel}>Total Reports</Text>
                 <Text style={styles.summaryCardValue}>{reports.length}</Text>
               </View>
 
               <View style={styles.highRiskSummaryCard}>
-                <Text style={styles.highRiskSummaryLabel}>High-Risk Vendors</Text>
+                <Text style={styles.highRiskSummaryLabel}>Frequently Reported</Text>
                 <Text style={styles.highRiskSummaryValue}>
                   {highRiskVendorCount}
                 </Text>
@@ -680,7 +679,7 @@ export default function AdminReportsScreen() {
                 {selectedReasonFilter === "all"
                   ? "all reports"
                   : selectedReasonFilter === "high_risk"
-                    ? "high risk vendors"
+                    ? "frequently reported vendors"
                     : selectedReasonFilter.replace(/_/g, " ")}
               </Text>
             ) : null}
@@ -693,7 +692,7 @@ export default function AdminReportsScreen() {
               : selectedReasonFilter === "all"
                 ? "No reports found."
                 : selectedReasonFilter === "high_risk"
-                  ? "No high risk vendors found."
+                  ? "No frequently reported vendors found."
                   : `No ${selectedReasonFilter.replace(/_/g, " ")} reports found.`}
           </Text>
         }
@@ -707,280 +706,58 @@ export default function AdminReportsScreen() {
   );
 }
 
+// Presentation-only palette. No moderation service or action logic changed.
+const BG = "#071421";
+const PANEL = "#0C1E2E";
+const PANEL_ALT = "#102638";
+const GOLD = "#E2AE54";
+const GOLD_SOFT = "#68522D";
+const TEXT = "#F5F2E9";
+const MUTED = "#A1AFBE";
+const RED = "#E38A8F";
+const GREEN = "#74D5A1";
+
 const styles = StyleSheet.create({
-  activeFilterText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "rgba(255,255,255,0.72)",
-    marginBottom: 12,
-  },
-
-  summaryCardsRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 18,
-  },
-
-  summaryCard: {
-    flex: 1,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderWidth: 1.5,
-    borderColor: theme.colors.border,
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-  },
-
-  summaryCardLabel: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: theme.colors.secondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: 6,
-  },
-
-  summaryCardValue: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-
-  highRiskSummaryCard: {
-    flex: 1,
-    backgroundColor: "rgba(198,40,40,0.16)",
-    borderWidth: 1.5,
-    borderColor: "#C62828",
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-  },
-
-  highRiskSummaryLabel: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#FFB3B3",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: 6,
-  },
-
-  highRiskSummaryValue: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-
-  reasonSummary: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 16,
-  },
-
-  reasonChip: {
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 12,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-
-  reasonChipText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-
-  reasonChipActive: {
-    backgroundColor: theme.colors.primary,
-  },
-
-  reasonChipTextActive: {
-    color: "#FFFFFF",
-  },
-
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-  },
-
-  kicker: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: theme.colors.secondary,
-    marginBottom: 8,
-    letterSpacing: 1.2,
-  },
-
-  title: {
-    fontSize: 30,
-    fontWeight: "800",
-    color: theme.colors.textOnDark,
-    marginBottom: 8,
-  },
-
-  subtitle: {
-    fontSize: 15,
-    color: "rgba(255,255,255,0.75)",
-    marginBottom: 20,
-  },
-
-  helper: {
-    color: "rgba(255,255,255,0.7)",
-    marginBottom: 20,
-  },
-
-  list: {
-    paddingBottom: 20,
-    flexGrow: 1,
-  },
-
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-  },
-
-  highRiskCard: {
-    borderColor: "#C62828",
-    borderWidth: 3,
-  },
-
-  vendorName: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: theme.colors.background,
-    marginBottom: 6,
-  },
-
-  meta: {
-    fontSize: 14,
-    color: "#444",
-    marginBottom: 6,
-  },
-
-  highRiskText: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#C62828",
-    marginBottom: 8,
-  },
-
-  vendorStateText: {
-    fontSize: 13,
-    fontWeight: "800",
-    marginBottom: 8,
-  },
-
-  vendorStateActive: {
-    color: "#1DB954",
-  },
-
-  vendorStateSuspended: {
-    color: "#C62828",
-  },
-
-  details: {
-    fontSize: 14,
-    color: "#222",
-    marginBottom: 10,
-  },
-
-  openVendorButton: {
-    alignSelf: "flex-start",
-    backgroundColor: "#0B2A5B",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-
-  openVendorButtonText: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontWeight: "800",
-  },
-
-  viewListingButton: {
-    alignSelf: "flex-start",
-    backgroundColor: "#FF7A00",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-
-  viewListingButtonText: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontWeight: "800",
-  },
-
-  input: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
-    color: "#222",
-    minHeight: 52,
-    textAlignVertical: "top",
-  },
-
-  actionsRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
-
-  button: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-
-  resolveButton: {
-    backgroundColor: "#1DB954",
-  },
-
-  dismissButton: {
-    backgroundColor: "#C62828",
-  },
-
-  suspendButtonFull: {
-    marginTop: 10,
-    backgroundColor: "#C62828",
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: "center",
-  },
-
-  buttonText: {
-    color: "#FFFFFF",
-    fontWeight: "800",
-  },
-
-  backButton: {
-    marginTop: 10,
-    backgroundColor: "#D9D9D9",
-    padding: 14,
-    borderRadius: 14,
-    alignItems: "center",
-  },
-
-  backButtonText: {
-    color: "#222222",
-    fontWeight: "700",
-    fontSize: 16,
-  },
+  container: { flex: 1, backgroundColor: BG, paddingHorizontal: 18, paddingTop: 22 },
+  list: { flexGrow: 1, paddingBottom: 34 },
+  kicker: { fontSize: 11, fontWeight: "800", color: GOLD, letterSpacing: 2.5, marginBottom: 8 },
+  title: { fontSize: 30, fontWeight: "900", color: TEXT, marginBottom: 7 },
+  subtitle: { fontSize: 14, color: MUTED, lineHeight: 21, marginBottom: 22 },
+  reasonSummary: { flexDirection: "row", flexWrap: "wrap", gap: 9, marginBottom: 20 },
+  reasonChip: { backgroundColor: PANEL, borderWidth: 1, borderColor: GOLD_SOFT, borderRadius: 24, paddingVertical: 10, paddingHorizontal: 13 },
+  reasonChipActive: { backgroundColor: "#4C3920", borderColor: GOLD },
+  reasonChipText: { color: MUTED, fontSize: 12, fontWeight: "700", textTransform: "capitalize" },
+  reasonChipTextActive: { color: "#FFE3A5" },
+  summaryCardsRow: { flexDirection: "row", gap: 11, marginBottom: 18 },
+  summaryCard: { flex: 1, backgroundColor: PANEL_ALT, borderWidth: 1, borderColor: GOLD_SOFT, borderRadius: 19, padding: 17, minHeight: 100 },
+  summaryCardLabel: { fontSize: 11, fontWeight: "800", color: MUTED, letterSpacing: 0.7, textTransform: "uppercase", marginBottom: 11 },
+  summaryCardValue: { fontSize: 30, fontWeight: "900", color: TEXT },
+  highRiskSummaryCard: { flex: 1, backgroundColor: "#291D27", borderWidth: 1, borderColor: "#7C424D", borderRadius: 19, padding: 17, minHeight: 100 },
+  highRiskSummaryLabel: { fontSize: 11, fontWeight: "800", color: "#F0B5B7", letterSpacing: 0.6, textTransform: "uppercase", marginBottom: 11 },
+  highRiskSummaryValue: { fontSize: 30, fontWeight: "900", color: "#FFE3E3" },
+  activeFilterText: { color: MUTED, fontSize: 12, fontWeight: "700", marginBottom: 16 },
+  helper: { backgroundColor: PANEL, borderWidth: 1, borderColor: GOLD_SOFT, borderRadius: 18, padding: 24, color: MUTED, fontSize: 14, lineHeight: 21, textAlign: "center", marginBottom: 18 },
+  card: { backgroundColor: PANEL, borderWidth: 1, borderColor: GOLD_SOFT, borderRadius: 23, padding: 18, marginBottom: 17 },
+  highRiskCard: { borderColor: "#A75C60", borderWidth: 1.5 },
+  vendorName: { color: TEXT, fontSize: 20, fontWeight: "900", marginBottom: 14 },
+  meta: { color: MUTED, fontSize: 13, lineHeight: 20, marginBottom: 6 },
+  vendorStateText: { fontSize: 12, fontWeight: "800", marginTop: 5, marginBottom: 10 },
+  vendorStateActive: { color: GREEN },
+  vendorStateSuspended: { color: RED },
+  highRiskText: { color: "#FFD0D0", backgroundColor: "#3B232D", borderColor: "#8D4B55", borderWidth: 1, borderRadius: 12, overflow: "hidden", padding: 12, fontSize: 12, lineHeight: 19, fontWeight: "700", marginVertical: 12 },
+  details: { color: TEXT, backgroundColor: PANEL_ALT, borderWidth: 1, borderColor: "#2A4052", borderRadius: 13, overflow: "hidden", padding: 13, fontSize: 14, lineHeight: 21, marginTop: 7, marginBottom: 14 },
+  openVendorButton: { alignSelf: "stretch", alignItems: "center", backgroundColor: "#483820", borderWidth: 1, borderColor: GOLD, borderRadius: 14, paddingVertical: 13, marginTop: 11, marginBottom: 9 },
+  openVendorButtonText: { color: "#FFE5AC", fontSize: 13, fontWeight: "800" },
+  viewListingButton: { alignSelf: "stretch", alignItems: "center", backgroundColor: PANEL_ALT, borderWidth: 1, borderColor: "#46647C", borderRadius: 14, paddingVertical: 13, marginBottom: 18 },
+  viewListingButtonText: { color: TEXT, fontSize: 13, fontWeight: "800" },
+  input: { backgroundColor: "#06121D", borderWidth: 1, borderColor: GOLD_SOFT, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13, marginTop: 4, marginBottom: 16, color: TEXT, minHeight: 76, fontSize: 14, textAlignVertical: "top" },
+  actionsRow: { flexDirection: "row", gap: 10, marginBottom: 10 },
+  button: { flex: 1, minHeight: 48, paddingVertical: 13, paddingHorizontal: 10, borderRadius: 13, alignItems: "center", justifyContent: "center", borderWidth: 1 },
+  buttonDisabled: { opacity: 0.45 },
+  resolveButton: { backgroundColor: "#163D31", borderColor: "#378769" },
+  dismissButton: { backgroundColor: "#3A2029", borderColor: "#95505B" },
+  suspendButtonFull: { marginTop: 3, marginBottom: 10, minHeight: 48, backgroundColor: "#3A2526", borderColor: "#A35B56", borderWidth: 1, paddingVertical: 13, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  buttonText: { color: TEXT, fontWeight: "800", fontSize: 13 },
+  backButton: { marginTop: 8, backgroundColor: PANEL, borderWidth: 1, borderColor: GOLD_SOFT, paddingVertical: 15, borderRadius: 15, alignItems: "center" },
+  backButtonText: { color: GOLD, fontWeight: "800", fontSize: 14 },
 });

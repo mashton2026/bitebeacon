@@ -1,5 +1,6 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import { supabase } from "../../lib/supabase";
 import { useEffect, useRef, useState } from "react";
 import {
     Alert,
@@ -8,8 +9,10 @@ import {
     StyleSheet,
     Text,
     TextInput,
+    View,
 } from "react-native";
-import { theme } from "../../constants/theme";
+import MapTextureBackground from "../../components/MapTextureBackground";
+import { supabase } from "../../lib/supabase";
 import { getCurrentUser } from "../../services/authService";
 import {
     createVendorClaim,
@@ -223,13 +226,29 @@ export default function ClaimVendorScreen() {
     }
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <Text style={styles.kicker}>CLAIM</Text>
-            <Text style={styles.title}>Claim This Van</Text>
-            <Text style={styles.subtitle}>
-                Submit your request to take ownership of this community spotted listing.
-            </Text>
-
+        <MapTextureBackground>
+        <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+            <View style={styles.header}>
+                <Text style={styles.kicker}>VENDOR VERIFICATION</Text>
+                <Text style={styles.title}>Claim This Van</Text>
+                <Text style={styles.subtitle}>
+                    Submit your request to take ownership of this community spotted listing.
+                </Text>
+            </View>
+            <LinearGradient
+                colors={["#A66B00", "#FFECA3", "#FFC531", "#FFF2AE", "#C88705"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.goldFrame}
+            >
+              <View style={styles.formCard}>
+                <View style={styles.formHeading}>
+                    <View style={styles.formIcon}><MaterialCommunityIcons name="shield-account-outline" size={27} color="#FFDA70" /></View>
+                    <View style={styles.formHeadingCopy}>
+                        <Text style={styles.formTitle}>Ownership request</Text>
+                        <Text style={styles.formSubtitle}>Tell us about your business and select your proof methods.</Text>
+                    </View>
+                </View>
             {isChecking ? (
                 <Text style={styles.loadingText}>Checking listing...</Text>
             ) : (
@@ -261,7 +280,10 @@ export default function ClaimVendorScreen() {
                         editable={!isSubmitting}
                     />
 
-                    <Text style={styles.label}>Choose 3 verification methods</Text>
+                    <View style={styles.verificationHeading}>
+                        <Text style={styles.label}>Choose 3 verification methods</Text>
+                        <Text style={styles.counter}>{verificationMethods.length}/3 SELECTED</Text>
+                    </View>
 
                     {VERIFICATION_OPTIONS.map((method) => {
                         const isSelected = verificationMethods.includes(method);
@@ -290,20 +312,27 @@ export default function ClaimVendorScreen() {
                     })}
 
                     <Pressable
-                        style={[
-                            styles.primaryButton,
-                            isSubmitting && styles.buttonDisabled,
-                        ]}
+                        style={[styles.primaryButton, isSubmitting && styles.buttonDisabled]}
                         onPress={handleSubmitClaim}
                         disabled={isSubmitting}
                     >
-                        <Text style={styles.primaryButtonText}>
-                            {isSubmitting ? "Submitting..." : "Submit Claim"}
-                        </Text>
+                        <LinearGradient
+                            colors={["#A66B00", "#FFECA3", "#FFC531", "#FFF2AE", "#C88705"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.primaryGradient}
+                        >
+                            <MaterialCommunityIcons name="check-decagram-outline" size={21} color="#17170F" />
+                            <Text style={styles.primaryButtonText}>
+                                {isSubmitting ? "Submitting..." : "Submit Claim"}
+                            </Text>
+                        </LinearGradient>
                     </Pressable>
                 </>
             )}
 
+              </View>
+            </LinearGradient>
             <Pressable
                 style={[styles.backButton, isSubmitting && styles.buttonDisabled]}
                 onPress={() => router.back()}
@@ -312,102 +341,38 @@ export default function ClaimVendorScreen() {
                 <Text style={styles.backButtonText}>Back</Text>
             </Pressable>
         </ScrollView>
+        </MapTextureBackground>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.colors.background },
-    content: { padding: 24, paddingBottom: 40 },
-
-    kicker: {
-        fontSize: 12,
-        fontWeight: "800",
-        color: theme.colors.secondary,
-        marginBottom: 8,
-    },
-
-    title: {
-        fontSize: 30,
-        fontWeight: "800",
-        color: "#FFFFFF",
-        marginBottom: 8,
-    },
-
-    subtitle: {
-        fontSize: 15,
-        color: "rgba(255,255,255,0.75)",
-        marginBottom: 24,
-    },
-
-    loadingText: { color: "rgba(255,255,255,0.75)" },
-
-    label: {
-        fontSize: 14,
-        fontWeight: "700",
-        color: "#FFFFFF",
-        marginBottom: 8,
-    },
-
-    input: {
-        backgroundColor: "#FFFFFF",
-        borderWidth: 2,
-        borderColor: theme.colors.border,
-        borderRadius: 14,
-        padding: 14,
-        marginBottom: 14,
-    },
-
+    container: { flex: 1, backgroundColor: "transparent" },
+    content: { paddingHorizontal: 20, paddingTop: 28, paddingBottom: 54 },
+    header: { marginBottom: 23 },
+    kicker: { fontSize: 11, fontWeight: "800", color: "#FFE08A", letterSpacing: 2, marginBottom: 9 },
+    title: { fontSize: 31, fontWeight: "800", color: "#FFF9EA", marginBottom: 9 },
+    subtitle: { fontSize: 14, color: "#C4CFD9", lineHeight: 22 },
+    goldFrame: { borderRadius: 26, padding: 2, marginBottom: 15, shadowColor: "#FFC531", shadowOpacity: 0.24, shadowRadius: 18, shadowOffset: { width: 0, height: 0 }, elevation: 7 },
+    formCard: { backgroundColor: "#0B1827", borderRadius: 24, padding: 18 },
+    formHeading: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 23 },
+    formIcon: { width: 51, height: 51, borderRadius: 17, borderWidth: 1, borderColor: "#E3B743", backgroundColor: "#1A2631", alignItems: "center", justifyContent: "center" },
+    formHeadingCopy: { flex: 1 },
+    formTitle: { fontSize: 19, fontWeight: "800", color: "#FFF3C5" },
+    formSubtitle: { color: "#AEBBC8", fontSize: 12, lineHeight: 18, marginTop: 3 },
+    loadingText: { color: "#E7D5A8", paddingVertical: 22, textAlign: "center" },
+    label: { fontSize: 13, fontWeight: "700", color: "#FFE29A", marginBottom: 9 },
+    input: { backgroundColor: "#101F30", borderWidth: 1, borderColor: "#B78A35", borderRadius: 14, padding: 14, marginBottom: 17, color: "#FFFFFF", fontSize: 15 },
     textArea: { minHeight: 120, textAlignVertical: "top" },
-
-    verificationOption: {
-        backgroundColor: "#FFFFFF",
-        borderWidth: 2,
-        borderColor: theme.colors.border,
-        borderRadius: 14,
-        padding: 12,
-        marginBottom: 10,
-    },
-
-    verificationOptionSelected: {
-        backgroundColor: theme.colors.primary,
-    },
-
-    verificationOptionText: {
-        color: "#222",
-        fontWeight: "700",
-    },
-
-    verificationOptionTextSelected: {
-        color: "#FFF",
-    },
-
-    primaryButton: {
-        backgroundColor: theme.colors.primary,
-        padding: 15,
-        borderRadius: 16,
-        alignItems: "center",
-        marginTop: 10,
-    },
-
-    primaryButtonText: {
-        color: "#FFF",
-        fontWeight: "800",
-    },
-
-    backButton: {
-        backgroundColor: "#D9D9D9",
-        padding: 15,
-        borderRadius: 16,
-        alignItems: "center",
-        marginTop: 10,
-    },
-
-    backButtonText: {
-        color: "#222",
-        fontWeight: "700",
-    },
-
-    buttonDisabled: {
-        opacity: 0.6,
-    },
+    verificationHeading: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 3, marginBottom: 8 },
+    counter: { fontSize: 10, fontWeight: "800", color: "#FFD56B", letterSpacing: 0.6, marginBottom: 9 },
+    verificationOption: { backgroundColor: "#102033", borderWidth: 1, borderColor: "#705B36", borderRadius: 14, padding: 15, marginBottom: 10 },
+    verificationOptionSelected: { backgroundColor: "#332A17", borderColor: "#FFD765", borderWidth: 2 },
+    verificationOptionText: { color: "#D6DFE8", fontSize: 13, lineHeight: 19, fontWeight: "600" },
+    verificationOptionTextSelected: { color: "#FFF0B7" },
+    primaryButton: { marginTop: 17, borderRadius: 16, overflow: "hidden" },
+    primaryGradient: { minHeight: 54, flexDirection: "row", gap: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 12 },
+    primaryButtonText: { color: "#17170F", fontSize: 16, fontWeight: "800" },
+    backButton: { backgroundColor: "#101F30", padding: 15, minHeight: 52, borderRadius: 16, borderWidth: 1, borderColor: "#DDB45A", alignItems: "center", justifyContent: "center", marginTop: 8 },
+    backButtonText: { color: "#FFE29A", fontSize: 15, fontWeight: "700" },
+    buttonDisabled: { opacity: 0.6 },
 });

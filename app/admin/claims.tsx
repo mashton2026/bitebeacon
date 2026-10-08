@@ -9,7 +9,6 @@ import {
     TextInput,
     View,
 } from "react-native";
-import { theme } from "../../constants/theme";
 import {
     approveVendorClaim,
     getPendingVendorClaims,
@@ -123,6 +122,7 @@ export default function AdminClaimsScreen() {
 
         return (
             <View style={styles.claimCard}>
+                <Text style={styles.cardEyebrow}>OWNERSHIP REQUEST</Text>
                 <Text style={styles.claimTitle}>{getVendorName(item.spotted_vendor_id)}</Text>
 
                 <Text style={styles.claimMeta}>Business: {item.claim_name}</Text>
@@ -146,7 +146,7 @@ export default function AdminClaimsScreen() {
                 <TextInput
                     style={styles.input}
                     placeholder="Add decision note"
-                    placeholderTextColor="#7A7A7A"
+                    placeholderTextColor="#8393AA"
                     value={adminNotes[item.id] ?? ""}
                     onChangeText={(text) =>
                         setAdminNotes((current) => ({
@@ -201,7 +201,7 @@ export default function AdminClaimsScreen() {
                 showsVerticalScrollIndicator={false}
                 ListHeaderComponent={
                     <View style={styles.headerBlock}>
-                        <Text style={styles.kicker}>ADMIN</Text>
+                        <Text style={styles.kicker}>ADMINISTRATION</Text>
                         <Text style={styles.title}>Pending Claims</Text>
                         <Text style={styles.subtitle}>
                             Review vendor requests to take ownership of community spotted vans.
@@ -209,13 +209,19 @@ export default function AdminClaimsScreen() {
                     </View>
                 }
                 ListEmptyComponent={
-                    <Text style={styles.helperText}>
-                        {loading ? "Loading claims..." : "No pending claims right now."}
-                    </Text>
+                    <View style={styles.emptyCard}>
+                        <Text style={styles.emptyAccent}>{loading ? "PLEASE WAIT" : "ALL CAUGHT UP"}</Text>
+                        <Text style={styles.emptyTitle}>{loading ? "Loading claims" : "No pending claims"}</Text>
+                        <Text style={styles.helperText}>
+                            {loading
+                                ? "Checking for ownership requests..."
+                                : "There are no ownership requests waiting for review right now."}
+                        </Text>
+                    </View>
                 }
                 ListFooterComponent={
                     <Pressable style={styles.backButton} onPress={() => router.back()}>
-                        <Text style={styles.backButtonText}>Back</Text>
+                        <Text style={styles.backButtonText}>Back to Control Centre</Text>
                     </Pressable>
                 }
                 renderItem={({ item }) => renderClaim(item)}
@@ -227,120 +233,158 @@ export default function AdminClaimsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.background,
-        paddingHorizontal: 24,
+        backgroundColor: "#061426",
+        paddingHorizontal: 20,
         paddingTop: 24,
     },
+    listContent: {
+        paddingBottom: 48,
+        flexGrow: 1,
+    },
     headerBlock: {
-        marginBottom: 20,
+        marginBottom: 24,
     },
     kicker: {
         fontSize: 12,
         fontWeight: "800",
-        color: theme.colors.secondary,
-        letterSpacing: 1.2,
-        marginBottom: 8,
+        color: "#F7B43B",
+        letterSpacing: 2,
+        marginBottom: 12,
     },
     title: {
-        fontSize: 30,
+        fontSize: 32,
         fontWeight: "800",
         color: "#FFFFFF",
-        marginBottom: 8,
+        marginBottom: 10,
     },
     subtitle: {
         fontSize: 15,
-        color: "rgba(255,255,255,0.75)",
-        lineHeight: 22,
+        color: "#A8B8CE",
+        lineHeight: 23,
+    },
+    emptyCard: {
+        backgroundColor: "#10233B",
+        borderWidth: 1,
+        borderColor: "rgba(236,175,65,0.32)",
+        borderRadius: 22,
+        paddingHorizontal: 22,
+        paddingVertical: 30,
+        alignItems: "center",
+    },
+    emptyAccent: {
+        fontSize: 11,
+        fontWeight: "800",
+        letterSpacing: 1.8,
+        color: "#F7B43B",
+        marginBottom: 12,
+    },
+    emptyTitle: {
+        fontSize: 21,
+        fontWeight: "800",
+        color: "#FFFFFF",
+        marginBottom: 8,
+        textAlign: "center",
     },
     helperText: {
-        fontSize: 15,
-        color: "rgba(255,255,255,0.75)",
+        fontSize: 14,
+        color: "#A8B8CE",
         lineHeight: 22,
-        marginBottom: 20,
-    },
-    listContent: {
-        paddingBottom: 20,
-        flexGrow: 1,
+        textAlign: "center",
     },
     claimCard: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 18,
-        padding: 16,
-        marginBottom: 14,
-        borderWidth: 2,
-        borderColor: "#FF7A00",
+        backgroundColor: "#10233B",
+        borderRadius: 22,
+        padding: 20,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: "rgba(236,175,65,0.34)",
+    },
+    cardEyebrow: {
+        color: "#F7B43B",
+        fontSize: 11,
+        fontWeight: "800",
+        letterSpacing: 1.5,
+        marginBottom: 10,
     },
     claimTitle: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: "800",
-        color: "#0B2A5B",
-        marginBottom: 8,
+        color: "#FFFFFF",
+        marginBottom: 12,
     },
     claimMeta: {
         fontSize: 14,
-        color: "#444444",
-        marginBottom: 4,
+        color: "#C4D0DF",
+        marginBottom: 6,
+        lineHeight: 21,
     },
     claimMessageLabel: {
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: "800",
-        color: "#FF7A00",
-        marginTop: 10,
-        marginBottom: 6,
-        letterSpacing: 0.5,
+        color: "#F7B43B",
+        marginTop: 16,
+        marginBottom: 8,
+        letterSpacing: 0.8,
     },
     claimMessage: {
         fontSize: 14,
-        color: "#222222",
-        lineHeight: 20,
+        color: "#E6ECF4",
+        lineHeight: 22,
+    },
+    input: {
+        backgroundColor: "#09192D",
+        borderWidth: 1,
+        borderColor: "rgba(236,175,65,0.42)",
+        borderRadius: 14,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        marginTop: 4,
+        marginBottom: 8,
+        color: "#FFFFFF",
+        minHeight: 70,
+        textAlignVertical: "top",
+        fontSize: 14,
     },
     actionsRow: {
         flexDirection: "row",
         gap: 10,
-        marginTop: 14,
+        marginTop: 16,
     },
     actionButton: {
         flex: 1,
+        minHeight: 48,
         paddingVertical: 14,
         borderRadius: 14,
         alignItems: "center",
+        justifyContent: "center",
     },
     actionButtonDisabled: {
         opacity: 0.6,
     },
     approveButton: {
-        backgroundColor: "#1DB954",
+        backgroundColor: "#168C62",
     },
     rejectButton: {
-        backgroundColor: "#C62828",
+        backgroundColor: "#A83742",
     },
     actionButtonText: {
         color: "#FFFFFF",
         fontWeight: "800",
+        fontSize: 15,
     },
     backButton: {
-        backgroundColor: "#D9D9D9",
-        paddingVertical: 14,
+        backgroundColor: "#122B48",
+        borderWidth: 1,
+        borderColor: "rgba(236,175,65,0.32)",
+        paddingVertical: 16,
+        paddingHorizontal: 14,
         borderRadius: 16,
         alignItems: "center",
-        marginTop: 8,
+        marginTop: 22,
     },
     backButtonText: {
-        color: "#222222",
-        fontSize: 16,
+        color: "#F1F5FA",
+        fontSize: 15,
         fontWeight: "700",
-    },
-    input: {
-        backgroundColor: "#FFFFFF",
-        borderWidth: 2,
-        borderColor: "#FF7A00",
-        borderRadius: 14,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
-        marginTop: 6,
-        marginBottom: 10,
-        color: "#222222",
-        minHeight: 52,
-        textAlignVertical: "top",
     },
 });

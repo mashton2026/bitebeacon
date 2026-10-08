@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
@@ -138,13 +139,22 @@ export default function VendorSignupScreen() {
                 subtitle="Create your BiteBeacon business account, build your listing and connect with more customers."
               />
 
-              <PremiumCard>
+              <View style={styles.metallicOuterGlow}>
+                <LinearGradient
+                  colors={["#684006", "#FFD66B", "#FFF5CC", "#B7750E", "#FFE59A", "#7A4B09"]}
+                  locations={[0, 0.18, 0.34, 0.59, 0.81, 1]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.metallicFrame}
+                >
+                  <View style={styles.metallicInner}>
+                    <PremiumCard>
                 <View style={styles.cardHeading}>
                   <View style={styles.businessIcon}>
                     <MaterialCommunityIcons
                       name="storefront-outline"
                       size={30}
-                      color="#FFB547"
+                      color="#FFE59A"
                     />
                   </View>
 
@@ -212,7 +222,7 @@ export default function VendorSignupScreen() {
                     <MaterialCommunityIcons
                       name={showPassword ? "eye-off-outline" : "eye-outline"}
                       size={21}
-                      color="#FFB547"
+                      color="#FFE59A"
                     />
 
                     <AppText
@@ -243,7 +253,7 @@ export default function VendorSignupScreen() {
                   <MaterialCommunityIcons
                     name="shield-check-outline"
                     size={17}
-                    color="#FFB547"
+                    color="#FFE59A"
                   />
 
                   <AppText variant="body" style={styles.passwordHintText}>
@@ -261,7 +271,7 @@ export default function VendorSignupScreen() {
                       <MaterialCommunityIcons
                         name="broadcast"
                         size={19}
-                        color="#FFB547"
+                        color="#FFE59A"
                       />
 
                       <AppText variant="bodyBold" style={styles.benefitText}>
@@ -273,7 +283,7 @@ export default function VendorSignupScreen() {
                       <MaterialCommunityIcons
                         name="map-marker-outline"
                         size={19}
-                        color="#FFB547"
+                        color="#FFE59A"
                       />
 
                       <AppText variant="bodyBold" style={styles.benefitText}>
@@ -285,7 +295,7 @@ export default function VendorSignupScreen() {
                       <MaterialCommunityIcons
                         name="account-group-outline"
                         size={19}
-                        color="#FFB547"
+                        color="#FFE59A"
                       />
 
                       <AppText variant="bodyBold" style={styles.benefitText}>
@@ -297,7 +307,7 @@ export default function VendorSignupScreen() {
                       <MaterialCommunityIcons
                         name="chart-line"
                         size={19}
-                        color="#FFB547"
+                        color="#FFE59A"
                       />
 
                       <AppText variant="bodyBold" style={styles.benefitText}>
@@ -321,7 +331,7 @@ export default function VendorSignupScreen() {
                   <MaterialCommunityIcons
                     name="email-check-outline"
                     size={19}
-                    color="#FFB547"
+                    color="#FFE59A"
                   />
 
                   <AppText variant="body" style={styles.confirmationText}>
@@ -346,7 +356,10 @@ export default function VendorSignupScreen() {
                 >
                   Back to Login
                 </SecondaryButton>
-              </PremiumCard>
+                    </PremiumCard>
+                  </View>
+                </LinearGradient>
+              </View>
             </ScrollView>
           </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
@@ -356,6 +369,20 @@ export default function VendorSignupScreen() {
 }
 
 const styles = StyleSheet.create({
+  metallicOuterGlow: {
+    borderRadius: 27,
+    shadowColor: "#FFCC55",
+    shadowOpacity: 0.35,
+    shadowRadius: 19,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 9,
+  },
+  metallicFrame: { borderRadius: 27, padding: 2 },
+  metallicInner: {
+    borderRadius: 25,
+    overflow: "hidden",
+    backgroundColor: "#081725",
+  },
   safeArea: {
     flex: 1,
     backgroundColor: "transparent",
@@ -384,11 +411,11 @@ const styles = StyleSheet.create({
     borderRadius: 27,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,122,0,0.08)",
+    backgroundColor: "rgba(255,210,92,0.10)",
     borderWidth: 1,
-    borderColor: "rgba(255,181,71,0.28)",
+    borderColor: "rgba(255,229,154,0.70)",
     marginRight: 14,
-    shadowColor: "#FF7A00",
+    shadowColor: "#FFCB57",
     shadowOpacity: 0.2,
     shadowRadius: 9,
     shadowOffset: {
@@ -416,20 +443,20 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    color: "#FFB547",
+    color: "#FFE59A",
     fontSize: 13,
     marginBottom: 8,
   },
 
   passwordLabel: {
-    color: "#FFB547",
+    color: "#FFE59A",
     fontSize: 13,
     marginTop: 15,
     marginBottom: 8,
   },
 
   confirmLabel: {
-    color: "#FFB547",
+    color: "#FFE59A",
     fontSize: 13,
     marginTop: 15,
     marginBottom: 8,
@@ -453,10 +480,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 2,
+    borderWidth: 1,
+    borderColor: "#FFD66B",
+    backgroundColor: "rgba(255,229,154,0.08)",
   },
 
   showPasswordText: {
-    color: "#FFB547",
+    color: "#FFE59A",
     fontSize: 11,
   },
 
@@ -477,15 +507,15 @@ const styles = StyleSheet.create({
     marginTop: 18,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "rgba(255,181,71,0.22)",
-    backgroundColor: "rgba(255,122,0,0.04)",
+    borderColor: "rgba(255,229,154,0.58)",
+    backgroundColor: "rgba(255,210,92,0.06)",
     paddingHorizontal: 14,
     paddingTop: 14,
     paddingBottom: 12,
   },
 
   benefitsTitle: {
-    color: "#FFB547",
+    color: "#FFE59A",
     fontSize: 9,
     letterSpacing: 1.35,
     textAlign: "center",
@@ -540,11 +570,11 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "rgba(255,181,71,0.2)",
+    backgroundColor: "rgba(255,229,154,0.58)",
   },
 
   dividerText: {
-    color: "rgba(255,181,71,0.7)",
+    color: "rgba(255,229,154,0.95)",
     fontSize: 8.5,
     letterSpacing: 1.2,
     marginHorizontal: 10,

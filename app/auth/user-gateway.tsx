@@ -46,7 +46,12 @@ export default function UserGatewayScreen() {
       const { error } = await supabase.auth.signOut();
 
       if (error) {
-        console.log("Guest sign-out error:", error.message);
+        Alert.alert(
+          "Guest mode unavailable",
+          "We couldn't sign you out. Please try again."
+        );
+        setIsNavigating(false);
+        return;
       }
 
       router.replace("/(tabs)");
@@ -82,7 +87,7 @@ export default function UserGatewayScreen() {
           <View style={styles.heroSection}>
             <View style={styles.heroLight}>
               <LinearGradient
-                colors={["#8F4700", "#FFB547", "#FF7A00"]}
+                colors={["#704000", "#FFD34F", "#FFF6CE", "#F7BA27", "#875100"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.heroLightGradient}
@@ -107,11 +112,11 @@ export default function UserGatewayScreen() {
           <View style={styles.outerGlow}>
             <LinearGradient
               colors={[
-                "#8F4700",
-                "#FFB547",
-                "#FF7A00",
-                "#FFB547",
-                "#8F4700",
+                "#805000",
+                "#FFDC68",
+                "#FFF9DC",
+                "#F4B82F",
+                "#9C6000",
               ]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -145,7 +150,7 @@ export default function UserGatewayScreen() {
                       <MaterialCommunityIcons
                         name="login"
                         size={24}
-                        color="#F4B547"
+                        color="#FFDE79"
                       />
                     </View>
 
@@ -168,7 +173,7 @@ export default function UserGatewayScreen() {
                     <MaterialCommunityIcons
                       name="chevron-right"
                       size={27}
-                      color="#F4B547"
+                      color="#FFDE79"
                     />
                   </Pressable>
 
@@ -185,7 +190,7 @@ export default function UserGatewayScreen() {
                     ]}
                   >
                     <LinearGradient
-                      colors={["#FF9A1F", "#FF7A00", "#E85D00"]}
+                      colors={["#FFEFAF", "#F7C84B", "#D99512", "#F3BD36", "#895200"]}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                       style={styles.createButton}
@@ -276,7 +281,7 @@ export default function UserGatewayScreen() {
                     <MaterialCommunityIcons
                       name="arrow-left"
                       size={20}
-                      color="#F4B547"
+                      color="#FFDE79"
                     />
 
                     <AppText variant="bodyBold" style={styles.backButtonText}>
@@ -318,8 +323,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     marginBottom: 22,
 
-    shadowColor: "#FF7A00",
-    shadowOpacity: 0.72,
+    shadowColor: "#F6C342",
+    shadowOpacity: 0.56,
     shadowRadius: 13,
     shadowOffset: {
       width: 0,
@@ -335,7 +340,7 @@ const styles = StyleSheet.create({
   },
 
   kicker: {
-    color: "#F4B547",
+    color: "#FFDE79",
     fontSize: 12,
     letterSpacing: 3,
     textAlign: "center",
@@ -361,8 +366,8 @@ const styles = StyleSheet.create({
   outerGlow: {
     borderRadius: 36,
 
-    shadowColor: "#FF7A00",
-    shadowOpacity: 0.18,
+    shadowColor: "#F6C342",
+    shadowOpacity: 0.26,
     shadowRadius: 18,
     shadowOffset: {
       width: 0,
@@ -379,7 +384,7 @@ const styles = StyleSheet.create({
 
   card: {
     borderRadius: 34,
-    backgroundColor: "rgba(8,12,18,0.94)",
+    backgroundColor: "rgba(9,15,24,0.96)",
   },
 
   innerHighlight: {
@@ -417,8 +422,8 @@ const styles = StyleSheet.create({
   },
 
   loginButton: {
-    backgroundColor: "#121820",
-    borderColor: "rgba(244,181,71,0.72)",
+    backgroundColor: "#111C29",
+    borderColor: "rgba(255,207,76,0.72)",
   },
 
   optionIconWrap: {
@@ -427,9 +432,9 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(244,181,71,0.08)",
+    backgroundColor: "rgba(255,207,76,0.08)",
     borderWidth: 1,
-    borderColor: "rgba(244,181,71,0.24)",
+    borderColor: "rgba(255,207,76,0.24)",
     marginRight: 12,
   },
 
@@ -454,8 +459,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     marginTop: 12,
 
-    shadowColor: "#FF7A00",
-    shadowOpacity: 0.24,
+    shadowColor: "#F6C342",
+    shadowOpacity: 0.27,
     shadowRadius: 10,
     shadowOffset: {
       width: 0,
@@ -506,11 +511,11 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "rgba(244,181,71,0.22)",
+    backgroundColor: "rgba(255,207,76,0.22)",
   },
 
   dividerText: {
-    color: "rgba(244,181,71,0.72)",
+    color: "rgba(255,207,76,0.72)",
     fontSize: 10,
     letterSpacing: 2,
     marginHorizontal: 12,
@@ -521,7 +526,7 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     borderWidth: 1.5,
     borderColor: "rgba(255,255,255,0.24)",
-    backgroundColor: "#131820",
+    backgroundColor: "#111C29",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -545,7 +550,7 @@ const styles = StyleSheet.create({
     minHeight: 47,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: "rgba(244,181,71,0.52)",
+    borderColor: "rgba(255,207,76,0.52)",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
