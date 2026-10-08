@@ -28,28 +28,30 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ color }) => (
+          tabBarIcon: () => (
             <Image
               source={require("../../assets/icons/home.png")}
-              style={{ width: 56, height: 56, tintColor: color }}
+              style={{ width: 56, height: 56 }}
               resizeMode="contain"
             />
           ),
         }}
       />
+
       <Tabs.Screen
         name="explore"
         options={{
           title: "Map",
-          tabBarIcon: ({ color }) => (
+          tabBarIcon: () => (
             <Image
               source={require("../../assets/icons/explore.png")}
-              style={{ width: 56, height: 56, tintColor: color }}
+              style={{ width: 56, height: 56 }}
               resizeMode="contain"
             />
           ),
         }}
       />
+
       <Tabs.Screen
         name="spot"
         options={{
@@ -77,27 +79,36 @@ export default function TabLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
-        name="favourites"
+        name="marketplace"
         options={{
-          title: "Favourites",
-          tabBarIcon: ({ color }) => (
+          title: "Marketplace",
+          tabBarIcon: () => (
             <Image
-              source={require("../../assets/icons/favourites.png")}
-              style={{ width: 56, height: 56, tintColor: color }}
+              source={require("../../assets/icons/marketplace.png")}
+              style={{ width: 56, height: 56 }}
               resizeMode="contain"
             />
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="favourites"
+        options={{
+          href: null,
+        }}
+      />
+
       <Tabs.Screen
         name="account"
         options={{
           title: "Account",
-          tabBarIcon: ({ color }) => (
+          tabBarIcon: () => (
             <Image
               source={require("../../assets/icons/account.png")}
-              style={{ width: 56, height: 56, tintColor: color }}
+              style={{ width: 56, height: 56 }}
               resizeMode="contain"
             />
           ),

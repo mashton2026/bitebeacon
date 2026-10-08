@@ -971,6 +971,22 @@ function renderSpottedVendor(van: Van) {
           </View>
         </View>
 
+        <Pressable
+          onPress={() => router.push("/(tabs)/favourites")}
+          accessibilityRole="button"
+          accessibilityLabel="Open your favourites"
+          style={styles.homeFavouritesButton}
+        >
+          <MaterialCommunityIcons
+            name="heart-outline"
+            size={19}
+            color="#FFE29A"
+          />
+          <AppText variant="label" style={styles.homeFavouritesText}>
+            FAVOURITES
+          </AppText>
+        </Pressable>
+
         <AppUpdateBanner settings={appSettings} />
 
         <MetallicFrame
@@ -1632,6 +1648,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 0,
     marginBottom: 16,
+  },
+
+  homeFavouritesButton: {
+    alignSelf: "flex-end",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    minHeight: 42,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "rgba(244,191,90,0.62)",
+    borderRadius: 999,
+    backgroundColor: "rgba(9,27,43,0.94)",
+  },
+
+  homeFavouritesText: {
+    color: "#FFE29A",
+    fontSize: 10,
+    letterSpacing: 1.4,
   },
 
   logoGlow: {
