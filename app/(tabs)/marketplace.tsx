@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
     Alert,
@@ -24,6 +25,9 @@ import SectionGlowLine from "../../components/SectionGlowLine";
 import { typography } from "../../constants/typography";
 
 // Marketplace design preview. Listings are DEMO ONLY: no database, payments or messages.
+const HERO_IMAGE = require("../../assets/images/marketplace-exchange-hero.png");
+const HERO_ASSET = Image.resolveAssetSource(HERO_IMAGE);
+const DISCOVERY_IMAGE = require("../../assets/images/hero-community-market.jpg");
 const NAVY = "#07131F";
 const GOLD = "#FFE6A1";
 const GOLD_LIGHT = "#FFF5C9";
@@ -33,7 +37,7 @@ const MUTED = "#A8B4BF";
 const WIDTH = Dimensions.get("window").width;
 const CARD_WIDTH = Math.min(WIDTH * 0.69, 292);
 
-type Category = "All" | "Vans & Trailers" | "Cooking" | "Refrigeration" | "Power" | "Trading Gear";
+type Category = "All" | "Vans & Trailers" | "Cooking" | "Refrigeration" | "Power" | "Trading Gear" | "Drinks Equipment" | "Complete Setups";
 type Listing = {
   id: string;
   title: string;
@@ -55,6 +59,8 @@ const CATEGORIES: { label: Category; icon: keyof typeof Ionicons.glyphMap }[] = 
   { label: "Refrigeration", icon: "snow-outline" },
   { label: "Power", icon: "flash-outline" },
   { label: "Trading Gear", icon: "construct-outline" },
+  { label: "Drinks Equipment", icon: "cafe-outline" },
+  { label: "Complete Setups", icon: "restaurant-outline" },
 ];
 
 // Illustrative stock photography only. Photos are not of real items for sale.
@@ -96,39 +102,140 @@ const LISTINGS: Listing[] = [
   },
 ];
 
-function ListingCard({ item, onOpen, saved, onToggleSave }: { item: Listing; onOpen: (item: Listing) => void; saved: boolean; onToggleSave: (id: string) => void }) {
+function ListingCard({ item, onOpen, saved, onToggleSave }: {
+  item: Listing;
+  onOpen: (item: Listing) => void;
+  saved: boolean;
+  onToggleSave: (id: string) => void;
+}) {
   const scale = useRef(new Animated.Value(1)).current;
-  const animate = (toValue: number) => Animated.spring(scale, { toValue, useNativeDriver: true, speed: 28, bounciness: 4 }).start();
+  const glow = useRef(new Animated.Value(0)).current;
+
+  const animate = (pressed: boolean) => {
+    Animated.parallel([
+      Animated.spring(scale, {
+        toValue: pressed ? 0.975 : 1,
+        useNativeDriver: false,
+        speed: 26,
+        bounciness: 3,
+      }),
+      Animated.timing(glow, {
+        toValue: pressed ? 1 : 0,
+        duration: 180,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  };
+
   return (
-    <Animated.View style={{ transform: [{ scale }] }}>
+    <Animated.View
+      style={[
+        styles.cardShell,
+        {
+          transform: [{ scale }],
+          borderColor: glow.interpolate({
+            inputRange: [0, 1],
+            outputRange: ["#B98A40", "#FFF1B4"],
+          }),
+        },
+      ]}
+    >
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`View ${item.title}, ${item.price}`}
-        style={styles.card}
-        onPressIn={() => animate(0.975)}
-        onPressOut={() => animate(1)}
+        onPressIn={() => animate(true)}
+        onPressOut={() => animate(false)}
         onPress={() => onOpen(item)}
+        style={styles.card}
       >
-        <ImageBackground source={{ uri: item.image }} style={styles.cardImage} imageStyle={styles.cardImageInner}>
-          <View style={styles.imageShade} />
-          {item.badge ? <View style={styles.cardBadge}><AppText variant="label" style={styles.cardBadgeText}>{item.badge}</AppText></View> : null}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={saved ? "Remove from preview saved items" : "Save preview item"}
-            onPress={() => onToggleSave(item.id)}
-            style={styles.heartButton}
-          >
-            <Ionicons name={saved ? "heart" : "heart-outline"} size={19} color={GOLD} />
-          </Pressable>
-          <View style={styles.imageBottom}><Ionicons name="location-outline" size={13} color="#FFF" /><AppText variant="bodyBold" style={styles.imagePlace}>{item.place}</AppText></View>
+        <ImageBackground
+          source={{ uri: item.image }}
+          style={styles.cardImage}
+          imageStyle={styles.cardImageInner}
+        >
+          <LinearGradient
+            pointerEvents="none"
+            colors={["rgba(4,14,24,0.10)", "transparent", "rgba(4,14,24,0.88)"]}
+            locations={[0, 0.43, 1]}
+            style={StyleSheet.absoluteFillObject}
+          />
+          {item.badge ? (
+            <View style={styles.cardBadge}>
+              <AppText variant="label" style={styles.cardBadgeText}>
+                {item.badge}
+              </AppText>
+            </View>
+          ) : null}
+          <View style={styles.imageBottom}>
+            <Ionicons name="location-outline" size={13} color="#FFF" />
+            <AppText variant="bodyBold" style={styles.imagePlace}>
+              {item.place}
+            </AppText>
+          </View>
         </ImageBackground>
         <View style={styles.cardBody}>
           <AppText variant="title" style={styles.cardPrice}>{item.price}</AppText>
-          <AppText variant="title" style={styles.cardTitle} numberOfLines={2}>{item.title}</AppText>
-          <View style={styles.cardFoot}><AppText variant="body" style={styles.cardCondition}>{item.condition}</AppText><Ionicons name="arrow-up-outline" size={17} color={GOLD} style={{ transform: [{ rotate: "45deg" }] }} /></View>
+          <AppText variant="title" style={styles.cardTitle} numberOfLines={2}>
+            {item.title}
+          </AppText>
+          <View style={styles.cardFoot}>
+            <AppText variant="body" style={styles.cardCondition}>{item.condition}</AppText>
+            <Ionicons name="arrow-forward" size={17} color={GOLD} />
+          </View>
         </View>
       </Pressable>
+      {/* A sibling, not a nested Pressable: saving cannot open the detail view. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={saved ? "Remove saved demo item" : "Save demo item"}
+        accessibilityState={{ selected: saved }}
+        onPress={() => onToggleSave(item.id)}
+        style={styles.heartButton}
+      >
+        <Ionicons name={saved ? "heart" : "heart-outline"} size={20} color={GOLD} />
+      </Pressable>
     </Animated.View>
+  );
+}
+
+function CategoryChip({ item, selected, onPress }: {
+  item: typeof CATEGORIES[number];
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const progress = useRef(new Animated.Value(selected ? 1 : 0)).current;
+  useEffect(() => {
+    Animated.timing(progress, {
+      toValue: selected ? 1 : 0,
+      duration: 200,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [selected, progress]);
+
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityState={{ selected }}>
+      <Animated.View
+        style={[
+          styles.categoryChip,
+          {
+            backgroundColor: progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: ["#112333", GOLD_BRIGHT],
+            }),
+            borderColor: progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: ["#D6A54C", GOLD_LIGHT],
+            }),
+          },
+        ]}
+      >
+        <Ionicons name={item.icon} size={17} color={selected ? NAVY : GOLD} />
+        <AppText variant="button" style={[styles.categoryText, selected && styles.categoryTextActive]}>
+          {item.label}
+        </AppText>
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -144,25 +251,52 @@ function SectionTitle({ eyebrow, title, subtitle }: { eyebrow: string; title: st
 
 export default function MarketplaceScreen() {
   const insets = useSafeAreaInsets();
+  const [heroWidth, setHeroWidth] = useState(Math.max(1, WIDTH - 40));
   const [category, setCategory] = useState<Category>("All");
   const [query, setQuery] = useState("");
+  const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [savedOnly, setSavedOnly] = useState(false);
+  const mainScrollRef = useRef<ScrollView>(null);
   const filtered = useMemo(() => LISTINGS.filter(item =>
     (category === "All" || item.category === category) &&
-    `${item.title} ${item.category} ${item.place}`.toLowerCase().includes(query.trim().toLowerCase())
-  ), [category, query]);
-  const ready = filtered.filter(item => item.category === "Vans & Trailers");
+    (!savedOnly || savedIds.includes(item.id)) &&
+    `${item.title} ${item.category} ${item.place}`
+      .toLowerCase()
+      .includes(query.trim().toLowerCase())
+  ), [category, query, savedOnly, savedIds]);
+  // When browsing everything, give vans their own section without repeating cards.
+  // A selected category always uses the primary results row only.
+  const primaryListings = category === "All"
+    ? filtered.filter(item => item.category !== "Vans & Trailers")
+    : filtered;
+  const ready = category === "All"
+    ? filtered.filter(item => item.category === "Vans & Trailers")
+    : [];
+  const showReadySection = category === "All" && ready.length > 0;
   const [selected, setSelected] = useState<Listing | null>(null);
   const [galleryIndex, setGalleryIndex] = useState(0);
-  const [savedIds, setSavedIds] = useState<string[]>([]);
   const toggleSaved = (id: string) => setSavedIds(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]);
-  const openListing = (item: Listing) => { setGalleryIndex(0); setSelected(item); };
   const galleryFade = useRef(new Animated.Value(1)).current;
+  const openListing = (item: Listing) => {
+    setGalleryIndex(0);
+    galleryFade.setValue(1);
+    setSelected(item);
+  };
   const changePhoto = (index: number) => {
     galleryFade.setValue(0.35);
     setGalleryIndex(index);
     Animated.timing(galleryFade, { toValue: 1, duration: 230, useNativeDriver: true }).start();
   };
   const modalFade = useRef(new Animated.Value(0)).current;
+  const sellGlow = useRef(new Animated.Value(0)).current;
+  const [sellPressed, setSellPressed] = useState(false);
+  useEffect(() => {
+    Animated.timing(sellGlow, {
+      toValue: sellPressed ? 1 : 0,
+      duration: 180,
+      useNativeDriver: false,
+    }).start();
+  }, [sellPressed, sellGlow]);
   useEffect(() => {
     Animated.timing(modalFade, { toValue: selected ? 1 : 0, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
   }, [selected, modalFade]);
@@ -172,76 +306,333 @@ export default function MarketplaceScreen() {
       <StatusBar barStyle="light-content" backgroundColor={NAVY} />
       {/* Match Account: the actual map owns the background and wraps the content. */}
       <MapTextureBackground>
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, { paddingTop: insets.top + 14 }]}>
-        <View style={styles.topline}><View style={styles.brandDot} /><AppText variant="label" style={styles.toplineText}>BITEBEACON  /  MARKETPLACE</AppText><View style={styles.previewPill}><AppText variant="label" style={styles.previewText}>DESIGN PREVIEW</AppText></View></View>
+      <ScrollView
+        ref={mainScrollRef}
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + 14 },
+        ]}
+      >
+        <View style={styles.topline}>
+          <View style={styles.brandDot} />
+          <AppText variant="label" style={styles.toplineText}>
+            BITEBEACON / MARKETPLACE
+          </AppText>
+          <View style={styles.previewPill}>
+            <AppText variant="label" style={styles.previewText}>
+              DESIGN PREVIEW
+            </AppText>
+          </View>
+        </View>
 
-        <MetallicFrame tone="gold" borderRadius={27} borderWidth={2} style={styles.heroMetalFrame} contentStyle={styles.hero}>
-          <View style={styles.heroEdgeLight} />
-          <View style={styles.heroInnerLine} />
-          <View style={styles.heroGlow} />
-          <LinearGradient pointerEvents="none" colors={["rgba(255,245,200,0.12)","transparent","rgba(240,155,30,0.05)"]} start={{x:0,y:0}} end={{x:1,y:1}} style={StyleSheet.absoluteFillObject} />
-          <AppText variant="label" style={styles.heroOverline}>BUILT FOR THE PEOPLE WHO TRADE</AppText>
-          <AppText variant="heading" style={styles.heroTitle}>THE TRADER'S{ "\n" }<AppText variant="heading" style={styles.heroTitleGold}>EXCHANGE.</AppText></AppText>
-          <View style={styles.heroRule} />
-          <AppText variant="subtitle" style={styles.heroSubtitle}>Good equipment deserves another shift.</AppText>
-          <AppText variant="body" style={styles.heroDescription}>From your first pitch to your next big move. Buy, sell and discover the tools of the trade.</AppText>
-          <Pressable style={styles.sellButtonFrame} onPress={() => Alert.alert("Design preview", "Selling will be available after we build and test the listing flow.")}>
-            <LinearGradient colors={["#FFF6CE", "#FFE39A", "#FFC24C", "#E79C26"]} locations={[0,0.27,0.72,1]} start={{x:0,y:0}} end={{x:0,y:1}} style={styles.sellButton}>
-            <View style={styles.sellButtonShine} />
-            <Ionicons name="add-circle-outline" size={21} color={NAVY} /><AppText variant="label" style={styles.sellButtonText}>SELL YOUR EQUIPMENT</AppText><Ionicons name="arrow-forward" size={17} color={NAVY} />
-            </LinearGradient>
-          </Pressable>
-          <View style={styles.heroCorner}><Ionicons name="sparkles-outline" size={22} color={GOLD_LIGHT} /></View>
+        <MetallicFrame
+          tone="gold"
+          borderRadius={27}
+          borderWidth={2}
+          style={styles.heroMetalFrame}
+          contentStyle={styles.hero}
+        >
+          {/* Keep the complete image visible. Its own text is already embedded. */}
+          <View
+            onLayout={(event) => {
+              const width = event.nativeEvent.layout.width;
+              if (width > 0) setHeroWidth(width);
+            }}
+            style={styles.heroImageContainer}
+          >
+            <Image
+              source={HERO_IMAGE}
+              resizeMode="contain"
+              style={{
+                width: heroWidth,
+                height: heroWidth * HERO_ASSET.height / HERO_ASSET.width,
+              }}
+            />
+          </View>
+          <View style={styles.heroActionArea}>
+            <AppText variant="label" style={styles.heroActionCaption}>
+              READY FOR YOUR NEXT CHAPTER?
+            </AppText>
+            <Animated.View
+              style={[
+                styles.sellButtonFrame,
+                {
+                  borderColor: sellGlow.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [GOLD_LIGHT, "#FFFFFF"],
+                  }),
+                  transform: [
+                    {
+                      scale: sellGlow.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [1, 0.985],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Sell your equipment"
+                onPressIn={() => setSellPressed(true)}
+                onPressOut={() => setSellPressed(false)}
+                onPress={() => router.push("/marketplace/sell")}
+              >
+                <LinearGradient
+                  colors={["#FFF6CE", "#FFE39A", "#FFC24C", "#E79C26"]}
+                  locations={[0, 0.27, 0.72, 1]}
+                  style={styles.sellButton}
+                >
+                  <Ionicons name="add-circle-outline" size={21} color={NAVY} />
+                  <AppText variant="label" style={styles.sellButtonText}>
+                    SELL YOUR EQUIPMENT
+                  </AppText>
+                  <Ionicons name="arrow-forward" size={17} color={NAVY} />
+                </LinearGradient>
+              </Pressable>
+            </Animated.View>
+          </View>
         </MetallicFrame>
 
-        <MetallicFrame tone="gold" borderRadius={20} borderWidth={2} style={styles.searchMetalFrame} contentStyle={styles.accountStyleSearch}><Ionicons name="search-outline" size={22} color={GOLD_DARK} /><TextInput placeholder="Search vans, fridges, generators..." placeholderTextColor="#8293A1" value={query} onChangeText={setQuery} style={styles.searchInput} returnKeyType="search" /><Ionicons name="options-outline" size={20} color={GOLD_DARK} accessibilityLabel="Filters coming soon" /></MetallicFrame>
+        <MetallicFrame
+          tone="gold"
+          borderRadius={20}
+          borderWidth={2}
+          style={styles.searchMetalFrame}
+          contentStyle={styles.accountStyleSearch}
+        >
+          <Ionicons name="search-outline" size={22} color={GOLD_DARK} />
+          <TextInput
+            placeholder="Search vans, fridges, generators..."
+            placeholderTextColor="#8293A1"
+            value={query}
+            onChangeText={setQuery}
+            style={styles.searchInput}
+            returnKeyType="search"
+          />
+          <Ionicons
+            name="options-outline"
+            size={20}
+            color={GOLD_DARK}
+            accessibilityLabel="Filters coming soon"
+          />
+        </MetallicFrame>
 
-        <View style={styles.categoryHeader}><AppText variant="label" style={styles.eyebrow}>FIND YOUR NEXT UPGRADE</AppText><AppText variant="heading" style={styles.categoryHeading}>Explore the trade</AppText></View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
-          {CATEGORIES.map(c => <Pressable key={c.label} onPress={() => setCategory(c.label)} style={[styles.categoryChip, category === c.label && styles.categoryChipActive]}><Ionicons name={c.icon} size={17} color={category === c.label ? NAVY : GOLD} /><AppText variant="button" style={[styles.categoryText, category === c.label && styles.categoryTextActive]}>{c.label}</AppText></Pressable>)}
+        <View style={styles.categoryHeader}>
+          <AppText variant="label" style={styles.eyebrow}>
+            FIND YOUR NEXT UPGRADE
+          </AppText>
+          <AppText variant="heading" style={styles.categoryHeading}>
+            Explore the trade
+          </AppText>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryRow}
+        >
+          {CATEGORIES.map(item => (
+            <CategoryChip
+              key={item.label}
+              item={item}
+              selected={category === item.label}
+              onPress={() => setCategory(item.label)}
+            />
+          ))}
         </ScrollView>
+        <View style={styles.filterFooter}>
+        <Pressable
+          onPress={() => setSavedOnly(value => !value)}
+          style={[styles.savedFilter, savedOnly && styles.savedFilterActive]}
+          accessibilityRole="button"
+          accessibilityState={{ selected: savedOnly }}
+        >
+          <Ionicons name={savedOnly ? "heart" : "heart-outline"} size={17} color={GOLD} />
+          <AppText variant="label" style={styles.savedFilterText}>
+            {savedOnly ? "SAVED ONLY" : "SAVED"} · {savedIds.length}
+          </AppText>
+        </Pressable>
+        <AppText variant="body" style={styles.demoFilterNote}>
+          Demo listings · Saved items reset when you restart.
+        </AppText>
+        </View>
 
         <View style={styles.sectionDivider}><SectionGlowLine /></View>
-        <SectionTitle eyebrow="01 / NEW ARRIVALS" title="Fresh off the trailer" subtitle="Good finds don't hang around." />
-        {filtered.length ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardsRow}>{filtered.map(item => <ListingCard key={item.id} item={item} onOpen={openListing} saved={savedIds.includes(item.id)} onToggleSave={toggleSaved} />)}</ScrollView> : <View style={styles.empty}><Ionicons name="search-outline" size={27} color={GOLD_DARK} /><AppText variant="body" style={styles.emptyText}>No demo listings match that search.</AppText><Pressable onPress={() => { setQuery(""); setCategory("All"); }}><AppText variant="label" style={styles.resetText}>Clear filters</AppText></Pressable></View>}
+        <SectionTitle
+          eyebrow="01 / NEW ARRIVALS"
+          title={category === "Vans & Trailers" ? "Vans & trailers" : "Fresh off the trailer"}
+          subtitle="Good finds don't hang around."
+        />
+        {primaryListings.length ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.cardsRow}
+          >
+            {primaryListings.map((item) => (
+              <ListingCard
+                key={item.id}
+                item={item}
+                onOpen={openListing}
+                saved={savedIds.includes(item.id)}
+                onToggleSave={toggleSaved}
+              />
+            ))}
+          </ScrollView>
+        ) : (
+          <View style={styles.empty}>
+            <Ionicons name="search-outline" size={27} color={GOLD_DARK} />
+            <AppText variant="body" style={styles.emptyText}>
+              No demo listings match that search.
+            </AppText>
+            <Pressable
+              onPress={() => {
+                setQuery("");
+                setCategory("All");
+                setSavedOnly(false);
+              }}
+            >
+              <AppText variant="label" style={styles.resetText}>
+                Clear filters
+              </AppText>
+            </Pressable>
+          </View>
+        )}
 
-        <View style={styles.manifesto}><View style={styles.manifestoIcon}><Ionicons name="shield-checkmark-outline" size={23} color={GOLD} /></View><View style={{ flex: 1 }}><AppText variant="body" style={styles.manifestoHeading}>TRADE WITH CONFIDENCE</AppText><AppText variant="body" style={styles.manifestoText}>A marketplace made for food traders. Clear listings, direct conversations, equipment worth another shift.</AppText></View></View>
+        <MetallicFrame
+          tone="gold"
+          borderRadius={22}
+          borderWidth={2}
+          style={styles.discoveryFrame}
+          contentStyle={styles.discoveryInner}
+        >
+          <ImageBackground
+            source={DISCOVERY_IMAGE}
+            style={styles.discoveryPhoto}
+            imageStyle={styles.discoveryPhotoImage}
+          >
+            <LinearGradient
+              colors={["rgba(3,13,23,0.37)", "rgba(3,13,23,0.78)"]}
+              style={styles.discoveryShade}
+            >
+              <AppText variant="label" style={styles.discoveryEyebrow}>
+                MADE FOR THE FOOD-TRADING COMMUNITY
+              </AppText>
+              <AppText variant="heading" style={styles.discoveryTitle}>
+                EVERY GREAT SETUP HAS A STORY.
+              </AppText>
+              <AppText variant="body" style={styles.discoveryBody}>
+                Find the equipment for your next chapter.
+              </AppText>
+              <Pressable
+                style={styles.discoveryAction}
+                onPress={() => {
+                  setCategory("All");
+                  setQuery("");
+                  setSavedOnly(false);
+                  mainScrollRef.current?.scrollTo({ y: 0, animated: true });
+                }}
+                accessibilityRole="button"
+              >
+                <AppText variant="label" style={styles.discoveryActionText}>
+                  EXPLORE EQUIPMENT
+                </AppText>
+                <Ionicons name="arrow-forward" size={16} color={GOLD_LIGHT} />
+              </Pressable>
+            </LinearGradient>
+          </ImageBackground>
+        </MetallicFrame>
 
-        <SectionTitle eyebrow="02 / BIG MOVES" title="Ready for the road" subtitle="Your next setup might be right here." />
-        {ready.length ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardsRow}>{ready.map(item => <ListingCard key={`ready-${item.id}`} item={item} onOpen={openListing} saved={savedIds.includes(item.id)} onToggleSave={toggleSaved} />)}</ScrollView> : <AppText variant="body" style={styles.noReady}>Choose “All” or “Vans & Trailers” to see ready-to-trade setups.</AppText>}
+        {showReadySection ? (
+          <>
+            <SectionTitle
+              eyebrow="02 / BIG MOVES"
+              title="Ready for the road"
+              subtitle="Your next setup might be right here."
+            />
+            {ready.length ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.cardsRow}
+              >
+                {ready.map(item => (
+                  <ListingCard
+                    key={`ready-${item.id}`}
+                    item={item}
+                    onOpen={openListing}
+                    saved={savedIds.includes(item.id)}
+                    onToggleSave={toggleSaved}
+                  />
+                ))}
+              </ScrollView>
+            ) : (
+              <AppText variant="body" style={styles.noReady}>
+                No matching vans or trailers in this demo.
+              </AppText>
+            )}
+          </>
+        ) : null}
 
-        <View style={styles.bottomBanner}><AppText variant="label" style={styles.bottomBannerOverline}>HAVE SOMETHING WORTH A SECOND SHIFT?</AppText><AppText variant="heading" style={styles.bottomBannerTitle}>Put it back to work.</AppText><Pressable onPress={() => Alert.alert("Coming next", "Selling will be enabled when the Marketplace backend is ready.")} style={styles.bottomLink}><AppText variant="label" style={styles.bottomLinkText}>BECOME A SELLER</AppText><Ionicons name="arrow-forward" size={16} color={GOLD} /></Pressable></View>
+        <View style={styles.bottomBanner}>
+          <AppText variant="label" style={styles.bottomBannerOverline}>
+            HAVE SOMETHING WORTH A SECOND SHIFT?
+          </AppText>
+          <AppText variant="heading" style={styles.bottomBannerTitle}>
+            Put it back to work.
+          </AppText>
+          <Pressable
+            onPress={() => router.push("/marketplace/sell")}
+            style={styles.bottomLink}
+          >
+            <AppText variant="label" style={styles.bottomLinkText}>
+              BECOME A SELLER
+            </AppText>
+            <Ionicons name="arrow-forward" size={16} color={GOLD} />
+          </Pressable>
+        </View>
         <AppText variant="body" style={styles.disclaimer}>DESIGN PREVIEW · EXAMPLE LISTINGS ONLY · NO LIVE SALES</AppText>
       </ScrollView>
       </MapTextureBackground>
+      {/* An opaque, fixed safe-area scrim keeps scrolling content behind the
+          Android status bar from becoming visible beneath its icons. */}
+      <View
+        pointerEvents="none"
+        style={[styles.statusBarScrim, { height: insets.top }]}
+      />
       <Modal visible={!!selected} transparent animationType="fade" onRequestClose={() => setSelected(null)} statusBarTranslucent>
         <View style={styles.modalOverlay}>
           <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setSelected(null)} accessibilityLabel="Close listing preview" />
           {selected ? <Animated.View style={[styles.detailPanel, { opacity: modalFade, transform: [{ translateY: modalFade.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.detailGallery}>
+                <LinearGradient pointerEvents="none" colors={["transparent", "rgba(4,14,24,0.42)"]} style={[StyleSheet.absoluteFillObject, { zIndex: 1 }]} />
                 <Animated.Image source={{ uri: selected.gallery[galleryIndex] }} resizeMode="cover" style={[styles.detailGalleryPhoto, { opacity: galleryFade }]} />
-                <View style={styles.galleryTopRow}>
+                <View style={[styles.galleryTopRow, { zIndex: 2 }]}>
                   <View style={styles.galleryCounter}><Ionicons name="images-outline" size={14} color={GOLD_LIGHT} /><AppText variant="label" style={styles.galleryCounterText}>{galleryIndex + 1} / {selected.gallery.length}</AppText></View>
                   <Pressable style={styles.closeDetail} onPress={() => setSelected(null)} accessibilityRole="button" accessibilityLabel="Close details"><Ionicons name="close" color={GOLD_LIGHT} size={22} /></Pressable>
                 </View>
-                {selected.gallery.length > 1 ? <View style={styles.galleryArrows}>
+                {selected.gallery.length > 1 ? <View style={[styles.galleryArrows, { zIndex: 2 }]}>
                   <Pressable style={styles.galleryArrow} onPress={() => changePhoto((galleryIndex - 1 + selected.gallery.length) % selected.gallery.length)} accessibilityRole="button" accessibilityLabel="Previous photo"><Ionicons name="chevron-back" size={24} color={GOLD_LIGHT} /></Pressable>
                   <Pressable style={styles.galleryArrow} onPress={() => changePhoto((galleryIndex + 1) % selected.gallery.length)} accessibilityRole="button" accessibilityLabel="Next photo"><Ionicons name="chevron-forward" size={24} color={GOLD_LIGHT} /></Pressable>
                 </View> : null}
-                <View style={styles.photoDisclaimer}><AppText variant="label" style={styles.photoDisclaimerText}>ILLUSTRATIVE PHOTO · NOT THE ACTUAL ITEM</AppText></View>
+                <View style={[styles.photoDisclaimer, { zIndex: 2 }]}><AppText variant="label" style={styles.photoDisclaimerText}>ILLUSTRATIVE PHOTO · NOT THE ACTUAL ITEM</AppText></View>
               </View>
               {selected.gallery.length > 1 ? <View style={styles.thumbnailRow}>{selected.gallery.map((uri, i) => <Pressable key={`${selected.id}-${i}`} onPress={() => changePhoto(i)} accessibilityRole="button" accessibilityLabel={`View photo ${i + 1}`} style={[styles.thumbnailFrame, i === galleryIndex && styles.thumbnailActive]}><Image source={{ uri }} style={styles.thumbnail} /></Pressable>)}</View> : null}
               <View style={styles.detailContent}>
                 <AppText variant="label" style={styles.detailEyebrow}>THE TRADER'S EXCHANGE  /  PREVIEW</AppText>
-                <AppText variant="heading" style={styles.detailPrice}>{selected.price}</AppText>
+                <View style={styles.detailPriceWrap}><AppText variant="heading" style={styles.detailPrice}>{selected.price}</AppText><AppText variant="label" style={styles.detailPriceLabel}>ASKING PRICE</AppText></View>
                 <AppText variant="title" style={styles.detailTitle}>{selected.title}</AppText>
                 <View style={styles.detailMeta}><Ionicons name="location-outline" color={GOLD} size={17} /><AppText variant="body" style={styles.detailMetaText}>{selected.place}  ·  {selected.condition}</AppText></View>
                 <View style={styles.detailRule} />
                 <View style={styles.detailSectionRow}><AppText variant="label" style={styles.detailSectionLabel}>EQUIPMENT DETAILS</AppText><Pressable onPress={() => toggleSaved(selected.id)} style={styles.detailSave} accessibilityRole="button" accessibilityLabel={savedIds.includes(selected.id) ? "Remove saved preview" : "Save preview listing"}><Ionicons name={savedIds.includes(selected.id) ? "heart" : "heart-outline"} size={19} color={GOLD} /><AppText variant="label" style={styles.detailSaveText}>{savedIds.includes(selected.id) ? "SAVED" : "SAVE"}</AppText></Pressable></View>
                 <View style={styles.specGrid}>{selected.specs.map(spec => <MetallicFrame key={spec.label} tone="gold" borderRadius={14} borderWidth={2} style={styles.specMetalFrame} contentStyle={styles.specCell}><AppText variant="label" style={styles.specLabel}>{spec.label.toUpperCase()}</AppText><AppText variant="bodyBold" style={styles.specValue}>{spec.value}</AppText></MetallicFrame>)}</View>
                 <AppText variant="body" style={styles.detailDescription}>{selected.description}</AppText>
-                <View style={styles.sellerPreview}><Ionicons name="person-circle-outline" size={31} color={GOLD} /><View style={{ flex: 1 }}><AppText variant="title" style={styles.sellerTitle}>Seller profile preview</AppText><AppText variant="body" style={styles.sellerCaption}>Identity and trader badges will appear once verified.</AppText></View><Ionicons name="shield-outline" size={21} color={GOLD} /></View>
+                <View style={styles.sellerPreview}><Ionicons name="person-circle-outline" size={31} color={GOLD} /><View style={{ flex: 1 }}><AppText variant="title" style={styles.sellerTitle}>Seller details coming soon</AppText><AppText variant="body" style={styles.sellerCaption}>Real seller profiles and verification will be connected with the backend.</AppText></View><Ionicons name="shield-outline" size={21} color={GOLD} /></View>
                 <Pressable style={styles.detailAction} onPress={() => Alert.alert("Design preview", "Seller messaging will be enabled after we build and secure the Marketplace backend.")} accessibilityRole="button"><Ionicons name="chatbubble-ellipses-outline" color={NAVY} size={19} /><AppText variant="label" style={styles.detailActionText}>CONTACT SELLER</AppText><Ionicons name="arrow-forward" color={NAVY} size={18} /></Pressable>
                 <AppText variant="body" style={styles.detailNotice}>DEMO ONLY · No real seller, verified badge or transaction</AppText>
               </View>
@@ -254,7 +645,58 @@ export default function MarketplaceScreen() {
 }
 
 const styles = StyleSheet.create({
-  heroMetalFrame: { marginHorizontal: 16, shadowColor: "#FF9900", shadowOpacity: 0.10, shadowRadius: 9, elevation: 2 },
+  heroMetalFrame: {
+    marginHorizontal: 16,
+    shadowColor: "#FFB83F",
+    shadowOpacity: 0.27,
+    shadowRadius: 18,
+    elevation: 5,
+  },
+  heroImageContainer: {
+    width: "100%",
+    alignItems: "center",
+    overflow: "hidden",
+    backgroundColor: NAVY,
+  },
+  heroActionArea: {
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 14,
+    gap: 10,
+    backgroundColor: "#091A28",
+  },
+  heroActionCaption: {
+    textAlign: "center",
+    color: GOLD_LIGHT,
+    fontSize: 10,
+    letterSpacing: 1.5,
+  },
+  heroPhoto: { width: "100%", aspectRatio: 1.58, minHeight: 205 },
+  heroPhotoImage: { borderRadius: 23 },
+  heroPhotoShade: {
+    flex: 1,
+    justifyContent: "space-between",
+    padding: 14,
+  },
+  heroTopLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    alignSelf: "flex-start",
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: "rgba(3,13,23,0.80)",
+  },
+  heroTopLabelText: { color: GOLD_LIGHT, fontSize: 8, letterSpacing: 0.9 },
+  heroBottom: { gap: 8 },
+  heroBottomText: {
+    color: "#FFF4D6",
+    fontFamily: typography.subtitle,
+    fontSize: 14,
+    textShadowColor: "#000",
+    textShadowRadius: 6,
+  },
   heroEdgeLight: { position: "absolute", top: 0, left: 22, right: 60, height: 2, borderRadius: 4, backgroundColor: GOLD_LIGHT, opacity: 0.95 },
   heroInnerLine: { position: "absolute", top: 5, bottom: 5, left: 5, right: 5, borderRadius: 20, borderWidth: 1, borderColor: "rgba(255,229,157,0.25)" },
   sellButtonFrame: { marginTop: 2, borderRadius: 14, padding: 2, backgroundColor: "#B77513", borderWidth: 1, borderColor: GOLD_LIGHT, shadowColor: GOLD_BRIGHT, shadowOpacity: 0.32, shadowRadius: 11, elevation: 3 },
@@ -263,6 +705,14 @@ const styles = StyleSheet.create({
   accountStyleSearch: { height: 56, borderRadius: 16, backgroundColor: "rgba(12,12,15,0.93)", flexDirection: "row", alignItems: "center", paddingHorizontal: 17, gap: 12, shadowColor: "#FF9900", shadowOpacity: 0.14, shadowRadius: 8, elevation: 2 },
   sectionDivider: { alignItems: "center", marginTop: 18 },
   safe: { flex: 1, backgroundColor: NAVY },
+  statusBarScrim: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: NAVY,
+    zIndex: 20,
+  },
 
   scroll: { flex: 1, backgroundColor: "transparent" },
   content: { paddingBottom: 48 },
@@ -271,7 +721,7 @@ const styles = StyleSheet.create({
   toplineText: { color: GOLD_LIGHT, fontSize: 9, letterSpacing: 1.4, flex: 1 },
   previewPill: { borderWidth: 1, borderColor: GOLD_BRIGHT, borderRadius: 20, paddingHorizontal: 9, paddingVertical: 5 },
   previewText: { color: GOLD_LIGHT, fontSize: 8, letterSpacing: 1.2 },
-  hero: { paddingHorizontal: 22, paddingTop: 20, paddingBottom: 18, backgroundColor: "rgba(13,16,21,0.94)", overflow: "hidden" },
+  hero: { backgroundColor: "#081824", borderRadius: 23, overflow: "hidden" },
   heroGlow: { position: "absolute", width: 290, height: 290, borderRadius: 145, backgroundColor: "rgba(255,194,73,0.055)", top: -165, right: -115, borderWidth: 1, borderColor: "rgba(255,226,154,0.10)" },
   heroOverline: { color: GOLD_DARK, fontSize: 9, letterSpacing: 2.1, marginBottom: 9 },
   heroTitle: { color: "#F3F3F1", fontSize: WIDTH < 380 ? 30 : 35, lineHeight: WIDTH < 380 ? 36 : 40, letterSpacing: -1.2 },
@@ -288,20 +738,52 @@ const styles = StyleSheet.create({
   categoryChipActive: { backgroundColor: GOLD_BRIGHT, borderColor: GOLD_LIGHT }, categoryText: { color: "#E0D6BF", fontSize: 12 }, categoryTextActive: { color: NAVY },
   divider: { height: 1, backgroundColor: "#243542", marginHorizontal: 22, marginTop: 31 },
   sectionTitle: { marginHorizontal: 22, marginTop: 17, marginBottom: 14, paddingVertical: 8, backgroundColor: "rgba(7,19,31,0.30)", borderRadius: 10 }, sectionHeading: { color: "#F3F3F1", fontSize: 25, letterSpacing: -0.5, marginTop: 7 }, sectionSubtitle: { color: MUTED, fontSize: 13, marginTop: 6 },
-  cardsRow: { paddingHorizontal: 16, gap: 13, paddingBottom: 5 }, card: { width: CARD_WIDTH, borderRadius: 17, overflow: "hidden", backgroundColor: "#112331", borderWidth: 1, borderColor: "#C89A4A" },
-  cardImage: { height: 171, justifyContent: "space-between" }, cardImageInner: { resizeMode: "cover" }, imageShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(4,14,24,0.20)" },
+  cardsRow: { paddingHorizontal: 16, gap: 13, paddingBottom: 8 },
+  cardShell: {
+    width: CARD_WIDTH,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    backgroundColor: "#112331",
+    overflow: "hidden",
+    shadowColor: "#F2B443",
+    shadowOpacity: 0.15,
+    shadowRadius: 9,
+    elevation: 3,
+  },
+  card: { width: "100%", backgroundColor: "#112331" },
+  cardImage: { height: 190, justifyContent: "flex-end" }, cardImageInner: { resizeMode: "cover" }, imageShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(4,14,24,0.20)" },
   cardBadge: { position: "absolute", top: 12, left: 12, backgroundColor: "#F6D990", borderRadius: 6, paddingHorizontal: 9, paddingVertical: 6 }, cardBadgeText: { fontSize: 8, letterSpacing: 1, color: NAVY },
   heartButton: { position: "absolute", right: 10, top: 10, width: 34, height: 34, borderRadius: 17, backgroundColor: "rgba(7,19,31,0.78)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#7C694A" },
   imageBottom: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5, margin: 12, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: "rgba(5,15,23,0.82)", borderRadius: 7 }, imagePlace: { color: "#FFF", fontSize: 11 },
-  cardBody: { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 13 }, cardPrice: { color: GOLD, fontSize: 22 }, cardTitle: { color: "#F0F2F2", fontSize: 13, lineHeight: 19, minHeight: 38, marginTop: 7 },
-  cardFoot: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: "#2A3C48", paddingTop: 10, marginTop: 12 }, cardCondition: { color: MUTED, fontSize: 11 },
+  cardBody: {
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 11,
+  },
+  cardPrice: { color: GOLD, fontSize: 22 },
+  cardTitle: {
+    color: "#F0F2F2",
+    fontSize: 13,
+    lineHeight: 19,
+    minHeight: 36,
+    marginTop: 5,
+  },
+  cardFoot: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderTopWidth: 1,
+    borderTopColor: "#2A3C48",
+    paddingTop: 8,
+    marginTop: 7,
+  }, cardCondition: { color: MUTED, fontSize: 11 },
   manifesto: { marginHorizontal: 16, marginTop: 34, borderRadius: 16, borderWidth: 1, borderColor: "#B58A43", backgroundColor: "#102232", padding: 17, flexDirection: "row", alignItems: "center", gap: 13 },
   manifestoIcon: { height: 46, width: 46, borderRadius: 13, backgroundColor: "#23313B", borderWidth: 1, borderColor: "#C59B54", alignItems: "center", justifyContent: "center" }, manifestoHeading: { color: GOLD, fontSize: 10, letterSpacing: 1.1 }, manifestoText: { color: MUTED, fontSize: 12, lineHeight: 18, marginTop: 5 },
   bottomBanner: { marginHorizontal: 16, marginTop: 35, padding: 23, backgroundColor: "#142735", borderRadius: 18, borderWidth: 2, borderColor: GOLD_BRIGHT }, bottomBannerOverline: { color: GOLD_DARK, fontSize: 9, letterSpacing: 1.5 }, bottomBannerTitle: { color: "#F8F4EB", fontSize: 27, marginTop: 9 }, bottomLink: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 19 }, bottomLinkText: { color: GOLD, fontSize: 11, letterSpacing: 1.1 },
   disclaimer: { textAlign: "center", color: "#61717B", fontSize: 9, letterSpacing: 1, marginTop: 27, marginHorizontal: 15 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(1,7,13,0.86)", justifyContent: "center", paddingHorizontal: 18, paddingVertical: 42 },
   detailPanel: { maxHeight: "88%", borderRadius: 22, borderWidth: 2, borderColor: "#FFE29A", backgroundColor: "#0D1D2A", overflow: "hidden", shadowColor: "#FFAB36", shadowOpacity: 0.26, shadowRadius: 16, elevation: 10 },
-  detailGallery: { height: 225, backgroundColor: "#101B25", overflow: "hidden" },
+  detailGallery: { height: 265, backgroundColor: "#101B25", overflow: "hidden" },
   detailGalleryPhoto: { ...StyleSheet.absoluteFillObject, width: "100%", height: "100%" },
   galleryTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 12 },
   galleryCounter: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(3,13,22,0.85)", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: "#80642C" },
@@ -329,7 +811,19 @@ const styles = StyleSheet.create({
   closeDetail: { width: 42, height: 42, borderRadius: 21, backgroundColor: "rgba(3,13,22,0.88)", borderWidth: 1, borderColor: "#C08A30", alignItems: "center", justifyContent: "center" },
   detailContent: { padding: 21 },
   detailEyebrow: { fontSize: 9, letterSpacing: 1.8, color: GOLD_DARK },
-  detailPrice: { color: GOLD_LIGHT, fontSize: 30, marginTop: 10 },
+  detailPriceWrap: {
+    marginTop: 12,
+    padding: 13,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,226,154,0.55)",
+    backgroundColor: "rgba(255,206,103,0.07)",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  detailPrice: { color: GOLD_LIGHT, fontSize: 30 },
+  detailPriceLabel: { color: GOLD_DARK, fontSize: 9, letterSpacing: 1.2 },
   detailTitle: { color: "#FFFFFF", fontSize: 21, lineHeight: 27, marginTop: 5 },
   detailMeta: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 12 },
   detailMetaText: { color: MUTED, fontSize: 12 },
@@ -338,5 +832,52 @@ const styles = StyleSheet.create({
   detailAction: { marginTop: 23, minHeight: 52, borderRadius: 13, backgroundColor: "#FFD36B", flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 17 },
   detailActionText: { color: NAVY, fontSize: 12, letterSpacing: 1 },
   detailNotice: { color: "#80909B", fontSize: 10, textAlign: "center", marginTop: 13 },
+  filterFooter: {
+    marginHorizontal: 18,
+    marginTop: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 9,
+  },
+  demoFilterNote: {
+    color: "#82939F",
+    fontSize: 10,
+    flexShrink: 1,
+  },
+  savedFilter: {
+    alignSelf: "flex-start",
+    marginTop: 0,
+    marginHorizontal: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#9B763E",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    backgroundColor: "#0C2130",
+  },
+  savedFilterActive: { borderColor: GOLD_LIGHT, backgroundColor: "#2A3025" },
+  savedFilterText: { color: GOLD_LIGHT, fontSize: 10, letterSpacing: 0.5 },
+  discoveryFrame: {
+    marginHorizontal: 16,
+    marginTop: 24,
+    marginBottom: 5,
+    shadowColor: "#FFBD53",
+    shadowOpacity: 0.20,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  discoveryInner: { overflow: "hidden", borderRadius: 19 },
+  discoveryPhoto: { minHeight: 210 },
+  discoveryPhotoImage: { borderRadius: 19 },
+  discoveryShade: { flex: 1, justifyContent: "center", padding: 20 },
+  discoveryEyebrow: { color: GOLD_LIGHT, fontSize: 9, letterSpacing: 1.1 },
+  discoveryTitle: { color: "#FFFFFF", fontSize: 24, lineHeight: 28, marginTop: 10, maxWidth: 280 },
+  discoveryBody: { color: "#E0E6E8", fontSize: 13, marginTop: 8 },
+  discoveryAction: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 15 },
+  discoveryActionText: { color: GOLD_LIGHT, fontSize: 11, letterSpacing: 1 },
   empty: { marginHorizontal: 16, padding: 35, borderWidth: 1, borderColor: "#334450", borderRadius: 16, alignItems: "center", gap: 10 }, emptyText: { color: MUTED, fontSize: 13 }, resetText: { color: GOLD, marginTop: 4 }, noReady: { marginHorizontal: 22, color: MUTED, fontSize: 12 },
 });
