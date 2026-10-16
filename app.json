@@ -3,7 +3,7 @@
     "name": "BiteBeacon",
     "slug": "bitebeacon",
     "scheme": "bitebeacon",
-    "version": "1.0.10",
+    "version": "1.0.11",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "light",
@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.bitebeacon.mobileapp",
-      "versionCode": 30,
+      "versionCode": 31,
       "softwareKeyboardLayoutMode": "pan",
       "config": {
         "googleMaps": {

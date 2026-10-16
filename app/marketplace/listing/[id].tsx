@@ -4,18 +4,18 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Alert,
-    Animated,
-    Easing,
-    Image,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
-    Pressable,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    useWindowDimensions,
-    View,
+  Alert,
+  Animated,
+  Easing,
+  Image,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -52,38 +52,56 @@ function parseSellerDraft(raw: string): DemoListing | null {
   try {
     const data: Record<string, unknown> = JSON.parse(raw);
     if (!data || typeof data !== "object" || Array.isArray(data)) return null;
-    const specValues = data.specs && typeof data.specs === "object" &&
-      !Array.isArray(data.specs) ? data.specs as Record<string, unknown> : {};
+    const specValues =
+      data.specs && typeof data.specs === "object" && !Array.isArray(data.specs)
+        ? (data.specs as Record<string, unknown>)
+        : {};
     const specs = Object.entries(specValues)
       .filter((entry): entry is [string, string] => hasText(entry[1]))
       .map(([label, value]) => ({ label, value: value.trim() }));
     const photos = Array.isArray(data.photos)
-      ? data.photos.filter(hasText).slice(0, 5) : [];
+      ? data.photos.filter(hasText).slice(0, 5)
+      : [];
     return {
       id: "draft",
       title: hasText(data.title) ? data.title.trim() : "Untitled equipment",
-      price: hasText(data.price) && Number.isFinite(Number(data.price.replace(/[,£]/g, "")))
-        ? `£${Number(data.price.replace(/[,£]/g, "")).toLocaleString("en-GB")}`
-        : "Price not entered",
+      price:
+        hasText(data.price) &&
+        Number.isFinite(Number(data.price.replace(/[,£]/g, "")))
+          ? `£${Number(data.price.replace(/[,£]/g, "")).toLocaleString("en-GB")}`
+          : "Price not entered",
       category: hasText(data.category) ? data.category.trim() : "Equipment",
-      condition: hasText(data.condition) ? data.condition.trim() : "Not specified",
-      location: hasText(data.location) ? data.location.trim() : "Location not entered",
+      condition: hasText(data.condition)
+        ? data.condition.trim()
+        : "Not specified",
+      location: hasText(data.location)
+        ? data.location.trim()
+        : "Location not entered",
       photos,
-      description: hasText(data.description) ? data.description.trim() : "No description added yet.",
+      description: hasText(data.description)
+        ? data.description.trim()
+        : "No description added yet.",
       specs,
       delivery: hasText(data.delivery) ? data.delivery.trim() : undefined,
-      serviceHistory: hasText(data.serviceHistory) ? data.serviceHistory.trim() : undefined,
-      reasonForSale: hasText(data.reasonForSale) ? data.reasonForSale.trim() : undefined,
+      serviceHistory: hasText(data.serviceHistory)
+        ? data.serviceHistory.trim()
+        : undefined,
+      reasonForSale: hasText(data.reasonForSale)
+        ? data.reasonForSale.trim()
+        : undefined,
       paperwork: data.paperwork === true,
-      workingCondition: hasText(data.workingCondition) ? data.workingCondition.trim() : undefined,
-      knownFaults: hasText(data.knownFaults) ? data.knownFaults.trim() : undefined,
+      workingCondition: hasText(data.workingCondition)
+        ? data.workingCondition.trim()
+        : undefined,
+      knownFaults: hasText(data.knownFaults)
+        ? data.knownFaults.trim()
+        : undefined,
       isDraft: true,
     };
   } catch {
     return null;
   }
 }
-
 
 // These are the same five illustrative items used on the Marketplace landing page.
 // No real sellers, transactions, messages, or database reads are involved.
@@ -267,18 +285,27 @@ export default function MarketplaceListingDetails() {
       }),
     ]).start();
   };
-  const listing = listingId === "draft"
-    ? draft
-    : DEMO_LISTINGS.find((item) => item.id === listingId);
+  const listing =
+    listingId === "draft"
+      ? draft
+      : DEMO_LISTINGS.find((item) => item.id === listingId);
 
   useEffect(() => {
     let active = true;
     if (listingId !== "draft") return;
     AsyncStorage.getItem(DRAFT_KEY)
-      .then((raw) => { if (active) setDraft(raw ? parseSellerDraft(raw) : null); })
-      .catch(() => { if (active) setDraft(null); })
-      .finally(() => { if (active) setDraftLoading(false); });
-    return () => { active = false; };
+      .then((raw) => {
+        if (active) setDraft(raw ? parseSellerDraft(raw) : null);
+      })
+      .catch(() => {
+        if (active) setDraft(null);
+      })
+      .finally(() => {
+        if (active) setDraftLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [listingId]);
 
   useEffect(() => {
@@ -314,7 +341,11 @@ export default function MarketplaceListingDetails() {
             Listing not found
           </AppText>
           <AppText variant="body" style={styles.mutedCenter}>
-            {draftLoading ? "Loading your saved draft…" : listingId === "draft" ? "No saved Seller Studio draft was found on this device." : "This listing is unavailable. Try one of the five sample listing IDs."}
+            {draftLoading
+              ? "Loading your saved draft…"
+              : listingId === "draft"
+                ? "No saved Seller Studio draft was found on this device."
+                : "This listing is unavailable. Try one of the five sample listing IDs."}
           </AppText>
         </View>
       </View>
@@ -324,14 +355,31 @@ export default function MarketplaceListingDetails() {
   const photos = listing.photos;
   const information = [
     ...listing.specs,
-    ...(listing.delivery ? [{ label: "Collection / delivery", value: listing.delivery }] : []),
+    ...(listing.delivery
+      ? [{ label: "Collection / delivery", value: listing.delivery }]
+      : []),
   ];
   const disclosures = [
-    ...(listing.workingCondition ? [{ label: "Working condition", value: listing.workingCondition }] : []),
-    ...(listing.knownFaults ? [{ label: "Known faults / damage", value: listing.knownFaults }] : []),
-    ...(listing.serviceHistory ? [{ label: "Service history", value: listing.serviceHistory }] : []),
-    ...(listing.reasonForSale ? [{ label: "Reason for sale", value: listing.reasonForSale }] : []),
-    ...(listing.paperwork ? [{ label: "Paperwork", value: "Seller indicates paperwork is available" }] : []),
+    ...(listing.workingCondition
+      ? [{ label: "Working condition", value: listing.workingCondition }]
+      : []),
+    ...(listing.knownFaults
+      ? [{ label: "Known faults / damage", value: listing.knownFaults }]
+      : []),
+    ...(listing.serviceHistory
+      ? [{ label: "Service history", value: listing.serviceHistory }]
+      : []),
+    ...(listing.reasonForSale
+      ? [{ label: "Reason for sale", value: listing.reasonForSale }]
+      : []),
+    ...(listing.paperwork
+      ? [
+          {
+            label: "Paperwork",
+            value: "Seller indicates paperwork is available",
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -367,98 +415,132 @@ export default function MarketplaceListingDetails() {
           <Animated.View
             style={{
               opacity: reveal,
-              transform: [{ translateY: reveal.interpolate({
-                inputRange: [0, 1],
-                outputRange: [14, 0],
-              }) }],
+              transform: [
+                {
+                  translateY: reveal.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [14, 0],
+                  }),
+                },
+              ],
             }}
           >
-          <MetallicFrame
-            tone="gold"
-            borderRadius={23}
-            borderWidth={2}
-            style={styles.galleryFrame}
-            contentStyle={styles.galleryInner}
-          >
-            <View style={[styles.photoArea, { height: Math.round(galleryWidth * 0.72) }]}>
-              {photos.length > 0 ? (
-                <ScrollView
-                  ref={galleryRef}
-                  horizontal
-                  pagingEnabled
-                  nestedScrollEnabled
-                  showsHorizontalScrollIndicator={false}
-                  onMomentumScrollEnd={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
-                    const index = Math.round(event.nativeEvent.contentOffset.x / galleryWidth);
-                    setPhotoIndex(Math.max(0, Math.min(photos.length - 1, index)));
-                  }}
+            <MetallicFrame
+              tone="gold"
+              borderRadius={23}
+              borderWidth={2}
+              style={styles.galleryFrame}
+              contentStyle={styles.galleryInner}
+            >
+              <View
+                style={[
+                  styles.photoArea,
+                  { height: Math.round(galleryWidth * 0.72) },
+                ]}
+              >
+                {photos.length > 0 ? (
+                  <ScrollView
+                    ref={galleryRef}
+                    horizontal
+                    pagingEnabled
+                    nestedScrollEnabled
+                    showsHorizontalScrollIndicator={false}
+                    onMomentumScrollEnd={(
+                      event: NativeSyntheticEvent<NativeScrollEvent>,
+                    ) => {
+                      const index = Math.round(
+                        event.nativeEvent.contentOffset.x / galleryWidth,
+                      );
+                      setPhotoIndex(
+                        Math.max(0, Math.min(photos.length - 1, index)),
+                      );
+                    }}
+                  >
+                    {photos.map((uri, index) => (
+                      <Animated.Image
+                        key={`${uri}-${index}`}
+                        source={{ uri }}
+                        resizeMode="cover"
+                        style={{
+                          width: galleryWidth,
+                          height: Math.round(galleryWidth * 0.72),
+                          opacity: index === photoIndex ? photoReveal : 1,
+                        }}
+                      />
+                    ))}
+                  </ScrollView>
+                ) : (
+                  <View style={styles.photoPlaceholder}>
+                    <Ionicons name="images-outline" size={43} color={GOLD} />
+                    <AppText variant="body" style={styles.metaText}>
+                      No photos added yet
+                    </AppText>
+                  </View>
+                )}
+                <View
+                  pointerEvents="box-none"
+                  style={styles.photoTopRowOverlay}
                 >
-                  {photos.map((uri, index) => (
-                    <Animated.Image
-                      key={`${uri}-${index}`}
-                      source={{ uri }}
-                      resizeMode="cover"
-                      style={{
-                        width: galleryWidth,
-                        height: Math.round(galleryWidth * 0.72),
-                        opacity: index === photoIndex ? photoReveal : 1,
-                      }}
-                    />
-                  ))}
-                </ScrollView>
-              ) : (
-                <View style={styles.photoPlaceholder}>
-                  <Ionicons name="images-outline" size={43} color={GOLD} />
-                  <AppText variant="body" style={styles.metaText}>No photos added yet</AppText>
+                  <View style={styles.counterPill}>
+                    <Ionicons name="images-outline" size={15} color={GOLD} />
+                    <AppText variant="label" style={styles.counterText}>
+                      {photos.length ? photoIndex + 1 : 0} / {photos.length}
+                    </AppText>
+                  </View>
+                  <Pressable
+                    onPress={toggleSaved}
+                    style={styles.heartButton}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      saved
+                        ? "Remove from saved demos"
+                        : "Save for this preview"
+                    }
+                  >
+                    <Animated.View
+                      style={{ transform: [{ scale: heartScale }] }}
+                    >
+                      <Ionicons
+                        name={saved ? "heart" : "heart-outline"}
+                        size={22}
+                        color={GOLD}
+                      />
+                    </Animated.View>
+                  </Pressable>
                 </View>
-              )}
-              <View pointerEvents="box-none" style={styles.photoTopRowOverlay}>
-                <View style={styles.counterPill}>
-                  <Ionicons name="images-outline" size={15} color={GOLD} />
-                  <AppText variant="label" style={styles.counterText}>
-                    {photos.length ? photoIndex + 1 : 0} / {photos.length}
+                {photos.length > 1 && (
+                  <View pointerEvents="box-none" style={styles.photoArrows}>
+                    <Pressable
+                      onPress={() =>
+                        selectPhoto(
+                          (photoIndex - 1 + photos.length) % photos.length,
+                        )
+                      }
+                      style={styles.arrowButton}
+                      accessibilityLabel="Previous photo"
+                    >
+                      <Ionicons name="chevron-back" size={24} color={GOLD} />
+                    </Pressable>
+                    <Pressable
+                      onPress={() =>
+                        selectPhoto((photoIndex + 1) % photos.length)
+                      }
+                      style={styles.arrowButton}
+                      accessibilityLabel="Next photo"
+                    >
+                      <Ionicons name="chevron-forward" size={24} color={GOLD} />
+                    </Pressable>
+                  </View>
+                )}
+                <View pointerEvents="none" style={styles.photoNoticeOverlay}>
+                  <AppText variant="label" style={styles.photoNoticeText}>
+                    {listing.isDraft
+                      ? "PRIVATE PREVIEW · NOT PUBLISHED"
+                      : "ILLUSTRATIVE PHOTO · NOT AN ACTUAL ITEM FOR SALE"}
                   </AppText>
                 </View>
-                <Pressable
-                  onPress={toggleSaved}
-                  style={styles.heartButton}
-                  accessibilityRole="button"
-                  accessibilityLabel={saved ? "Remove from saved demos" : "Save for this preview"}
-                >
-                  <Animated.View style={{ transform: [{ scale: heartScale }] }}>
-                    <Ionicons
-                      name={saved ? "heart" : "heart-outline"}
-                      size={22}
-                      color={GOLD}
-                    />
-                  </Animated.View>
-                </Pressable>
               </View>
-              {photos.length > 1 && (
-                <View pointerEvents="box-none" style={styles.photoArrows}>
-                  <Pressable
-                    onPress={() => selectPhoto((photoIndex - 1 + photos.length) % photos.length)}
-                    style={styles.arrowButton}
-                    accessibilityLabel="Previous photo"
-                  >
-                    <Ionicons name="chevron-back" size={24} color={GOLD} />
-                  </Pressable>
-                  <Pressable
-                    onPress={() => selectPhoto((photoIndex + 1) % photos.length)}
-                    style={styles.arrowButton}
-                    accessibilityLabel="Next photo"
-                  >
-                    <Ionicons name="chevron-forward" size={24} color={GOLD} />
-                  </Pressable>
-                </View>
-              )}
-              <View pointerEvents="none" style={styles.photoNoticeOverlay}>
-                <AppText variant="label" style={styles.photoNoticeText}>
-                  {listing.isDraft ? "PRIVATE PREVIEW · NOT PUBLISHED" : "ILLUSTRATIVE PHOTO · NOT AN ACTUAL ITEM FOR SALE"}
-                </AppText>
-              </View>
-            </View>
-          </MetallicFrame>
+            </MetallicFrame>
           </Animated.View>
 
           {photos.length > 1 ? (
@@ -467,7 +549,10 @@ export default function MarketplaceListingDetails() {
                 <Pressable
                   key={`${listing.id}-${index}`}
                   onPress={() => selectPhoto(index)}
-                  style={[styles.thumbFrame, photoIndex === index && styles.thumbSelected]}
+                  style={[
+                    styles.thumbFrame,
+                    photoIndex === index && styles.thumbSelected,
+                  ]}
                   accessibilityLabel={`View photo ${index + 1}`}
                 >
                   <Image source={{ uri }} style={styles.thumbPhoto} />
@@ -481,10 +566,14 @@ export default function MarketplaceListingDetails() {
               styles.content,
               {
                 opacity: reveal,
-                transform: [{ translateY: reveal.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [20, 0],
-                }) }],
+                transform: [
+                  {
+                    translateY: reveal.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [20, 0],
+                    }),
+                  },
+                ],
               },
             ]}
           >
@@ -500,7 +589,9 @@ export default function MarketplaceListingDetails() {
             <View style={styles.metaRow}>
               <Ionicons name="location-outline" size={17} color={GOLD} />
               <AppText variant="body" style={styles.metaText}>
-                {listing.isDraft ? listing.location : `${listing.location} area`}
+                {listing.isDraft
+                  ? listing.location
+                  : `${listing.location} area`}
               </AppText>
               <View style={styles.metaDot} />
               <AppText variant="body" style={styles.metaText}>
@@ -603,7 +694,8 @@ export default function MarketplaceListingDetails() {
                   Seller profile coming soon
                 </AppText>
                 <AppText variant="body" style={styles.sellerDescription}>
-                  Seller identities and messaging will appear when the secure Marketplace backend is connected.
+                  Seller identities and messaging will appear when the secure
+                  Marketplace backend is connected.
                 </AppText>
               </View>
               <Ionicons name="shield-outline" size={21} color={GOLD} />
@@ -613,7 +705,7 @@ export default function MarketplaceListingDetails() {
               onPress={() =>
                 Alert.alert(
                   "Design preview",
-                  "Messaging isn't available yet. This is an example listing, not an item for sale."
+                  "Messaging isn't available yet. This is an example listing, not an item for sale.",
                 )
               }
               accessibilityRole="button"
@@ -623,7 +715,11 @@ export default function MarketplaceListingDetails() {
                 colors={["#FFF6CE", "#FFE29A", "#F8BD4C"]}
                 style={styles.contactGradient}
               >
-                <Ionicons name="chatbubble-ellipses-outline" size={20} color={NAVY} />
+                <Ionicons
+                  name="chatbubble-ellipses-outline"
+                  size={20}
+                  color={NAVY}
+                />
                 <AppText variant="label" style={styles.contactText}>
                   MESSAGE SELLER · COMING SOON
                 </AppText>
@@ -631,7 +727,9 @@ export default function MarketplaceListingDetails() {
               </LinearGradient>
             </Pressable>
             <AppText variant="body" style={styles.disclaimer}>
-              {listing.isDraft ? "PRIVATE LOCAL DRAFT · NOT SUBMITTED OR PUBLISHED" : "DESIGN PREVIEW · EXAMPLE EQUIPMENT ONLY · NO LIVE SALES"}
+              {listing.isDraft
+                ? "PRIVATE LOCAL DRAFT · NOT SUBMITTED OR PUBLISHED"
+                : "DESIGN PREVIEW · EXAMPLE EQUIPMENT ONLY · NO LIVE SALES"}
             </AppText>
           </Animated.View>
         </ScrollView>
@@ -678,21 +776,42 @@ const styles = StyleSheet.create({
     shadowRadius: 19,
     elevation: 4,
   },
-  galleryInner: { borderRadius: 20, overflow: "hidden", backgroundColor: "#0D1D2A" },
+  galleryInner: {
+    borderRadius: 20,
+    overflow: "hidden",
+    backgroundColor: "#0D1D2A",
+  },
   photoArea: { position: "relative", backgroundColor: "#0D1D2A" },
   photoPlaceholder: {
-    flex: 1, alignItems: "center", justifyContent: "center", gap: 12,
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
   },
   photoTopRowOverlay: {
-    position: "absolute", top: 0, left: 0, right: 0, padding: 13,
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    padding: 13,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   photoNoticeOverlay: {
-    position: "absolute", bottom: 12, alignSelf: "center",
-    paddingHorizontal: 10, paddingVertical: 7,
-    borderRadius: 8, backgroundColor: "rgba(3,13,22,0.86)",
+    position: "absolute",
+    bottom: 12,
+    alignSelf: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: "rgba(3,13,22,0.86)",
   },
-  mainPhoto: { ...StyleSheet.absoluteFillObject, width: "100%", height: "100%" },
+  mainPhoto: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
+  },
   photoTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -748,7 +867,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   photoNoticeText: { color: GOLD, fontSize: 8, letterSpacing: 0.5 },
-  thumbnails: { flexDirection: "row", gap: 9, marginHorizontal: 18, marginTop: 13 },
+  thumbnails: {
+    flexDirection: "row",
+    gap: 9,
+    marginHorizontal: 18,
+    marginTop: 13,
+  },
   thumbFrame: {
     width: 67,
     height: 53,
@@ -760,7 +884,12 @@ const styles = StyleSheet.create({
   thumbSelected: { borderColor: BRIGHT_GOLD, borderWidth: 2 },
   thumbPhoto: { width: "100%", height: "100%" },
   content: { paddingHorizontal: 19, paddingTop: 23 },
-  eyebrow: { color: BRIGHT_GOLD, fontSize: 9, letterSpacing: 1.6, flexShrink: 1 },
+  eyebrow: {
+    color: BRIGHT_GOLD,
+    fontSize: 9,
+    letterSpacing: 1.6,
+    flexShrink: 1,
+  },
   categoryRow: { flexDirection: "row", alignItems: "center", gap: 11 },
   categoryLine: { width: 30, height: 2, backgroundColor: GOLD },
   priceFrame: {
@@ -791,11 +920,27 @@ const styles = StyleSheet.create({
   priceLabel: { color: BRIGHT_GOLD, fontSize: 10, letterSpacing: 1.5 },
   price: { color: GOLD, fontSize: 35, marginTop: 7 },
   title: { color: "#FFFFFF", fontSize: 28, lineHeight: 35, marginTop: 18 },
-  metaRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 7, marginTop: 12 },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 7,
+    marginTop: 12,
+  },
   metaText: { color: "#D3DCE0", fontSize: 12 },
-  metaDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: BRIGHT_GOLD },
+  metaDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: BRIGHT_GOLD,
+  },
   divider: { height: 1, backgroundColor: "#334652", marginVertical: 24 },
-  sectionLabel: { color: GOLD, fontSize: 10, letterSpacing: 1.5, marginBottom: 13 },
+  sectionLabel: {
+    color: GOLD,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: 13,
+  },
   sectionHeading: {
     flexDirection: "row",
     alignItems: "center",
@@ -817,8 +962,18 @@ const styles = StyleSheet.create({
   sectionHeadingCopy: { flexShrink: 1 },
   sectionKicker: { color: BRIGHT_GOLD, fontSize: 9, letterSpacing: 1.2 },
   sectionTitle: { color: "#FFFFFF", fontSize: 22, marginTop: 3 },
-  sectionRule: { flex: 1, height: 1, backgroundColor: "#806539", marginLeft: 3 },
-  specGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 28 },
+  sectionRule: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#806539",
+    marginLeft: 3,
+  },
+  specGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 28,
+  },
   specCard: {
     width: "47%",
     flexGrow: 1,
@@ -843,16 +998,35 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     padding: 19,
   },
-  descriptionHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 },
+  descriptionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 14,
+  },
   descriptionLabel: { color: GOLD, fontSize: 10, letterSpacing: 1.2 },
   description: { color: "#D3DCE0", fontSize: 14, lineHeight: 24 },
   disclosureList: { gap: 10, marginBottom: 28 },
   disclosureRow: {
-    padding: 15, borderRadius: 13, backgroundColor: "#112432",
-    borderWidth: 1, borderColor: "#92733F", borderLeftColor: "#E6B85F",
+    padding: 15,
+    borderRadius: 13,
+    backgroundColor: "#112432",
+    borderWidth: 1,
+    borderColor: "#92733F",
+    borderLeftColor: "#E6B85F",
   },
-  disclosureValue: { color: "#E3E9EC", fontSize: 13, lineHeight: 21, marginTop: 7 },
-  sellerFrame: { marginTop: 0, shadowColor: BRIGHT_GOLD, shadowOpacity: 0.11, shadowRadius: 10 },
+  disclosureValue: {
+    color: "#E3E9EC",
+    fontSize: 13,
+    lineHeight: 21,
+    marginTop: 7,
+  },
+  sellerFrame: {
+    marginTop: 0,
+    shadowColor: BRIGHT_GOLD,
+    shadowOpacity: 0.11,
+    shadowRadius: 10,
+  },
   sellerInner: {
     padding: 15,
     borderRadius: 15,
@@ -863,7 +1037,12 @@ const styles = StyleSheet.create({
   },
   sellerText: { flex: 1 },
   sellerHeading: { color: "#FFFFFF", fontSize: 13 },
-  sellerDescription: { color: MUTED, fontSize: 11, lineHeight: 17, marginTop: 5 },
+  sellerDescription: {
+    color: MUTED,
+    fontSize: 11,
+    lineHeight: 17,
+    marginTop: 5,
+  },
   contactButton: { marginTop: 25, borderRadius: 14, overflow: "hidden" },
   contactGradient: {
     paddingVertical: 17,
@@ -874,8 +1053,19 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   contactText: { color: NAVY, fontSize: 10, letterSpacing: 0.7, flex: 1 },
-  disclaimer: { color: "#8A9AA5", textAlign: "center", fontSize: 9, marginTop: 18 },
-  missing: { flex: 1, alignItems: "center", justifyContent: "center", padding: 25, gap: 15 },
+  disclaimer: {
+    color: "#8A9AA5",
+    textAlign: "center",
+    fontSize: 9,
+    marginTop: 18,
+  },
+  missing: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 25,
+    gap: 15,
+  },
   missingTitle: { color: "#FFFFFF", fontSize: 23 },
   mutedCenter: { color: MUTED, textAlign: "center", fontSize: 13 },
 });

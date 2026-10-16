@@ -1,5 +1,14 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  BlurMask,
+  Canvas,
+  Circle,
+  RadialGradient,
+  Skia,
+  Path as SkiaPath,
+  vec,
+} from "@shopify/react-native-skia";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import { router, useFocusEffect } from "expo-router";
@@ -14,6 +23,14 @@ import {
   TextInput,
   View,
 } from "react-native";
+import {
+  cancelAnimation,
+  Easing,
+  useDerivedValue,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AppText from "../../components/AppText";
 import AppUpdateBanner from "../../components/AppUpdateBanner";
@@ -42,9 +59,7 @@ type UserLocation = {
   longitude: number;
 };
 
-type IconName = React.ComponentProps<
-  typeof MaterialCommunityIcons
->["name"];
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 const FILTER_OPTIONS: BrowseFilter[] = [
   "ALL",
@@ -57,7 +72,7 @@ function getDistanceMiles(
   userLat: number,
   userLng: number,
   vanLat: number,
-  vanLng: number
+  vanLng: number,
 ) {
   const toRadians = (value: number) => (value * Math.PI) / 180;
   const earthRadiusKm = 6371;
@@ -66,12 +81,11 @@ function getDistanceMiles(
   const longitudeDifference = toRadians(vanLng - userLng);
 
   const calculation =
-    Math.sin(latitudeDifference / 2) *
-    Math.sin(latitudeDifference / 2) +
+    Math.sin(latitudeDifference / 2) * Math.sin(latitudeDifference / 2) +
     Math.cos(toRadians(userLat)) *
-    Math.cos(toRadians(vanLat)) *
-    Math.sin(longitudeDifference / 2) *
-    Math.sin(longitudeDifference / 2);
+      Math.cos(toRadians(vanLat)) *
+      Math.sin(longitudeDifference / 2) *
+      Math.sin(longitudeDifference / 2);
 
   const angularDistance =
     2 * Math.atan2(Math.sqrt(calculation), Math.sqrt(1 - calculation));
@@ -94,16 +108,13 @@ function matchesSearchQuery(van: Van, query: string) {
     normalizeText(van.cuisine).includes(normalizedQuery) ||
     normalizeText(van.menu).includes(normalizedQuery) ||
     (van.foodCategories ?? []).some((category) =>
-      normalizeText(category).includes(normalizedQuery)
+      normalizeText(category).includes(normalizedQuery),
     )
   );
 }
 
 function isExpiredSpottedListing(van: Van) {
-  if (
-    van.listingSource !== "user_spotted" ||
-    !van.expiresAt
-  ) {
+  if (van.listingSource !== "user_spotted" || !van.expiresAt) {
     return false;
   }
 
@@ -128,22 +139,179 @@ function formatDistance(distance: number | null) {
   return `${distance.toFixed(1)} mi`;
 }
 
+// A continuous metallic-gold Skia tracer on the search field perimeter.
+// The short trail is one curved path, not a row of detached glowing dots.
+function SearchBorderGlow() {
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = 0;
+    progress.value = withRepeat(
+      withTiming(1, {
+        duration: 6500,
+        easing: Easing.linear,
+      }),
+      -1,
+      false,
+    );
+
+    return () => cancelAnimation(progress);
+  }, [progress]);
+
+  // The canvas extends 12 px beyond the actual 58 px search field.
+  // Its visible metallic border is approximately 1 px inside that field.
+  const inset = 13;
+  const radius = 18;
+  const left = inset;
+  const top = inset;
+  const right = Math.max(left + radius * 2, size.width - inset);
+  const bottom = Math.max(top + radius * 2, size.height - inset);
+  const straightX = Math.max(0, right - left - radius * 2);
+  const straightY = Math.max(0, bottom - top - radius * 2);
+  const arc = (Math.PI * radius) / 2;
+  const perimeter = 2 * (straightX + straightY) + 4 * arc;
+
+  const pointAt = (fraction: number) => {
+    "worklet";
+    let distance = (((fraction % 1) + 1) % 1) * perimeter;
+    const segments = [
+      { length: straightX, x: left + radius, y: top, dx: 1, dy: 0 },
+      { length: arc, x: right - radius, y: top + radius, angle: -Math.PI / 2 },
+      { length: straightY, x: right, y: top + radius, dx: 0, dy: 1 },
+      { length: arc, x: right - radius, y: bottom - radius, angle: 0 },
+      { length: straightX, x: right - radius, y: bottom, dx: -1, dy: 0 },
+      { length: arc, x: left + radius, y: bottom - radius, angle: Math.PI / 2 },
+      { length: straightY, x: left, y: bottom - radius, dx: 0, dy: -1 },
+      { length: arc, x: left + radius, y: top + radius, angle: Math.PI },
+    ];
+
+    for (const segment of segments) {
+      if (distance <= segment.length) {
+        if ("angle" in segment && segment.angle !== undefined) {
+          const theta = segment.angle + distance / radius;
+          return {
+            x: segment.x + radius * Math.cos(theta),
+            y: segment.y + radius * Math.sin(theta),
+          };
+        }
+        return {
+          x: segment.x + distance * (segment.dx ?? 0),
+          y: segment.y + distance * (segment.dy ?? 0),
+        };
+      }
+      distance -= segment.length;
+    }
+    return { x: left + radius, y: top };
+  };
+
+  const point = useDerivedValue(() => pointAt(progress.value));
+  const cx = useDerivedValue(() => point.value.x);
+  const cy = useDerivedValue(() => point.value.y);
+
+  // Four joined Skia strokes create a short tapered tail. Each segment
+  // becomes thinner and dimmer farther from the moving light.
+  const tailSegment = (position: number, from: number, to: number) => {
+    "worklet";
+    const path = Skia.Path.Make();
+    for (let step = 0; step <= 8; step += 1) {
+      const behind = from + (to - from) * (step / 8);
+      const sample = pointAt(position - behind / perimeter);
+      if (step === 0) {
+        path.moveTo(sample.x, sample.y);
+      } else {
+        path.lineTo(sample.x, sample.y);
+      }
+    }
+    return path;
+  };
+
+  const tailNear = useDerivedValue(() => tailSegment(progress.value, 0, 5));
+  const tailMid = useDerivedValue(() => tailSegment(progress.value, 5, 10));
+  const tailFar = useDerivedValue(() => tailSegment(progress.value, 10, 15));
+  const tailTip = useDerivedValue(() => tailSegment(progress.value, 15, 20));
+
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: "absolute",
+        top: -12,
+        bottom: -12,
+        left: -12,
+        right: -12,
+      }}
+      onLayout={(event) => {
+        const { width, height } = event.nativeEvent.layout;
+        if (width !== size.width || height !== size.height) {
+          setSize({ width, height });
+        }
+      }}
+    >
+      {size.width > 80 && size.height > 40 ? (
+        <Canvas style={StyleSheet.absoluteFillObject}>
+          {/* Diffuse light is restricted to the leading end of the trace. */}
+          <SkiaPath
+            path={tailNear}
+            color="rgba(255,178,44,0.50)"
+            style="stroke"
+            strokeWidth={4}
+            strokeCap="round"
+          >
+            <BlurMask blur={4} style="normal" />
+          </SkiaPath>
+          <SkiaPath
+            path={tailTip}
+            color="rgba(195,111,20,0.10)"
+            style="stroke"
+            strokeWidth={0.65}
+            strokeCap="round"
+          />
+          <SkiaPath
+            path={tailFar}
+            color="rgba(223,145,29,0.23)"
+            style="stroke"
+            strokeWidth={0.85}
+            strokeCap="round"
+          />
+          <SkiaPath
+            path={tailMid}
+            color="rgba(248,178,46,0.52)"
+            style="stroke"
+            strokeWidth={1.15}
+            strokeCap="round"
+          />
+          <SkiaPath
+            path={tailNear}
+            color="#FFD478"
+            style="stroke"
+            strokeWidth={1.55}
+            strokeCap="round"
+          />
+          <Circle cx={cx} cy={cy} r={6.5} color="rgba(255,174,38,0.55)">
+            <BlurMask blur={5} style="normal" />
+          </Circle>
+          <Circle cx={cx} cy={cy} r={2.15} color="#FFD16B" />
+          <Circle cx={cx} cy={cy} r={0.95} color="#FFFBE9" />
+        </Canvas>
+      ) : null}
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const [supabaseVans, setSupabaseVans] = useState<Van[]>([]);
   const [customVans, setCustomVans] = useState<Van[]>([]);
-  const [selectedFilter, setSelectedFilter] =
-    useState<BrowseFilter>("ALL");
+  const [selectedFilter, setSelectedFilter] = useState<BrowseFilter>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(
-    INITIAL_VISIBLE_VENDOR_COUNT
+    INITIAL_VISIBLE_VENDOR_COUNT,
   );
-  const [userLocation, setUserLocation] =
-    useState<UserLocation | null>(null);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [vendorsLoading, setVendorsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
-  const [appSettings, setAppSettings] =
-    useState<AppSettings | null>(null);
+  const [appSettings, setAppSettings] = useState<AppSettings | null>(null);
 
   const hasLoadedInitialData = useRef(false);
 
@@ -154,7 +322,7 @@ export default function HomeScreen() {
     } catch (error) {
       console.log(
         "Error loading app settings:",
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
     }
   }, []);
@@ -166,7 +334,7 @@ export default function HomeScreen() {
     } catch (error) {
       console.log(
         "Error loading vendors:",
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
 
       setSupabaseVans([]);
@@ -188,7 +356,7 @@ export default function HomeScreen() {
     } catch (error) {
       console.log(
         "Error loading custom vendors:",
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
 
       setCustomVans([]);
@@ -220,18 +388,16 @@ export default function HomeScreen() {
         setRefreshing(false);
       }
     },
-    [loadAppSettings, loadCustomVans, loadSupabaseVans]
+    [loadAppSettings, loadCustomVans, loadSupabaseVans],
   );
 
   const requestUserLocation = useCallback(async () => {
     try {
-      const permission =
-        await Location.requestForegroundPermissionsAsync();
+      const permission = await Location.requestForegroundPermissionsAsync();
 
       if (permission.status !== "granted") return;
 
-      const lastKnownPosition =
-        await Location.getLastKnownPositionAsync();
+      const lastKnownPosition = await Location.getLastKnownPositionAsync();
 
       if (lastKnownPosition) {
         setUserLocation({
@@ -240,10 +406,9 @@ export default function HomeScreen() {
         });
       }
 
-      const currentPosition =
-        await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
+      const currentPosition = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
 
       setUserLocation({
         latitude: currentPosition.coords.latitude,
@@ -252,7 +417,7 @@ export default function HomeScreen() {
     } catch (error) {
       console.log(
         "Location unavailable:",
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
     }
   }, []);
@@ -268,7 +433,7 @@ export default function HomeScreen() {
 
       setVisibleCount(INITIAL_VISIBLE_VENDOR_COUNT);
       void loadVendorData();
-    }, [loadVendorData])
+    }, [loadVendorData]),
   );
 
   useEffect(() => {
@@ -277,16 +442,15 @@ export default function HomeScreen() {
 
   const allVans = useMemo(
     () => [...supabaseVans, ...customVans],
-    [customVans, supabaseVans]
+    [customVans, supabaseVans],
   );
 
   const visibleVans = useMemo(
     () =>
       allVans.filter(
-        (van) =>
-          !van.isSuspended && !isExpiredSpottedListing(van)
+        (van) => !van.isSuspended && !isExpiredSpottedListing(van),
       ),
-    [allVans]
+    [allVans],
   );
 
   const distanceMap = useMemo(() => {
@@ -301,8 +465,8 @@ export default function HomeScreen() {
           userLocation.latitude,
           userLocation.longitude,
           van.lat,
-          van.lng
-        )
+          van.lng,
+        ),
       );
     });
 
@@ -314,7 +478,7 @@ export default function HomeScreen() {
       if (!userLocation) return null;
       return distanceMap.get(van.id) ?? null;
     },
-    [distanceMap, userLocation]
+    [distanceMap, userLocation],
   );
 
   const filteredVans = useMemo(() => {
@@ -323,20 +487,20 @@ export default function HomeScreen() {
     if (selectedFilter === "LIVE NOW") {
       matchingVans = matchingVans.filter(
         (van) =>
-          getSubscriptionFeatures(van.subscriptionTier)
-            .liveStatus && van.isLive
+          getSubscriptionFeatures(van.subscriptionTier).liveStatus &&
+          van.isLive,
       );
     }
 
     if (selectedFilter === "FEATURED") {
       matchingVans = matchingVans.filter(
-        (van) => van.subscriptionTier === "pro"
+        (van) => van.subscriptionTier === "pro",
       );
     }
 
     if (searchQuery.trim()) {
       matchingVans = matchingVans.filter((van) =>
-        matchesSearchQuery(van, searchQuery)
+        matchesSearchQuery(van, searchQuery),
       );
     }
 
@@ -357,19 +521,16 @@ export default function HomeScreen() {
 
       if (userLocation) {
         const firstDistance =
-          distanceMap.get(firstVan.id) ??
-          Number.MAX_SAFE_INTEGER;
+          distanceMap.get(firstVan.id) ?? Number.MAX_SAFE_INTEGER;
         const secondDistance =
-          distanceMap.get(secondVan.id) ??
-          Number.MAX_SAFE_INTEGER;
+          distanceMap.get(secondVan.id) ?? Number.MAX_SAFE_INTEGER;
 
         if (Math.abs(firstDistance - secondDistance) > 0.05) {
           return firstDistance - secondDistance;
         }
       }
 
-      const tierDifference =
-        getTierRank(secondVan) - getTierRank(firstVan);
+      const tierDifference = getTierRank(secondVan) - getTierRank(firstVan);
 
       if (tierDifference !== 0) {
         return tierDifference;
@@ -381,40 +542,29 @@ export default function HomeScreen() {
 
       return firstVan.name.localeCompare(secondVan.name);
     });
-  }, [
-    distanceMap,
-    searchQuery,
-    selectedFilter,
-    userLocation,
-    visibleVans,
-  ]);
+  }, [distanceMap, searchQuery, selectedFilter, userLocation, visibleVans]);
 
   const liveNowVans = useMemo(
     () =>
       [...visibleVans]
         .filter(
           (van) =>
-            getSubscriptionFeatures(van.subscriptionTier)
-              .liveStatus && van.isLive
+            getSubscriptionFeatures(van.subscriptionTier).liveStatus &&
+            van.isLive,
         )
         .sort((firstVan, secondVan) => {
           if (userLocation) {
             const firstDistance =
-              distanceMap.get(firstVan.id) ??
-              Number.MAX_SAFE_INTEGER;
+              distanceMap.get(firstVan.id) ?? Number.MAX_SAFE_INTEGER;
             const secondDistance =
-              distanceMap.get(secondVan.id) ??
-              Number.MAX_SAFE_INTEGER;
+              distanceMap.get(secondVan.id) ?? Number.MAX_SAFE_INTEGER;
 
-            if (
-              Math.abs(firstDistance - secondDistance) > 0.05
-            ) {
+            if (Math.abs(firstDistance - secondDistance) > 0.05) {
               return firstDistance - secondDistance;
             }
           }
 
-          const tierDifference =
-            getTierRank(secondVan) - getTierRank(firstVan);
+          const tierDifference = getTierRank(secondVan) - getTierRank(firstVan);
 
           if (tierDifference !== 0) {
             return tierDifference;
@@ -423,7 +573,7 @@ export default function HomeScreen() {
           return secondVan.rating - firstVan.rating;
         })
         .slice(0, 6),
-    [distanceMap, userLocation, visibleVans]
+    [distanceMap, userLocation, visibleVans],
   );
 
   const featuredProVans = useMemo(
@@ -432,20 +582,16 @@ export default function HomeScreen() {
         .filter(
           (van) =>
             van.subscriptionTier === "pro" &&
-            van.listingSource !== "user_spotted"
+            van.listingSource !== "user_spotted",
         )
         .sort((firstVan, secondVan) => {
           if (userLocation) {
             const firstDistance =
-              distanceMap.get(firstVan.id) ??
-              Number.MAX_SAFE_INTEGER;
+              distanceMap.get(firstVan.id) ?? Number.MAX_SAFE_INTEGER;
             const secondDistance =
-              distanceMap.get(secondVan.id) ??
-              Number.MAX_SAFE_INTEGER;
+              distanceMap.get(secondVan.id) ?? Number.MAX_SAFE_INTEGER;
 
-            if (
-              Math.abs(firstDistance - secondDistance) > 0.05
-            ) {
+            if (Math.abs(firstDistance - secondDistance) > 0.05) {
               return firstDistance - secondDistance;
             }
           }
@@ -453,7 +599,7 @@ export default function HomeScreen() {
           return secondVan.rating - firstVan.rating;
         })
         .slice(0, 3),
-    [distanceMap, userLocation, visibleVans]
+    [distanceMap, userLocation, visibleVans],
   );
 
   /*
@@ -484,19 +630,16 @@ const recentlySpottedVans = useMemo(
 
   const visibleFilteredVans = useMemo(
     () => filteredVans.slice(0, visibleCount),
-    [filteredVans, visibleCount]
+    [filteredVans, visibleCount],
   );
 
   const hasMoreVans = filteredVans.length > visibleCount;
-  const showEmptyState =
-    !vendorsLoading && filteredVans.length === 0;
+  const showEmptyState = !vendorsLoading && filteredVans.length === 0;
 
   const spottedCount = useMemo(
     () =>
-      visibleVans.filter(
-        (van) => van.listingSource === "user_spotted"
-      ).length,
-    [visibleVans]
+      visibleVans.filter((van) => van.listingSource === "user_spotted").length,
+    [visibleVans],
   );
 
   function openVendor(vendorId: string) {
@@ -518,16 +661,12 @@ const recentlySpottedVans = useMemo(
     icon: IconName,
     eyebrow: string,
     title: string,
-    subtitle: string
+    subtitle: string,
   ) {
     return (
       <View style={styles.sectionHeading}>
         <View style={styles.sectionHeadingIcon}>
-          <MaterialCommunityIcons
-            name={icon}
-            size={20}
-            color="#F4B547"
-          />
+          <MaterialCommunityIcons name={icon} size={20} color="#F4B547" />
         </View>
 
         <View style={styles.sectionHeadingText}>
@@ -590,16 +729,9 @@ const recentlySpottedVans = useMemo(
 
             {van.subscriptionTier === "pro" ? (
               <View style={styles.featuredMiniBadge}>
-                <MaterialCommunityIcons
-                  name="star"
-                  size={12}
-                  color="#F4B547"
-                />
+                <MaterialCommunityIcons name="star" size={12} color="#F4B547" />
 
-                <AppText
-                  variant="label"
-                  style={styles.featuredMiniBadgeText}
-                >
+                <AppText variant="label" style={styles.featuredMiniBadgeText}>
                   PRO
                 </AppText>
               </View>
@@ -642,19 +774,10 @@ const recentlySpottedVans = useMemo(
 
           <View style={styles.liveCardFooter}>
             <View style={styles.liveCardInfo}>
-              <MaterialCommunityIcons
-                name="star"
-                size={14}
-                color="#F4B547"
-              />
+              <MaterialCommunityIcons name="star" size={14} color="#F4B547" />
 
-              <AppText
-                variant="bodyBold"
-                style={styles.liveCardInfoText}
-              >
-                {Number.isFinite(van.rating)
-                  ? van.rating.toFixed(1)
-                  : "0.0"}
+              <AppText variant="bodyBold" style={styles.liveCardInfoText}>
+                {Number.isFinite(van.rating) ? van.rating.toFixed(1) : "0.0"}
               </AppText>
             </View>
 
@@ -666,10 +789,7 @@ const recentlySpottedVans = useMemo(
                   color="#F4B547"
                 />
 
-                <AppText
-                  variant="bodyBold"
-                  style={styles.liveCardInfoText}
-                >
+                <AppText variant="bodyBold" style={styles.liveCardInfoText}>
                   {distanceText}
                 </AppText>
               </View>
@@ -725,10 +845,7 @@ const recentlySpottedVans = useMemo(
 
           <View style={styles.featuredVendorMeta}>
             {distanceText ? (
-              <AppText
-                variant="bodyBold"
-                style={styles.featuredVendorDistance}
-              >
+              <AppText variant="bodyBold" style={styles.featuredVendorDistance}>
                 {distanceText}
               </AppText>
             ) : null}
@@ -737,10 +854,7 @@ const recentlySpottedVans = useMemo(
               <View style={styles.compactLiveBadge}>
                 <View style={styles.compactLiveDot} />
 
-                <AppText
-                  variant="label"
-                  style={styles.compactLiveBadgeText}
-                >
+                <AppText variant="label" style={styles.compactLiveBadgeText}>
                   LIVE
                 </AppText>
               </View>
@@ -826,17 +940,11 @@ function renderSpottedVendor(van: Van) {
       <View style={styles.searchResultsCard}>
         <View style={styles.searchResultsHeader}>
           <View>
-            <AppText
-              variant="label"
-              style={styles.searchResultsEyebrow}
-            >
+            <AppText variant="label" style={styles.searchResultsEyebrow}>
               SEARCH RESULTS
             </AppText>
 
-            <AppText
-              variant="bodyBold"
-              style={styles.searchResultsCount}
-            >
+            <AppText variant="bodyBold" style={styles.searchResultsCount}>
               {filteredVans.length}{" "}
               {filteredVans.length === 1 ? "result" : "results"} found
             </AppText>
@@ -852,18 +960,12 @@ function renderSpottedVendor(van: Van) {
               pressed && styles.smallPressed,
             ]}
           >
-            <MaterialCommunityIcons
-              name="close"
-              size={19}
-              color="#F4B547"
-            />
+            <MaterialCommunityIcons name="close" size={19} color="#F4B547" />
           </Pressable>
         </View>
 
         {filteredVans.slice(0, 4).map((van) => {
-          const distanceText = formatDistance(
-            getVendorDistance(van)
-          );
+          const distanceText = formatDistance(getVendorDistance(van));
 
           return (
             <Pressable
@@ -902,10 +1004,7 @@ function renderSpottedVendor(van: Van) {
               </View>
 
               {distanceText ? (
-                <AppText
-                  variant="bodyBold"
-                  style={styles.searchResultDistance}
-                >
+                <AppText variant="bodyBold" style={styles.searchResultDistance}>
                   {distanceText}
                 </AppText>
               ) : (
@@ -922,9 +1021,7 @@ function renderSpottedVendor(van: Van) {
         {filteredVans.length > 4 ? (
           <Pressable
             onPress={() =>
-              setVisibleCount(
-                Math.max(filteredVans.length, visibleCount)
-              )
+              setVisibleCount(Math.max(filteredVans.length, visibleCount))
             }
             accessibilityRole="button"
             style={({ pressed }) => [
@@ -932,10 +1029,7 @@ function renderSpottedVendor(van: Van) {
               pressed && styles.smallPressed,
             ]}
           >
-            <AppText
-              variant="bodyBold"
-              style={styles.viewAllSearchText}
-            >
+            <AppText variant="bodyBold" style={styles.viewAllSearchText}>
               View all {filteredVans.length} results below
             </AppText>
 
@@ -954,6 +1048,52 @@ function renderSpottedVendor(van: Van) {
     return (
       <>
         <View style={styles.brandHeader}>
+          {/* All light gradients reach transparency before the canvas edges. */}
+          <View pointerEvents="none" style={styles.brandAtmosphere}>
+            <Canvas style={styles.brandLightCanvas}>
+              <Circle cx={260} cy={260} r={165}>
+                <RadialGradient
+                  c={vec(260, 260)}
+                  r={165}
+                  colors={[
+                    "rgba(255,182,55,0.68)",
+                    "rgba(236,132,30,0.33)",
+                    "rgba(236,132,30,0.12)",
+                    "rgba(236,132,30,0.025)",
+                    "rgba(236,132,30,0)",
+                  ]}
+                  positions={[0, 0.27, 0.55, 0.8, 1]}
+                />
+              </Circle>
+              <Circle cx={188} cy={260} r={145}>
+                <RadialGradient
+                  c={vec(188, 260)}
+                  r={145}
+                  colors={[
+                    "rgba(34,137,248,0.38)",
+                    "rgba(27,103,197,0.17)",
+                    "rgba(27,103,197,0.035)",
+                    "rgba(27,103,197,0)",
+                  ]}
+                  positions={[0, 0.42, 0.76, 1]}
+                />
+              </Circle>
+              <Circle cx={340} cy={260} r={125}>
+                <RadialGradient
+                  c={vec(340, 260)}
+                  r={125}
+                  colors={[
+                    "rgba(255,196,93,0.38)",
+                    "rgba(255,196,93,0.13)",
+                    "rgba(255,196,93,0.025)",
+                    "rgba(255,196,93,0)",
+                  ]}
+                  positions={[0, 0.4, 0.76, 1]}
+                />
+              </Circle>
+            </Canvas>
+          </View>
+
           <View style={styles.logoGlow}>
             <Image
               source={require("../../assets/images/bitebeacon-logo-full.png")}
@@ -971,21 +1111,30 @@ function renderSpottedVendor(van: Van) {
           </View>
         </View>
 
-        <Pressable
-          onPress={() => router.push("/(tabs)/favourites")}
-          accessibilityRole="button"
-          accessibilityLabel="Open your favourites"
-          style={styles.homeFavouritesButton}
-        >
-          <MaterialCommunityIcons
-            name="heart-outline"
-            size={19}
-            color="#FFE29A"
-          />
-          <AppText variant="label" style={styles.homeFavouritesText}>
-            FAVOURITES
-          </AppText>
-        </Pressable>
+        <View style={styles.headerActionRow}>
+          <View style={styles.headerActionCaption}>
+            <View style={styles.headerActionDot} />
+            <AppText variant="label" style={styles.headerActionText}>
+              YOUR FOOD DISCOVERY HUB
+            </AppText>
+          </View>
+
+          <Pressable
+            onPress={() => router.push("/(tabs)/favourites")}
+            accessibilityRole="button"
+            accessibilityLabel="Open your favourites"
+            style={styles.homeFavouritesButton}
+          >
+            <MaterialCommunityIcons
+              name="heart-outline"
+              size={19}
+              color="#FFE29A"
+            />
+            <AppText variant="label" style={styles.homeFavouritesText}>
+              FAVOURITES
+            </AppText>
+          </Pressable>
+        </View>
 
         <AppUpdateBanner settings={appSettings} />
 
@@ -1005,29 +1154,19 @@ function renderSpottedVendor(van: Van) {
             end={{ x: 1, y: 1 }}
             style={styles.heroCard}
           >
-
             <View style={styles.heroTopRow}>
               <View style={styles.heroTitleArea}>
-                <AppText
-                  variant="label"
-                  style={styles.heroEyebrow}
-                >
+                <AppText variant="label" style={styles.heroEyebrow}>
                   TODAY ON BITEBEACON
                 </AppText>
 
-                <AppText
-                  variant="heading"
-                  style={styles.heroTitle}
-                >
+                <AppText variant="heading" style={styles.heroTitle}>
                   Discover food{"\n"}worth the trip.
                 </AppText>
 
-                <AppText
-                  variant="body"
-                  style={styles.heroDescription}
-                >
-                  Search local food businesses, see who is live and
-                  uncover community finds nearby.
+                <AppText variant="body" style={styles.heroDescription}>
+                  Search local food businesses, see who is live and uncover
+                  community finds nearby.
                 </AppText>
               </View>
 
@@ -1044,17 +1183,11 @@ function renderSpottedVendor(van: Van) {
                   color="#F4B547"
                 />
 
-                <AppText
-                  variant="heading"
-                  style={styles.heroStatValue}
-                >
+                <AppText variant="heading" style={styles.heroStatValue}>
                   {visibleVans.length}
                 </AppText>
 
-                <AppText
-                  variant="label"
-                  style={styles.heroStatLabel}
-                >
+                <AppText variant="label" style={styles.heroStatLabel}>
                   FOOD SPOTS
                 </AppText>
               </View>
@@ -1068,17 +1201,11 @@ function renderSpottedVendor(van: Van) {
                   color="#65E395"
                 />
 
-                <AppText
-                  variant="heading"
-                  style={styles.heroStatValue}
-                >
+                <AppText variant="heading" style={styles.heroStatValue}>
                   {liveNowVans.length}
                 </AppText>
 
-                <AppText
-                  variant="label"
-                  style={styles.heroStatLabel}
-                >
+                <AppText variant="label" style={styles.heroStatLabel}>
                   LIVE NOW
                 </AppText>
               </View>
@@ -1092,63 +1219,73 @@ function renderSpottedVendor(van: Van) {
                   color="#F4B547"
                 />
 
-                <AppText
-                  variant="heading"
-                  style={styles.heroStatValue}
-                >
+                <AppText variant="heading" style={styles.heroStatValue}>
                   {spottedCount}
                 </AppText>
 
-                <AppText
-                  variant="label"
-                  style={styles.heroStatLabel}
-                >
+                <AppText variant="label" style={styles.heroStatLabel}>
                   SCOUT FINDS
                 </AppText>
               </View>
             </View>
 
-            <MetallicFrame
-              tone="gold"
-              borderWidth={1}
-              style={styles.searchOuter}
-              contentStyle={styles.searchFrameContent}
-            >
-              <View style={styles.searchInner}>
-                <MaterialCommunityIcons
-                  name="magnify"
-                  size={22}
-                  color="#F4B547"
-                />
+            <View style={styles.searchGlowContainer}>
+              <MetallicFrame
+                tone="gold"
+                borderWidth={1}
+                style={styles.searchOuter}
+                contentStyle={styles.searchFrameContent}
+              >
+                <View style={styles.searchInner}>
+                  <LinearGradient
+                    pointerEvents="none"
+                    colors={[
+                      "rgba(255,219,137,0.075)",
+                      "rgba(20,44,63,0.09)",
+                      "rgba(4,15,27,0)",
+                    ]}
+                    locations={[0, 0.42, 1]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.searchSurfaceLight}
+                  />
+                  <View pointerEvents="none" style={styles.searchInsetBorder} />
+                  <MaterialCommunityIcons
+                    name="magnify"
+                    size={22}
+                    color="#F4B547"
+                  />
 
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Search burgers, coffee, pizza..."
-                  placeholderTextColor="rgba(255,255,255,0.60)"
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  returnKeyType="search"
-                />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search burgers, coffee, pizza..."
+                    placeholderTextColor="rgba(255,255,255,0.60)"
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="search"
+                  />
 
-                {searchQuery.trim() ? (
-                  <Pressable
-                    onPress={clearSearch}
-                    hitSlop={10}
-                    accessibilityRole="button"
-                    accessibilityLabel="Clear search"
-                    style={styles.searchClearButton}
-                  >
-                    <MaterialCommunityIcons
-                      name="close-circle"
-                      size={21}
-                      color="rgba(255,255,255,0.52)"
-                    />
-                  </Pressable>
-                ) : null}
-              </View>
-            </MetallicFrame>
+                  {searchQuery.trim() ? (
+                    <Pressable
+                      onPress={clearSearch}
+                      hitSlop={10}
+                      accessibilityRole="button"
+                      accessibilityLabel="Clear search"
+                      style={styles.searchClearButton}
+                    >
+                      <MaterialCommunityIcons
+                        name="close-circle"
+                        size={21}
+                        color="rgba(255,255,255,0.52)"
+                      />
+                    </Pressable>
+                  ) : null}
+                </View>
+              </MetallicFrame>
+              <SearchBorderGlow />
+            </View>
 
             {renderSearchResults()}
 
@@ -1162,12 +1299,7 @@ function renderSpottedVendor(van: Van) {
               ]}
             >
               <LinearGradient
-                colors={[
-                  "#FFF7CF",
-                  "#FFD972",
-                  "#F5B93D",
-                  "#D98108",
-                ]}
+                colors={["#FFF7CF", "#FFD972", "#F5B93D", "#D98108"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.exploreButton}
@@ -1178,10 +1310,7 @@ function renderSpottedVendor(van: Van) {
                   color="#071421"
                 />
 
-                <AppText
-                  variant="button"
-                  style={styles.exploreButtonText}
-                >
+                <AppText variant="button" style={styles.exploreButtonText}>
                   Explore the Map
                 </AppText>
 
@@ -1236,10 +1365,7 @@ function renderSpottedVendor(van: Van) {
                 pressed && styles.smallPressed,
               ]}
             >
-              <AppText
-                variant="bodyBold"
-                style={styles.retryButtonText}
-              >
+              <AppText variant="bodyBold" style={styles.retryButtonText}>
                 Retry
               </AppText>
             </Pressable>
@@ -1249,18 +1375,11 @@ function renderSpottedVendor(van: Van) {
         {vendorsLoading ? (
           <View style={styles.loadingCard}>
             <View style={styles.loadingIcon}>
-              <MaterialCommunityIcons
-                name="radar"
-                size={27}
-                color="#F4B547"
-              />
+              <MaterialCommunityIcons name="radar" size={27} color="#F4B547" />
             </View>
 
             <View style={styles.loadingTextArea}>
-              <AppText
-                variant="bodyBold"
-                style={styles.loadingTitle}
-              >
+              <AppText variant="bodyBold" style={styles.loadingTitle}>
                 Finding great food
               </AppText>
 
@@ -1277,7 +1396,7 @@ function renderSpottedVendor(van: Van) {
               "broadcast",
               "OPEN AND TRADING",
               "Live Now",
-              "Food businesses ready for you to visit."
+              "Food businesses ready for you to visit.",
             )}
 
             <ScrollView
@@ -1295,7 +1414,7 @@ function renderSpottedVendor(van: Van) {
             "tune-variant",
             "BROWSE YOUR WAY",
             "Find Your Food",
-            "Filter nearby vendors by availability, rating or plan."
+            "Filter nearby vendors by availability, rating or plan.",
           )}
 
           <View style={styles.filterPanel}>
@@ -1360,13 +1479,16 @@ function renderSpottedVendor(van: Van) {
 
               <AppText variant="body" style={styles.filterSummaryText}>
                 {searchQuery.trim()
-                  ? `${filteredVans.length} matching food ${filteredVans.length === 1 ? "business" : "businesses"
-                  }`
+                  ? `${filteredVans.length} matching food ${
+                      filteredVans.length === 1 ? "business" : "businesses"
+                    }`
                   : userLocation
-                    ? `${filteredVans.length} food ${filteredVans.length === 1 ? "business" : "businesses"
-                    } ordered around you`
-                    : `${filteredVans.length} food ${filteredVans.length === 1 ? "business" : "businesses"
-                    } available`}
+                    ? `${filteredVans.length} food ${
+                        filteredVans.length === 1 ? "business" : "businesses"
+                      } ordered around you`
+                    : `${filteredVans.length} food ${
+                        filteredVans.length === 1 ? "business" : "businesses"
+                      } available`}
               </AppText>
             </View>
           </View>
@@ -1375,9 +1497,7 @@ function renderSpottedVendor(van: Van) {
         <View style={styles.nearbyHeadingWrap}>
           {renderSectionHeading(
             "silverware-fork-knife",
-            selectedFilter === "ALL"
-              ? "NEARBY DISCOVERY"
-              : selectedFilter,
+            selectedFilter === "ALL" ? "NEARBY DISCOVERY" : selectedFilter,
             selectedFilter === "ALL"
               ? "Nearby Food Spots"
               : selectedFilter === "LIVE NOW"
@@ -1389,7 +1509,7 @@ function renderSpottedVendor(van: Van) {
               ? userLocation
                 ? "Closest BiteBeacon listings and community finds."
                 : "Browse the latest food businesses on BiteBeacon."
-              : "Your selected BiteBeacon results."
+              : "Your selected BiteBeacon results.",
           )}
         </View>
       </>
@@ -1451,12 +1571,7 @@ function renderSpottedVendor(van: Van) {
               ]}
             >
               <LinearGradient
-                colors={[
-                  "#FFF7CF",
-                  "#FFD972",
-                  "#F5B93D",
-                  "#D98108",
-                ]}
+                colors={["#FFF7CF", "#FFD972", "#F5B93D", "#D98108"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.resetFiltersButtonInner}
@@ -1467,10 +1582,7 @@ function renderSpottedVendor(van: Van) {
                   color="#071421"
                 />
 
-                <AppText
-                  variant="button"
-                  style={styles.resetFiltersButtonText}
-                >
+                <AppText variant="button" style={styles.resetFiltersButtonText}>
                   Clear Search and Filters
                 </AppText>
               </LinearGradient>
@@ -1485,12 +1597,7 @@ function renderSpottedVendor(van: Van) {
               ]}
             >
               <LinearGradient
-                colors={[
-                  "#FFF7CF",
-                  "#FFD972",
-                  "#F5B93D",
-                  "#D98108",
-                ]}
+                colors={["#FFF7CF", "#FFD972", "#F5B93D", "#D98108"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.resetFiltersButtonInner}
@@ -1501,10 +1608,7 @@ function renderSpottedVendor(van: Van) {
                   color="#071421"
                 />
 
-                <AppText
-                  variant="button"
-                  style={styles.resetFiltersButtonText}
-                >
+                <AppText variant="button" style={styles.resetFiltersButtonText}>
                   Refresh Vendors
                 </AppText>
               </LinearGradient>
@@ -1538,16 +1642,13 @@ function renderSpottedVendor(van: Van) {
           }
           ListHeaderComponent={renderHomeHeader()}
           ListEmptyComponent={renderEmptyState}
-          ItemSeparatorComponent={() => (
-            <View style={styles.vendorSeparator} />
-          )}
+          ItemSeparatorComponent={() => <View style={styles.vendorSeparator} />}
           ListFooterComponent={
             hasMoreVans ? (
               <Pressable
                 onPress={() =>
                   setVisibleCount(
-                    (currentCount) =>
-                      currentCount + VENDOR_LOAD_INCREMENT
+                    (currentCount) => currentCount + VENDOR_LOAD_INCREMENT,
                   )
                 }
                 accessibilityRole="button"
@@ -1558,10 +1659,7 @@ function renderSpottedVendor(van: Van) {
                 ]}
               >
                 <LinearGradient
-                  colors={[
-                    "rgba(33,47,61,0.98)",
-                    "rgba(10,22,35,0.98)",
-                  ]}
+                  colors={["rgba(33,47,61,0.98)", "rgba(10,22,35,0.98)"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.loadMoreButton}
@@ -1572,18 +1670,12 @@ function renderSpottedVendor(van: Van) {
                     color="#F4B547"
                   />
 
-                  <AppText
-                    variant="bodyBold"
-                    style={styles.loadMoreText}
-                  >
+                  <AppText variant="bodyBold" style={styles.loadMoreText}>
                     Load More Food Spots
                   </AppText>
 
                   <View style={styles.loadMoreCountBadge}>
-                    <AppText
-                      variant="label"
-                      style={styles.loadMoreCountText}
-                    >
+                    <AppText variant="label" style={styles.loadMoreCountText}>
                       {filteredVans.length - visibleCount}
                     </AppText>
                   </View>
@@ -1645,19 +1737,60 @@ const styles = StyleSheet.create({
   },
 
   brandHeader: {
+    position: "relative",
     alignItems: "center",
     paddingTop: 0,
-    marginBottom: 16,
+    marginBottom: 9,
+  },
+
+  brandAtmosphere: {
+    position: "absolute",
+    top: -158,
+    alignSelf: "center",
+    width: 520,
+    height: 440,
+  },
+
+  brandLightCanvas: {
+    width: 520,
+    height: 440,
+  },
+
+  headerActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    marginBottom: 13,
+  },
+
+  headerActionCaption: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexShrink: 1,
+    gap: 7,
+  },
+
+  headerActionDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: "#F4B547",
+  },
+
+  headerActionText: {
+    color: "rgba(244,191,90,0.7)",
+    fontSize: 8,
+    letterSpacing: 1.1,
   },
 
   homeFavouritesButton: {
-    alignSelf: "flex-end",
+    flexShrink: 0,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     minHeight: 42,
     paddingHorizontal: 14,
-    marginBottom: 12,
     borderWidth: 1,
     borderColor: "rgba(244,191,90,0.62)",
     borderRadius: 999,
@@ -1673,14 +1806,6 @@ const styles = StyleSheet.create({
   logoGlow: {
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#FFB52D",
-    shadowOpacity: 0.48,
-    shadowRadius: 22,
-    shadowOffset: {
-      width: 0,
-      height: 0,
-    },
-    elevation: 9,
   },
 
   logo: {
@@ -1872,6 +1997,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
+  searchGlowContainer: {
+    width: "100%",
+    height: 58,
+    position: "relative",
+  },
+
   searchOuter: {
     width: "100%",
     height: 58,
@@ -1901,6 +2032,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     gap: 10,
+    position: "relative",
+  },
+
+  searchSurfaceLight: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 17,
+  },
+
+  searchInsetBorder: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: "rgba(255,210,117,0.22)",
   },
 
   searchClearButton: {

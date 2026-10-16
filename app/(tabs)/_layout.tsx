@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import { Image, Pressable } from "react-native";
+import { Alert, Image, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
@@ -84,12 +84,33 @@ export default function TabLayout() {
         name="marketplace"
         options={{
           title: "Marketplace",
-          tabBarIcon: () => (
-            <Image
-              source={require("../../assets/icons/marketplace.png")}
-              style={{ width: 56, height: 56 }}
-              resizeMode="contain"
-            />
+          tabBarButton: (props) => (
+            <Pressable
+              onPress={() => {
+                if (__DEV__) {
+                  props.onPress?.(undefined as any);
+                } else {
+                  Alert.alert(
+                    "Trader's Exchange",
+                    "Coming Soon!\n\nThe Trader's Exchange is currently under development. Stay tuned!",
+                  );
+                }
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Marketplace"
+              style={{
+                flex: 1,
+                justifyContent: "center",
+                alignItems: "center",
+                transform: [{ translateY: -14 }],
+              }}
+            >
+              <Image
+                source={require("../../assets/icons/marketplace.png")}
+                style={{ width: 56, height: 56 }}
+                resizeMode="contain"
+              />
+            </Pressable>
           ),
         }}
       />

@@ -17,7 +17,13 @@ import {
   View,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-import Svg, { Circle, Defs, Path, Stop, LinearGradient as SvgLinearGradient } from "react-native-svg";
+import Svg, {
+  Circle,
+  Defs,
+  Path,
+  Stop,
+  LinearGradient as SvgLinearGradient,
+} from "react-native-svg";
 import AppText from "../../components/AppText";
 import CardGlowBorder from "../../components/CardGlowBorder";
 import MapTextureBackground from "../../components/MapTextureBackground";
@@ -26,10 +32,7 @@ import SectionGlowLine from "../../components/SectionGlowLine";
 import { getSubscriptionFeatures } from "../../lib/subscriptionFeatures";
 import { supabase } from "../../lib/supabase";
 import { createListingRemovalRequest } from "../../services/accountDeletionService";
-import {
-  getCurrentUser,
-  signOutCurrentUser
-} from "../../services/authService";
+import { getCurrentUser, signOutCurrentUser } from "../../services/authService";
 import {
   getVendorMenuPdfSignedUrl,
   uploadVendorLogo,
@@ -175,7 +178,7 @@ function formatInsightDay(dateString: string) {
 async function getReadableLocation(lat: number, lng: number) {
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
     );
 
     if (!res.ok) {
@@ -198,7 +201,7 @@ async function getReadableLocation(lat: number, lng: number) {
 }
 function getTopDay(points: InsightPoint[]) {
   const valid = points.filter(
-    (point): point is InsightPoint & { day: string } => !!point.day
+    (point): point is InsightPoint & { day: string } => !!point.day,
   );
 
   if (valid.length === 0) return null;
@@ -208,7 +211,7 @@ function getTopDay(points: InsightPoint[]) {
 
 function getLowestDay(points: InsightPoint[]) {
   const valid = points.filter(
-    (point): point is InsightPoint & { day: string } => !!point.day
+    (point): point is InsightPoint & { day: string } => !!point.day,
   );
 
   if (valid.length === 0) return null;
@@ -222,7 +225,7 @@ function getTopHours(points: InsightPoint[]) {
       (point) =>
         Number.isInteger(point.hour) &&
         Number(point.hour) >= 0 &&
-        Number(point.hour) <= 23
+        Number(point.hour) <= 23,
     )
     .sort((a, b) => (b.total ?? 0) - (a.total ?? 0))
     .slice(0, 3);
@@ -297,12 +300,21 @@ function DashboardAccordionSection({
             {title}
           </AppText>
 
-          <AppText variant="body" style={styles.sectionSubtitle} numberOfLines={1}>
+          <AppText
+            variant="body"
+            style={styles.sectionSubtitle}
+            numberOfLines={1}
+          >
             {subtitle}
           </AppText>
         </View>
 
-        <View style={[styles.sectionTogglePill, isOpen && styles.sectionTogglePillOpen]}>
+        <View
+          style={[
+            styles.sectionTogglePill,
+            isOpen && styles.sectionTogglePillOpen,
+          ]}
+        >
           <AppText variant="button" style={styles.sectionToggleText}>
             {isOpen ? "−" : "+"}
           </AppText>
@@ -344,17 +356,17 @@ function PerformanceChart({
 
   const coordinates = safeValues.map((value, index) => {
     const x =
-      padX +
-      (index / Math.max(safeValues.length - 1, 1)) * (width - padX * 2);
+      padX + (index / Math.max(safeValues.length - 1, 1)) * (width - padX * 2);
     const y =
-      height -
-      padY -
-      ((value - minValue) / range) * (height - padY * 2);
+      height - padY - ((value - minValue) / range) * (height - padY * 2);
     return { x, y };
   });
 
   const path = coordinates
-    .map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(1)},${point.y.toFixed(1)}`)
+    .map(
+      (point, index) =>
+        `${index === 0 ? "M" : "L"}${point.x.toFixed(1)},${point.y.toFixed(1)}`,
+    )
     .join(" ");
 
   const first = coordinates[0];
@@ -406,7 +418,12 @@ function PerformanceChart({
 
         {active ? (
           <>
-            <Circle cx={active.x} cy={active.y} r="7" fill="rgba(244,181,71,0.16)" />
+            <Circle
+              cx={active.x}
+              cy={active.y}
+              r="7"
+              fill="rgba(244,181,71,0.16)"
+            />
             <Circle cx={active.x} cy={active.y} r="3.5" fill="#FFF1C2" />
           </>
         ) : null}
@@ -414,7 +431,11 @@ function PerformanceChart({
 
       {locked ? (
         <View style={styles.performanceChartLock}>
-          <MaterialCommunityIcons name="lock-outline" size={15} color="#F4B547" />
+          <MaterialCommunityIcons
+            name="lock-outline"
+            size={15}
+            color="#F4B547"
+          />
           <AppText variant="bodyBold" style={styles.performanceChartLockText}>
             Pro trend preview
           </AppText>
@@ -456,7 +477,9 @@ function TierExplanationCard({
         <Text style={styles.tierExplainToggle}>{isExpanded ? "−" : "+"}</Text>
       </Pressable>
 
-      {isExpanded ? <View style={styles.tierExplainBody}>{children}</View> : null}
+      {isExpanded ? (
+        <View style={styles.tierExplainBody}>{children}</View>
+      ) : null}
     </View>
   );
 }
@@ -497,7 +520,7 @@ export default function VendorDashboardScreen() {
   const [menuPdfName, setMenuPdfName] = useState<string | null>(null);
   const [menuPdfUri, setMenuPdfUri] = useState<string | null>(null);
   const [menuPdfStoragePath, setMenuPdfStoragePath] = useState<string | null>(
-    null
+    null,
   );
   const [lat, setLat] = useState<number>(0);
   const [lng, setLng] = useState<number>(0);
@@ -511,9 +534,9 @@ export default function VendorDashboardScreen() {
   useEffect(() => {
     async function resolveLocations() {
       const names = await Promise.all(
-        heatmapPoints.slice(0, 3).map((point) =>
-          getReadableLocation(point.lat, point.lng)
-        )
+        heatmapPoints
+          .slice(0, 3)
+          .map((point) => getReadableLocation(point.lat, point.lng)),
       );
 
       setLocationNames(names);
@@ -527,7 +550,7 @@ export default function VendorDashboardScreen() {
   }, [heatmapPoints]);
 
   const [expandedTier, setExpandedTier] = useState<"free" | "growth" | "pro">(
-    "growth"
+    "growth",
   );
 
   const [openSections, setOpenSections] = useState<
@@ -582,20 +605,19 @@ export default function VendorDashboardScreen() {
 
           // Do NOT block suspended vendors here
           // Let loadDashboard handle that state cleanly
-
         } catch {
           router.replace("/vendor/register");
         }
       }
 
       checkAccess();
-    }, [])
+    }, []),
   );
 
   useFocusEffect(
     useCallback(() => {
       loadDashboard();
-    }, [])
+    }, []),
   );
 
   useEffect(() => {
@@ -621,12 +643,15 @@ export default function VendorDashboardScreen() {
         setLat(nextLat);
         setLng(nextLng);
 
-        if (params.locationUpdated === "true" && !hasShownLocationAlert.current) {
+        if (
+          params.locationUpdated === "true" &&
+          !hasShownLocationAlert.current
+        ) {
           hasShownLocationAlert.current = true;
 
           Alert.alert(
             "Location updated",
-            "Your new pin is ready. Tap Save Changes to update it on the map."
+            "Your new pin is ready. Tap Save Changes to update it on the map.",
           );
         }
       }
@@ -667,10 +692,13 @@ export default function VendorDashboardScreen() {
     setInsightsLoading(true);
 
     try {
-      const { data, error } = await supabase.rpc("get_vendor_advanced_insights", {
-        p_vendor_id: vendorId,
-        p_days: 30,
-      });
+      const { data, error } = await supabase.rpc(
+        "get_vendor_advanced_insights",
+        {
+          p_vendor_id: vendorId,
+          p_days: 30,
+        },
+      );
 
       if (error) {
         setInsights(null);
@@ -684,7 +712,7 @@ export default function VendorDashboardScreen() {
           conversion_rate: 0,
           daily_views: [],
           peak_hours: [],
-        }
+        },
       );
     } finally {
       setInsightsLoading(false);
@@ -794,7 +822,9 @@ export default function VendorDashboardScreen() {
         }
 
         try {
-          const signedUrl = await getVendorMenuPdfSignedUrl(assetVendor.menuPdfUrl);
+          const signedUrl = await getVendorMenuPdfSignedUrl(
+            assetVendor.menuPdfUrl,
+          );
           setMenuPdfUri(signedUrl);
         } catch {
           setMenuPdfUri(null);
@@ -803,8 +833,10 @@ export default function VendorDashboardScreen() {
 
       setMenuPdfStoragePath(assetVendor.menuPdfUrl ?? null);
 
-      const paramLat = typeof params.lat === "string" ? Number(params.lat) : NaN;
-      const paramLng = typeof params.lng === "string" ? Number(params.lng) : NaN;
+      const paramLat =
+        typeof params.lat === "string" ? Number(params.lat) : NaN;
+      const paramLng =
+        typeof params.lng === "string" ? Number(params.lng) : NaN;
 
       setLat(Number.isNaN(paramLat) ? vendor.lat : paramLat);
       setLng(Number.isNaN(paramLng) ? vendor.lng : paramLng);
@@ -813,7 +845,6 @@ export default function VendorDashboardScreen() {
 
       void loadAdvancedInsights(vendor.id, vendor.subscriptionTier ?? "free");
       void loadHeatmapPoints(vendor.id, vendor.subscriptionTier ?? "free");
-
     } catch {
       setVan(null);
       setAccessChecked(true);
@@ -826,7 +857,7 @@ export default function VendorDashboardScreen() {
     setFoodCategories((current) =>
       current.includes(category)
         ? current.filter((item) => item !== category)
-        : [...current, category]
+        : [...current, category],
     );
   }
 
@@ -843,13 +874,16 @@ export default function VendorDashboardScreen() {
           "Free includes one main listing photo. Growth unlocks a full gallery of up to 5 photos, plus logo and menu PDF tools.",
           [
             { text: "Not now", style: "cancel" },
-            { text: "Explore Growth", onPress: () => router.push("/vendor/upgrade") },
-          ]
+            {
+              text: "Explore Growth",
+              onPress: () => router.push("/vendor/upgrade"),
+            },
+          ],
         );
       } else {
         Alert.alert(
           "Photo limit reached",
-          "You can upload up to 5 listing photos for now."
+          "You can upload up to 5 listing photos for now.",
         );
       }
       return;
@@ -860,7 +894,7 @@ export default function VendorDashboardScreen() {
     if (!permission.granted) {
       Alert.alert(
         "Permission needed",
-        "Please allow photo library access to upload vendor photos."
+        "Please allow photo library access to upload vendor photos.",
       );
       return;
     }
@@ -875,7 +909,9 @@ export default function VendorDashboardScreen() {
 
     if (result.canceled) return;
 
-    const selectedUris = result.assets.map((asset) => asset.uri).filter(Boolean);
+    const selectedUris = result.assets
+      .map((asset) => asset.uri)
+      .filter(Boolean);
 
     setPhotos((current) => {
       const merged = [...current, ...selectedUris];
@@ -891,7 +927,7 @@ export default function VendorDashboardScreen() {
     if (!features.images) {
       Alert.alert(
         "Growth plan required",
-        "Upgrade to Growth or above to upload your logo."
+        "Upgrade to Growth or above to upload your logo.",
       );
       return;
     }
@@ -901,7 +937,7 @@ export default function VendorDashboardScreen() {
     if (!permission.granted) {
       Alert.alert(
         "Permission needed",
-        "Please allow photo library access to upload your logo."
+        "Please allow photo library access to upload your logo.",
       );
       return;
     }
@@ -924,7 +960,9 @@ export default function VendorDashboardScreen() {
   }
 
   function removePhoto(indexToRemove: number) {
-    setPhotos((current) => current.filter((_, index) => index !== indexToRemove));
+    setPhotos((current) =>
+      current.filter((_, index) => index !== indexToRemove),
+    );
   }
 
   function removeLogo() {
@@ -940,7 +978,7 @@ export default function VendorDashboardScreen() {
     if (!features.images) {
       Alert.alert(
         "Growth plan required",
-        "Upgrade to Growth or above to upload a menu PDF."
+        "Upgrade to Growth or above to upload a menu PDF.",
       );
       return;
     }
@@ -957,10 +995,7 @@ export default function VendorDashboardScreen() {
       const file = result.assets[0];
 
       if (file.size && file.size > 5 * 1024 * 1024) {
-        Alert.alert(
-          "File too large",
-          "Menu PDFs must be under 5MB."
-        );
+        Alert.alert("File too large", "Menu PDFs must be under 5MB.");
         return;
       }
 
@@ -1035,7 +1070,10 @@ export default function VendorDashboardScreen() {
     // measure the timer itself. This keeps the original Go Live -> timer behaviour.
     setTimeout(() => {
       if (!scrollMeasuredTarget(liveDurationRef.current, 115)) {
-        setTimeout(() => scrollMeasuredTarget(liveDurationRef.current, 115), 300);
+        setTimeout(
+          () => scrollMeasuredTarget(liveDurationRef.current, 115),
+          300,
+        );
       }
     }, 700);
   }
@@ -1078,13 +1116,13 @@ export default function VendorDashboardScreen() {
     if (!features.liveStatus) {
       Alert.alert(
         "Upgrade required",
-        "Live status is not available on your current plan."
+        "Live status is not available on your current plan.",
       );
       return;
     }
 
     try {
-      const nextLiveUntil = newStatus ? van.liveUntil ?? null : null;
+      const nextLiveUntil = newStatus ? (van.liveUntil ?? null) : null;
 
       await supabase
         .from("vendors")
@@ -1103,7 +1141,7 @@ export default function VendorDashboardScreen() {
     } catch (error) {
       Alert.alert(
         "Error updating live status",
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
     }
   }
@@ -1121,7 +1159,7 @@ export default function VendorDashboardScreen() {
     if (!name.trim() || !vendorName.trim() || !cuisine.trim()) {
       Alert.alert(
         "Missing details",
-        "Please make sure van name, vendor name, and cuisine are filled in."
+        "Please make sure van name, vendor name, and cuisine are filled in.",
       );
       return;
     }
@@ -1131,7 +1169,7 @@ export default function VendorDashboardScreen() {
     if (!user || user.id !== van.owner_id || van.isSuspended) {
       Alert.alert(
         "Access denied",
-        "This listing is unavailable or you do not have permission to edit it."
+        "This listing is unavailable or you do not have permission to edit it.",
       );
       return;
     }
@@ -1158,7 +1196,10 @@ export default function VendorDashboardScreen() {
           ? await uploadVendorPhotos(user.id, uniqueLocalPhotos)
           : [];
 
-      nextPhotos = [...existingRemotePhotos, ...uploadedPhotoUrls].slice(0, photoLimit);
+      nextPhotos = [...existingRemotePhotos, ...uploadedPhotoUrls].slice(
+        0,
+        photoLimit,
+      );
 
       if (features.images) {
         if (logoUri) {
@@ -1181,12 +1222,13 @@ export default function VendorDashboardScreen() {
           if (isExistingStoredPdf) {
             nextMenuPdfStoragePath = menuPdfStoragePath;
             nextMenuPdfName = menuPdfName;
-            nextMenuPdfUri = await getVendorMenuPdfSignedUrl(menuPdfStoragePath);
+            nextMenuPdfUri =
+              await getVendorMenuPdfSignedUrl(menuPdfStoragePath);
           } else {
             const uploadedPdf = await uploadVendorMenuPdf(
               user.id,
               menuPdfUri,
-              menuPdfName
+              menuPdfName,
             );
 
             nextMenuPdfStoragePath = uploadedPdf.storagePath;
@@ -1275,7 +1317,10 @@ export default function VendorDashboardScreen() {
       setVan(updatedVan);
 
       await Promise.all([
-        loadAdvancedInsights(updatedVan.id, updatedVan.subscriptionTier ?? "free"),
+        loadAdvancedInsights(
+          updatedVan.id,
+          updatedVan.subscriptionTier ?? "free",
+        ),
         loadHeatmapPoints(updatedVan.id, updatedVan.subscriptionTier ?? "free"),
       ]);
 
@@ -1283,7 +1328,7 @@ export default function VendorDashboardScreen() {
     } catch (error) {
       Alert.alert(
         "Save failed",
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
     } finally {
       setIsSaving(false);
@@ -1308,7 +1353,7 @@ export default function VendorDashboardScreen() {
               if (!user || user.id !== van.owner_id) {
                 Alert.alert(
                   "Access denied",
-                  "You can only request removal of your own listing."
+                  "You can only request removal of your own listing.",
                 );
                 return;
               }
@@ -1322,19 +1367,19 @@ export default function VendorDashboardScreen() {
 
               Alert.alert(
                 "Request submitted",
-                "Your listing removal request has been sent to BiteBeacon for review. Your listing will remain active until the request is reviewed."
+                "Your listing removal request has been sent to BiteBeacon for review. Your listing will remain active until the request is reviewed.",
               );
             } catch (error) {
               Alert.alert(
                 "Request failed",
                 error instanceof Error
                   ? error.message
-                  : "Could not submit the listing removal request."
+                  : "Could not submit the listing removal request.",
               );
             }
           },
         },
-      ]
+      ],
     );
   }
 
@@ -1343,7 +1388,7 @@ export default function VendorDashboardScreen() {
       if (!van?.stripe_customer_id) {
         Alert.alert(
           "Unavailable",
-          "No active subscription found for this vendor."
+          "No active subscription found for this vendor.",
         );
         return;
       }
@@ -1354,15 +1399,15 @@ export default function VendorDashboardScreen() {
           body: {
             vendorId: van.id,
           },
-        }
+        },
       );
 
       if (response.error) {
         const message =
           typeof response.error === "object" &&
-            response.error !== null &&
-            "message" in response.error &&
-            typeof response.error.message === "string"
+          response.error !== null &&
+          "message" in response.error &&
+          typeof response.error.message === "string"
             ? response.error.message
             : "Edge Function returned a non-2xx status code";
 
@@ -1378,7 +1423,7 @@ export default function VendorDashboardScreen() {
     } catch (error) {
       Alert.alert(
         "Error",
-        error instanceof Error ? error.message : "Something went wrong"
+        error instanceof Error ? error.message : "Something went wrong",
       );
     }
   }
@@ -1390,7 +1435,7 @@ export default function VendorDashboardScreen() {
     } catch (error) {
       Alert.alert(
         "Logout failed",
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
     }
   }
@@ -1421,7 +1466,8 @@ export default function VendorDashboardScreen() {
     if (van.subscriptionTier === "growth") {
       if (views >= 30 && conversion < 12) {
         return {
-          title: "You have visibility, but you need sharper performance insight",
+          title:
+            "You have visibility, but you need sharper performance insight",
           body: "Growth helps you look professional, but Pro helps you understand exactly when and where customers engage most so you can make smarter trading decisions.",
           cta: "Upgrade to Pro",
         };
@@ -1502,7 +1548,8 @@ export default function VendorDashboardScreen() {
     if (van.subscriptionTier === "free") {
       if (views >= 20 && directions < 5) {
         return {
-          title: "You are getting noticed, but your listing still feels limited",
+          title:
+            "You are getting noticed, but your listing still feels limited",
           body: "Customers are finding you, but Free plan limitations can make it harder to turn interest into real visits. Growth helps your listing look more active, complete, and trustworthy.",
         };
       }
@@ -1511,9 +1558,7 @@ export default function VendorDashboardScreen() {
         title: "Build a stronger customer presence",
         body: "Free already gives you LIVE during launch. Growth adds the branding, media, location and customer-update tools that make your listing feel more complete.",
       };
-
     }
-
 
     return null;
   }, [van]);
@@ -1572,14 +1617,7 @@ export default function VendorDashboardScreen() {
     }
 
     return null;
-  }, [
-    van,
-    isLive,
-    photos,
-    menu,
-    schedule,
-    vendorMessage,
-  ]);
+  }, [van, isLive, photos, menu, schedule, vendorMessage]);
 
   const proInsight = useMemo(() => {
     if (!van || van.subscriptionTier !== "pro") return null;
@@ -1594,18 +1632,20 @@ export default function VendorDashboardScreen() {
 
     const bestHoursText =
       topHours.length > 0
-        ? topHours.map((item) => getPeakHourLabel(Number(item.hour ?? 0))).join(", ")
+        ? topHours
+            .map((item) => getPeakHourLabel(Number(item.hour ?? 0)))
+            .join(", ")
         : null;
 
     const locationText =
       topLocations.length > 0 && locationNames.length > 0
         ? topLocations
-          .slice(0, locationNames.length)
-          .map(
-            (point, index) =>
-              `${index + 1}. ${locationNames[index]} (activity score ${point.weight})`
-          )
-          .join("\n")
+            .slice(0, locationNames.length)
+            .map(
+              (point, index) =>
+                `${index + 1}. ${locationNames[index]} (activity score ${point.weight})`,
+            )
+            .join("\n")
         : null;
 
     let summary =
@@ -1614,7 +1654,11 @@ export default function VendorDashboardScreen() {
     if (recentViews >= 30 && recentConversion < 10) {
       summary =
         "After assessing your last 30 days of views, directions, timing, and location engagement, your listing is getting noticed but not converting strongly enough yet.";
-    } else if (recentViews >= 20 && recentConversion >= 10 && recentConversion < 20) {
+    } else if (
+      recentViews >= 20 &&
+      recentConversion >= 10 &&
+      recentConversion < 20
+    ) {
       summary =
         "After assessing your last 30 days of views, directions, timing, and location engagement, your listing is building solid interest but still has room to convert more customers.";
     } else if (recentViews >= 20 && recentConversion >= 20) {
@@ -1675,7 +1719,6 @@ export default function VendorDashboardScreen() {
   // Keep management sections collapsed by default.
   // Vendors are prompted by the compact next-step card instead of being
   // dropped into a long form automatically.
-
 
   if (loading) {
     return (
@@ -1805,8 +1848,10 @@ export default function VendorDashboardScreen() {
   const filteredFoodCategoryOptions =
     foodCategorySearch.trim().length > 0
       ? DEFAULT_FOOD_CATEGORY_SUGGESTIONS.filter((category) =>
-        category.toLowerCase().includes(foodCategorySearch.trim().toLowerCase())
-      )
+          category
+            .toLowerCase()
+            .includes(foodCategorySearch.trim().toLowerCase()),
+        )
       : [];
 
   // 👇 NEW: allow custom category creation
@@ -1822,7 +1867,7 @@ export default function VendorDashboardScreen() {
       : "0.0";
 
   const hasLogo = !!logoUri;
-  const heroVisualUri = hasLogo ? logoUri : photos[0] ?? null;
+  const heroVisualUri = hasLogo ? logoUri : (photos[0] ?? null);
 
   const proVisualSupport =
     van.subscriptionTier === "pro"
@@ -1853,14 +1898,22 @@ export default function VendorDashboardScreen() {
               style={styles.compactIconButton}
               onPress={() => router.replace("/(tabs)")}
             >
-              <MaterialCommunityIcons name="home-outline" size={20} color="#F4B547" />
+              <MaterialCommunityIcons
+                name="home-outline"
+                size={20}
+                color="#F4B547"
+              />
             </Pressable>
 
             <Pressable
               style={styles.compactIconButton}
               onPress={() => router.replace("/(tabs)/account")}
             >
-              <MaterialCommunityIcons name="cog-outline" size={20} color="#F4B547" />
+              <MaterialCommunityIcons
+                name="cog-outline"
+                size={20}
+                color="#F4B547"
+              />
             </Pressable>
           </View>
         </View>
@@ -1903,13 +1956,19 @@ export default function VendorDashboardScreen() {
             >
               <View style={styles.identityAvatarShell}>
                 {heroVisualUri ? (
-                  <Image source={{ uri: heroVisualUri }} style={styles.identityAvatarImage} />
+                  <Image
+                    source={{ uri: heroVisualUri }}
+                    style={styles.identityAvatarImage}
+                  />
                 ) : (
                   <LinearGradient
                     colors={["#2E526F", "#152D43"]}
                     style={styles.identityAvatarFallback}
                   >
-                    <AppText variant="heading" style={styles.identityAvatarLetter}>
+                    <AppText
+                      variant="heading"
+                      style={styles.identityAvatarLetter}
+                    >
                       {van.name.trim().slice(0, 1).toUpperCase() || "B"}
                     </AppText>
                   </LinearGradient>
@@ -1917,12 +1976,23 @@ export default function VendorDashboardScreen() {
               </View>
 
               <View style={styles.identityTextArea}>
-                <AppText variant="heading" style={styles.identityName} numberOfLines={1}>
+                <AppText
+                  variant="heading"
+                  style={styles.identityName}
+                  numberOfLines={1}
+                >
                   {van.name}
                 </AppText>
 
-                <AppText variant="body" style={styles.identityVendor} numberOfLines={1}>
-                  {vendorName || van.vendorName || cuisine || "Your food business"}
+                <AppText
+                  variant="body"
+                  style={styles.identityVendor}
+                  numberOfLines={1}
+                >
+                  {vendorName ||
+                    van.vendorName ||
+                    cuisine ||
+                    "Your food business"}
                 </AppText>
 
                 <View style={styles.identityBadgeRow}>
@@ -1944,8 +2014,15 @@ export default function VendorDashboardScreen() {
                           : styles.identityStatusDotOffline,
                       ]}
                     />
-                    <AppText variant="bodyBold" style={styles.identityStatusText}>
-                      {features.liveStatus ? (isLive ? "Live now" : "Offline") : "Listed"}
+                    <AppText
+                      variant="bodyBold"
+                      style={styles.identityStatusText}
+                    >
+                      {features.liveStatus
+                        ? isLive
+                          ? "Live now"
+                          : "Offline"
+                        : "Listed"}
                     </AppText>
                   </View>
                 </View>
@@ -1962,34 +2039,70 @@ export default function VendorDashboardScreen() {
             style={styles.metricsPanelInner}
           >
             <View style={styles.metricCell}>
-              <MaterialCommunityIcons name="eye-outline" size={20} color="#F4B547" />
-              <AppText variant="heading" style={styles.metricValue}>{van.views ?? 0}</AppText>
-              <AppText variant="body" style={styles.metricLabel}>Views</AppText>
-            </View>
-
-            <View style={styles.metricDivider} />
-
-            <View style={styles.metricCell}>
-              <MaterialCommunityIcons name="navigation-variant-outline" size={20} color="#4FA7FF" />
-              <AppText variant="heading" style={styles.metricValue}>{van.directions ?? 0}</AppText>
-              <AppText variant="body" style={styles.metricLabel}>Directions</AppText>
-            </View>
-
-            <View style={styles.metricDivider} />
-
-            <View style={styles.metricCell}>
-              <MaterialCommunityIcons name="star-outline" size={20} color="#F4B547" />
-              <AppText variant="heading" style={styles.metricValue}>{(van.rating ?? 0).toFixed(1)}</AppText>
-              <AppText variant="body" style={styles.metricLabel}>Rating</AppText>
+              <MaterialCommunityIcons
+                name="eye-outline"
+                size={20}
+                color="#F4B547"
+              />
+              <AppText variant="heading" style={styles.metricValue}>
+                {van.views ?? 0}
+              </AppText>
+              <AppText variant="body" style={styles.metricLabel}>
+                Views
+              </AppText>
             </View>
 
             <View style={styles.metricDivider} />
 
             <View style={styles.metricCell}>
               <MaterialCommunityIcons
-                name={van.subscriptionTier === "pro" ? "chart-line" : listingReady ? "check-circle-outline" : "alert-circle-outline"}
+                name="navigation-variant-outline"
                 size={20}
-                color={van.subscriptionTier === "pro" ? "#8ED0FF" : listingReady ? "#42D878" : "#F4B547"}
+                color="#4FA7FF"
+              />
+              <AppText variant="heading" style={styles.metricValue}>
+                {van.directions ?? 0}
+              </AppText>
+              <AppText variant="body" style={styles.metricLabel}>
+                Directions
+              </AppText>
+            </View>
+
+            <View style={styles.metricDivider} />
+
+            <View style={styles.metricCell}>
+              <MaterialCommunityIcons
+                name="star-outline"
+                size={20}
+                color="#F4B547"
+              />
+              <AppText variant="heading" style={styles.metricValue}>
+                {(van.rating ?? 0).toFixed(1)}
+              </AppText>
+              <AppText variant="body" style={styles.metricLabel}>
+                Rating
+              </AppText>
+            </View>
+
+            <View style={styles.metricDivider} />
+
+            <View style={styles.metricCell}>
+              <MaterialCommunityIcons
+                name={
+                  van.subscriptionTier === "pro"
+                    ? "chart-line"
+                    : listingReady
+                      ? "check-circle-outline"
+                      : "alert-circle-outline"
+                }
+                size={20}
+                color={
+                  van.subscriptionTier === "pro"
+                    ? "#8ED0FF"
+                    : listingReady
+                      ? "#42D878"
+                      : "#F4B547"
+                }
               />
               <AppText variant="heading" style={styles.metricValue}>
                 {van.subscriptionTier === "pro"
@@ -2021,7 +2134,9 @@ export default function VendorDashboardScreen() {
             <View style={styles.performanceHeaderRow}>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <AppText variant="label" style={styles.performanceEyebrow}>
-                  {van.subscriptionTier === "pro" ? "PERFORMANCE" : "PRO INSIGHT"}
+                  {van.subscriptionTier === "pro"
+                    ? "PERFORMANCE"
+                    : "PRO INSIGHT"}
                 </AppText>
                 <AppText variant="heading" style={styles.performanceTitle}>
                   {van.subscriptionTier === "pro"
@@ -2039,7 +2154,9 @@ export default function VendorDashboardScreen() {
 
             {van.subscriptionTier !== "pro" ? (
               <AppText variant="body" style={styles.performanceExplainText}>
-                Pro turns BiteBeacon activity into useful guidance — when customers find you, how interest turns into directions, and where demand is strongest.
+                Pro turns BiteBeacon activity into useful guidance — when
+                customers find you, how interest turns into directions, and
+                where demand is strongest.
               </AppText>
             ) : null}
 
@@ -2051,42 +2168,102 @@ export default function VendorDashboardScreen() {
             {van.subscriptionTier === "pro" ? (
               <View style={styles.performanceMiniRow}>
                 <View style={styles.performanceMiniCard}>
-                  <MaterialCommunityIcons name="eye-outline" size={16} color="#F4B547" />
+                  <MaterialCommunityIcons
+                    name="eye-outline"
+                    size={16}
+                    color="#F4B547"
+                  />
                   <View>
-                    <AppText variant="bodyBold" style={styles.performanceMiniValue}>{van.views ?? 0}</AppText>
-                    <AppText variant="body" style={styles.performanceMiniLabel}>Views</AppText>
+                    <AppText
+                      variant="bodyBold"
+                      style={styles.performanceMiniValue}
+                    >
+                      {van.views ?? 0}
+                    </AppText>
+                    <AppText variant="body" style={styles.performanceMiniLabel}>
+                      Views
+                    </AppText>
                   </View>
                 </View>
 
                 <View style={styles.performanceMiniCard}>
-                  <MaterialCommunityIcons name="navigation-variant-outline" size={16} color="#4FA7FF" />
+                  <MaterialCommunityIcons
+                    name="navigation-variant-outline"
+                    size={16}
+                    color="#4FA7FF"
+                  />
                   <View>
-                    <AppText variant="bodyBold" style={styles.performanceMiniValue}>{van.directions ?? 0}</AppText>
-                    <AppText variant="body" style={styles.performanceMiniLabel}>Directions</AppText>
+                    <AppText
+                      variant="bodyBold"
+                      style={styles.performanceMiniValue}
+                    >
+                      {van.directions ?? 0}
+                    </AppText>
+                    <AppText variant="body" style={styles.performanceMiniLabel}>
+                      Directions
+                    </AppText>
                   </View>
                 </View>
 
                 <View style={styles.performanceMiniCard}>
-                  <MaterialCommunityIcons name="chart-line" size={16} color="#42D878" />
+                  <MaterialCommunityIcons
+                    name="chart-line"
+                    size={16}
+                    color="#42D878"
+                  />
                   <View>
-                    <AppText variant="bodyBold" style={styles.performanceMiniValue}>{conversionRate}%</AppText>
-                    <AppText variant="body" style={styles.performanceMiniLabel}>Conversion</AppText>
+                    <AppText
+                      variant="bodyBold"
+                      style={styles.performanceMiniValue}
+                    >
+                      {conversionRate}%
+                    </AppText>
+                    <AppText variant="body" style={styles.performanceMiniLabel}>
+                      Conversion
+                    </AppText>
                   </View>
                 </View>
               </View>
             ) : (
               <View style={styles.performanceBenefitRow}>
                 <View style={styles.performanceBenefitChip}>
-                  <MaterialCommunityIcons name="clock-outline" size={15} color="#F4B547" />
-                  <AppText variant="bodyBold" style={styles.performanceBenefitText}>Best times</AppText>
+                  <MaterialCommunityIcons
+                    name="clock-outline"
+                    size={15}
+                    color="#F4B547"
+                  />
+                  <AppText
+                    variant="bodyBold"
+                    style={styles.performanceBenefitText}
+                  >
+                    Best times
+                  </AppText>
                 </View>
                 <View style={styles.performanceBenefitChip}>
-                  <MaterialCommunityIcons name="navigation-variant-outline" size={15} color="#4FA7FF" />
-                  <AppText variant="bodyBold" style={styles.performanceBenefitText}>Visit intent</AppText>
+                  <MaterialCommunityIcons
+                    name="navigation-variant-outline"
+                    size={15}
+                    color="#4FA7FF"
+                  />
+                  <AppText
+                    variant="bodyBold"
+                    style={styles.performanceBenefitText}
+                  >
+                    Visit intent
+                  </AppText>
                 </View>
                 <View style={styles.performanceBenefitChip}>
-                  <MaterialCommunityIcons name="map-marker-radius-outline" size={15} color="#42D878" />
-                  <AppText variant="bodyBold" style={styles.performanceBenefitText}>Hotspots</AppText>
+                  <MaterialCommunityIcons
+                    name="map-marker-radius-outline"
+                    size={15}
+                    color="#42D878"
+                  />
+                  <AppText
+                    variant="bodyBold"
+                    style={styles.performanceBenefitText}
+                  >
+                    Hotspots
+                  </AppText>
                 </View>
               </View>
             )}
@@ -2112,8 +2289,12 @@ export default function VendorDashboardScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.quickPanelInner}
             >
-              <AppText variant="label" style={styles.quickEyebrow}>DAILY CONTROLS</AppText>
-              <AppText variant="heading" style={styles.quickTitle}>Quick Actions</AppText>
+              <AppText variant="label" style={styles.quickEyebrow}>
+                DAILY CONTROLS
+              </AppText>
+              <AppText variant="heading" style={styles.quickTitle}>
+                Quick Actions
+              </AppText>
 
               <View style={styles.quickGrid}>
                 <Pressable
@@ -2126,52 +2307,95 @@ export default function VendorDashboardScreen() {
                     }
                   }}
                 >
-                  <MaterialCommunityIcons name="broadcast" size={20} color="#F4B547" />
+                  <MaterialCommunityIcons
+                    name="broadcast"
+                    size={20}
+                    color="#F4B547"
+                  />
                   <View style={styles.quickTileTextArea}>
                     <AppText variant="button" style={styles.quickTileTitleGold}>
                       {isLive ? "Go Offline" : "Go Live"}
                     </AppText>
                     <AppText variant="body" style={styles.quickTileSubtitle}>
-                      {isLive && liveTimeRemaining ? liveTimeRemaining : "Choose how long you're trading"}
+                      {isLive && liveTimeRemaining
+                        ? liveTimeRemaining
+                        : "Choose how long you're trading"}
                     </AppText>
                   </View>
                 </Pressable>
 
                 <Pressable
                   style={styles.quickTile}
-                  onPress={() => router.push({ pathname: "/vendor/[id]", params: { id: van.id } })}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/vendor/[id]",
+                      params: { id: van.id },
+                    })
+                  }
                 >
-                  <MaterialCommunityIcons name="eye-outline" size={20} color="#8ED0FF" />
+                  <MaterialCommunityIcons
+                    name="eye-outline"
+                    size={20}
+                    color="#8ED0FF"
+                  />
                   <View style={styles.quickTileTextArea}>
-                    <AppText variant="button" style={styles.quickTileTitle}>View Public Listing</AppText>
-                    <AppText variant="body" style={styles.quickTileSubtitle}>See what customers see</AppText>
+                    <AppText variant="button" style={styles.quickTileTitle}>
+                      View Public Listing
+                    </AppText>
+                    <AppText variant="body" style={styles.quickTileSubtitle}>
+                      See what customers see
+                    </AppText>
                   </View>
                 </Pressable>
 
                 <Pressable style={styles.quickTile} onPress={jumpToEditSection}>
-                  <MaterialCommunityIcons name="pencil-outline" size={20} color="#F4B547" />
+                  <MaterialCommunityIcons
+                    name="pencil-outline"
+                    size={20}
+                    color="#F4B547"
+                  />
                   <View style={styles.quickTileTextArea}>
-                    <AppText variant="button" style={styles.quickTileTitle}>Edit Details</AppText>
-                    <AppText variant="body" style={styles.quickTileSubtitle}>Menu, schedule & cuisine</AppText>
+                    <AppText variant="button" style={styles.quickTileTitle}>
+                      Edit Details
+                    </AppText>
+                    <AppText variant="body" style={styles.quickTileSubtitle}>
+                      Menu, schedule & cuisine
+                    </AppText>
                   </View>
                 </Pressable>
 
                 {van.subscriptionTier === "free" ? (
                   <Pressable style={styles.quickTile} onPress={pickPhotos}>
-                    <MaterialCommunityIcons name="camera-outline" size={20} color="#4FA7FF" />
+                    <MaterialCommunityIcons
+                      name="camera-outline"
+                      size={20}
+                      color="#4FA7FF"
+                    />
                     <View style={styles.quickTileTextArea}>
                       <AppText variant="button" style={styles.quickTileTitle}>
-                        {photos.length > 0 ? "Change Main Photo" : "Add Main Photo"}
+                        {photos.length > 0
+                          ? "Change Main Photo"
+                          : "Add Main Photo"}
                       </AppText>
-                      <AppText variant="body" style={styles.quickTileSubtitle}>Included with Free</AppText>
+                      <AppText variant="body" style={styles.quickTileSubtitle}>
+                        Included with Free
+                      </AppText>
                     </View>
                   </Pressable>
                 ) : (
                   <Pressable style={styles.quickTile} onPress={updateLocation}>
-                    <MaterialCommunityIcons name="map-marker-outline" size={20} color="#4FA7FF" />
+                    <MaterialCommunityIcons
+                      name="map-marker-outline"
+                      size={20}
+                      color="#4FA7FF"
+                    />
                     <View style={styles.quickTileTextArea}>
-                      <AppText variant="button" style={styles.quickTileTitle}>Set Trading Location</AppText>
-                      <AppText variant="body" style={styles.quickTileSubtitle}>Update your map pin</AppText>
+                      <AppText variant="button" style={styles.quickTileTitle}>
+                        Set Trading Location
+                      </AppText>
+                      <AppText variant="body" style={styles.quickTileSubtitle}>
+                        Update your map pin
+                      </AppText>
                     </View>
                   </Pressable>
                 )}
@@ -2181,17 +2405,34 @@ export default function VendorDashboardScreen() {
         </View>
 
         {needsListingAttention ? (
-          <Pressable style={styles.compactNextStep} onPress={handleListingAttentionPress}>
+          <Pressable
+            style={styles.compactNextStep}
+            onPress={handleListingAttentionPress}
+          >
             <View style={styles.compactNextStepIcon}>
-              <MaterialCommunityIcons name="progress-check" size={18} color="#F4B547" />
+              <MaterialCommunityIcons
+                name="progress-check"
+                size={18}
+                color="#F4B547"
+              />
             </View>
             <View style={styles.compactNextStepText}>
-              <AppText variant="bodyBold" style={styles.compactNextStepTitle}>{listingAttentionTitle}</AppText>
-              <AppText variant="body" style={styles.compactNextStepSubtitle} numberOfLines={1}>
+              <AppText variant="bodyBold" style={styles.compactNextStepTitle}>
+                {listingAttentionTitle}
+              </AppText>
+              <AppText
+                variant="body"
+                style={styles.compactNextStepSubtitle}
+                numberOfLines={1}
+              >
                 {listingAttentionSubtitle}
               </AppText>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={21} color="#F4B547" />
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={21}
+              color="#F4B547"
+            />
           </Pressable>
         ) : null}
 
@@ -2202,678 +2443,991 @@ export default function VendorDashboardScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.managementPanelInner}
           >
-            <AppText variant="label" style={styles.managementEyebrow}>MANAGEMENT</AppText>
-        {van.subscriptionTier === "pro" ? (
-        <DashboardAccordionSection
-            title="Performance Insights"
-            subtitle="Use customer behaviour to sharpen visibility and conversion."
-            isOpen={openSections.insights}
-            onToggle={() => toggleSection("insights")}
-          >
+            <AppText variant="label" style={styles.managementEyebrow}>
+              MANAGEMENT
+            </AppText>
             {van.subscriptionTier === "pro" ? (
-              insightsLoading || heatmapLoading ? (
-                <View style={styles.cardBox}>
-                  <Text style={styles.loadingInlineText}>Loading insights...</Text>
-                </View>
-              ) : (
-                <>
-                  <View style={styles.insightEngineCard}>
-                    <Text style={styles.insightEngineEyebrow}>BiteBeacon Insight</Text>
-                    <Text style={styles.insightEngineTitle}>
-                      Intelligence based on your recent vendor activity
-                    </Text>
-  
-                    <View style={styles.insightSection}>
-                      <Text style={styles.insightSectionLabel}>What we analysed</Text>
-                      <Text style={styles.insightSectionText}>
-                        Based on your last 30 days of listing activity, including
-                        views, directions, customer timing patterns, and recorded
-                        location interaction points.
+              <DashboardAccordionSection
+                title="Performance Insights"
+                subtitle="Use customer behaviour to sharpen visibility and conversion."
+                isOpen={openSections.insights}
+                onToggle={() => toggleSection("insights")}
+              >
+                {van.subscriptionTier === "pro" ? (
+                  insightsLoading || heatmapLoading ? (
+                    <View style={styles.cardBox}>
+                      <Text style={styles.loadingInlineText}>
+                        Loading insights...
                       </Text>
                     </View>
-  
-                    <View style={styles.insightSection}>
-                      <Text style={styles.insightSectionLabel}>What we’re seeing</Text>
-                      <Text style={styles.insightSectionText}>
-                        {proInsight?.summary}
-                      </Text>
-                    </View>
-  
-                    <View style={styles.insightMetricsRow}>
-                      <View style={styles.insightMetricCard}>
-                        <Text style={styles.insightMetricLabel}>Recent Views</Text>
-                        <Text style={styles.insightMetricValue}>
-                          {proInsight?.recentViews ?? 0}
+                  ) : (
+                    <>
+                      <View style={styles.insightEngineCard}>
+                        <Text style={styles.insightEngineEyebrow}>
+                          BiteBeacon Insight
                         </Text>
-                      </View>
-  
-                      <View style={styles.insightMetricCard}>
-                        <Text style={styles.insightMetricLabel}>Recent Directions</Text>
-                        <Text style={styles.insightMetricValue}>
-                          {proInsight?.recentDirections ?? 0}
+                        <Text style={styles.insightEngineTitle}>
+                          Intelligence based on your recent vendor activity
                         </Text>
-                      </View>
-                    </View>
-  
-                    <View style={styles.insightMetricsRow}>
-                      <View style={styles.insightMetricCard}>
-                        <Text style={styles.insightMetricLabel}>Conversion</Text>
-                        <Text style={styles.insightMetricValue}>
-                          {Number(proInsight?.recentConversion ?? 0).toFixed(1)}%
-                        </Text>
-                      </View>
-  
-                      <View style={styles.insightMetricCard}>
-                        <Text style={styles.insightMetricLabel}>Data Strength</Text>
-                        <Text style={styles.insightMetricValueSmall}>
-                          {proInsight?.hasEnoughData ? "Usable" : "Early"}
-                        </Text>
-                      </View>
-                    </View>
-  
-                    <View style={styles.insightSection}>
-                      <Text style={styles.insightSectionLabel}>
-                        Best hours to concentrate service
-                      </Text>
-                      <Text style={styles.insightSectionText}>
-                        {proInsight?.hasSpecificTiming
-                          ? `Your strongest engagement windows are ${proInsight.bestHoursText}.`
-                          : "We need more customer activity before we can identify your strongest trading hours with confidence."}
-                      </Text>
-                    </View>
-  
-                    <View style={styles.insightSection}>
-                      <Text style={styles.insightSectionLabel}>Strongest day signal</Text>
-                      <Text style={styles.insightSectionText}>
-                        {proInsight?.topDay?.day
-                          ? `Your strongest recent day was ${formatInsightDay(
-                            proInsight.topDay.day
-                          )} with ${proInsight.topDay.total} view${proInsight.topDay.total === 1 ? "" : "s"
-                          }.`
-                          : "We need more daily activity before we can identify a strongest day."}
-                      </Text>
-                    </View>
-  
-                    <View style={styles.insightSection}>
-                      <Text style={styles.insightSectionLabel}>Quietest day signal</Text>
-                      <Text style={styles.insightSectionText}>
-                        {proInsight?.quietDay?.day
-                          ? `Your quietest recent day was ${formatInsightDay(
-                            proInsight.quietDay.day
-                          )} with ${proInsight.quietDay.total} view${proInsight.quietDay.total === 1 ? "" : "s"
-                          }.`
-                          : "We need more daily activity before we can identify a weaker day pattern."}
-                      </Text>
-                    </View>
-  
-                    <View style={styles.insightSection}>
-                      <Text style={styles.insightSectionLabel}>
-                        Main activity areas we can see
-                      </Text>
-                      <Text style={styles.insightSectionText}>
-                        {proInsight?.hasSpecificLocation
-                          ? "These are the strongest recorded interaction points from your recent location data."
-                          : "We need more location-based interactions before we can identify your strongest demand areas with confidence."}
-                      </Text>
-  
-                      {proInsight?.hasSpecificLocation ? (
-                        <View style={styles.locationListCard}>
-                          <Text style={styles.locationListText}>
-                            {proInsight.locationText}
+
+                        <View style={styles.insightSection}>
+                          <Text style={styles.insightSectionLabel}>
+                            What we analysed
                           </Text>
-                          <Text style={styles.locationHintText}>
-                            These coordinates are approximate hotspots from customer
-                            interaction locations, not guessed place names.
+                          <Text style={styles.insightSectionText}>
+                            Based on your last 30 days of listing activity,
+                            including views, directions, customer timing
+                            patterns, and recorded location interaction points.
                           </Text>
                         </View>
-                      ) : null}
-                    </View>
-  
-                    <View style={styles.insightSection}>
-                      <Text style={styles.insightSectionLabel}>Recommended action</Text>
-                      <Text style={styles.insightSectionText}>
-                        {proInsight?.recommendation}
-                      </Text>
-                    </View>
-  
-                    {!proInsight?.hasEnoughData ? (
-                      <View style={styles.lowDataNote}>
-                        <Text style={styles.lowDataNoteTitle}>Need more data</Text>
-                        <Text style={styles.lowDataNoteText}>
-                          We need more customer interactions to give you sharper,
-                          more specific commercial guidance.
-                        </Text>
-                      </View>
-                    ) : null}
-                  </View>
-  
-                  <View style={styles.mapInsightCard}>
-                    <Text style={styles.mapInsightTitle}>Interaction Map</Text>
-                    <Text style={styles.mapInsightSubtitle}>
-                      Visual view of the strongest recorded interaction points for
-                      your listing.
-                    </Text>
-  
-                    {heatmapPoints.length === 0 ? (
-                      <View style={styles.emptyInlineCard}>
-                        <Text style={styles.emptyInlineTitle}>No map signal yet</Text>
-                        <Text style={styles.emptyInlineText}>
-                          We need more location-based interactions before your map
-                          becomes useful.
-                        </Text>
-                      </View>
-                    ) : (
-                      <MapView
-                        style={styles.heatmapMap}
-                        pointerEvents="none"
-                        initialRegion={{
-                          latitude: lat || van.lat,
-                          longitude: lng || van.lng,
-                          latitudeDelta: 0.18,
-                          longitudeDelta: 0.18,
-                        }}
-                        scrollEnabled={false}
-                        zoomEnabled={false}
-                        rotateEnabled={false}
-                        pitchEnabled={false}
-                        toolbarEnabled={false}
-                      >
-                        <Marker
-                          coordinate={{
-                            latitude: lat || van.lat,
-                            longitude: lng || van.lng,
-                          }}
-                          title={van.name}
-                          pinColor={NAVY}
-                        />
-  
-                        {heatmapPoints.map((point, index) => (
-                          <Marker
-                            key={`heatmap-${index}`}
-                            coordinate={{
-                              latitude: point.lat,
-                              longitude: point.lng,
-                            }}
-                            anchor={{ x: 0.5, y: 0.5 }}
-                          >
-                            <View
-                              style={[
-                                styles.heatmapVisualDot,
-                                point.weight >= 8
-                                  ? styles.heatmapVisualDotHot
-                                  : point.weight >= 4
-                                    ? styles.heatmapVisualDotWarm
-                                    : styles.heatmapVisualDotCool,
-                              ]}
-                            >
-                              <Text style={styles.heatmapVisualDotText}>
-                                {point.weight}
+
+                        <View style={styles.insightSection}>
+                          <Text style={styles.insightSectionLabel}>
+                            What we’re seeing
+                          </Text>
+                          <Text style={styles.insightSectionText}>
+                            {proInsight?.summary}
+                          </Text>
+                        </View>
+
+                        <View style={styles.insightMetricsRow}>
+                          <View style={styles.insightMetricCard}>
+                            <Text style={styles.insightMetricLabel}>
+                              Recent Views
+                            </Text>
+                            <Text style={styles.insightMetricValue}>
+                              {proInsight?.recentViews ?? 0}
+                            </Text>
+                          </View>
+
+                          <View style={styles.insightMetricCard}>
+                            <Text style={styles.insightMetricLabel}>
+                              Recent Directions
+                            </Text>
+                            <Text style={styles.insightMetricValue}>
+                              {proInsight?.recentDirections ?? 0}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.insightMetricsRow}>
+                          <View style={styles.insightMetricCard}>
+                            <Text style={styles.insightMetricLabel}>
+                              Conversion
+                            </Text>
+                            <Text style={styles.insightMetricValue}>
+                              {Number(
+                                proInsight?.recentConversion ?? 0,
+                              ).toFixed(1)}
+                              %
+                            </Text>
+                          </View>
+
+                          <View style={styles.insightMetricCard}>
+                            <Text style={styles.insightMetricLabel}>
+                              Data Strength
+                            </Text>
+                            <Text style={styles.insightMetricValueSmall}>
+                              {proInsight?.hasEnoughData ? "Usable" : "Early"}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.insightSection}>
+                          <Text style={styles.insightSectionLabel}>
+                            Best hours to concentrate service
+                          </Text>
+                          <Text style={styles.insightSectionText}>
+                            {proInsight?.hasSpecificTiming
+                              ? `Your strongest engagement windows are ${proInsight.bestHoursText}.`
+                              : "We need more customer activity before we can identify your strongest trading hours with confidence."}
+                          </Text>
+                        </View>
+
+                        <View style={styles.insightSection}>
+                          <Text style={styles.insightSectionLabel}>
+                            Strongest day signal
+                          </Text>
+                          <Text style={styles.insightSectionText}>
+                            {proInsight?.topDay?.day
+                              ? `Your strongest recent day was ${formatInsightDay(
+                                  proInsight.topDay.day,
+                                )} with ${proInsight.topDay.total} view${
+                                  proInsight.topDay.total === 1 ? "" : "s"
+                                }.`
+                              : "We need more daily activity before we can identify a strongest day."}
+                          </Text>
+                        </View>
+
+                        <View style={styles.insightSection}>
+                          <Text style={styles.insightSectionLabel}>
+                            Quietest day signal
+                          </Text>
+                          <Text style={styles.insightSectionText}>
+                            {proInsight?.quietDay?.day
+                              ? `Your quietest recent day was ${formatInsightDay(
+                                  proInsight.quietDay.day,
+                                )} with ${proInsight.quietDay.total} view${
+                                  proInsight.quietDay.total === 1 ? "" : "s"
+                                }.`
+                              : "We need more daily activity before we can identify a weaker day pattern."}
+                          </Text>
+                        </View>
+
+                        <View style={styles.insightSection}>
+                          <Text style={styles.insightSectionLabel}>
+                            Main activity areas we can see
+                          </Text>
+                          <Text style={styles.insightSectionText}>
+                            {proInsight?.hasSpecificLocation
+                              ? "These are the strongest recorded interaction points from your recent location data."
+                              : "We need more location-based interactions before we can identify your strongest demand areas with confidence."}
+                          </Text>
+
+                          {proInsight?.hasSpecificLocation ? (
+                            <View style={styles.locationListCard}>
+                              <Text style={styles.locationListText}>
+                                {proInsight.locationText}
+                              </Text>
+                              <Text style={styles.locationHintText}>
+                                These coordinates are approximate hotspots from
+                                customer interaction locations, not guessed
+                                place names.
                               </Text>
                             </View>
-                          </Marker>
-                        ))}
-                      </MapView>
-                    )}
+                          ) : null}
+                        </View>
+
+                        <View style={styles.insightSection}>
+                          <Text style={styles.insightSectionLabel}>
+                            Recommended action
+                          </Text>
+                          <Text style={styles.insightSectionText}>
+                            {proInsight?.recommendation}
+                          </Text>
+                        </View>
+
+                        {!proInsight?.hasEnoughData ? (
+                          <View style={styles.lowDataNote}>
+                            <Text style={styles.lowDataNoteTitle}>
+                              Need more data
+                            </Text>
+                            <Text style={styles.lowDataNoteText}>
+                              We need more customer interactions to give you
+                              sharper, more specific commercial guidance.
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
+
+                      <View style={styles.mapInsightCard}>
+                        <Text style={styles.mapInsightTitle}>
+                          Interaction Map
+                        </Text>
+                        <Text style={styles.mapInsightSubtitle}>
+                          Visual view of the strongest recorded interaction
+                          points for your listing.
+                        </Text>
+
+                        {heatmapPoints.length === 0 ? (
+                          <View style={styles.emptyInlineCard}>
+                            <Text style={styles.emptyInlineTitle}>
+                              No map signal yet
+                            </Text>
+                            <Text style={styles.emptyInlineText}>
+                              We need more location-based interactions before
+                              your map becomes useful.
+                            </Text>
+                          </View>
+                        ) : (
+                          <MapView
+                            style={styles.heatmapMap}
+                            pointerEvents="none"
+                            initialRegion={{
+                              latitude: lat || van.lat,
+                              longitude: lng || van.lng,
+                              latitudeDelta: 0.18,
+                              longitudeDelta: 0.18,
+                            }}
+                            scrollEnabled={false}
+                            zoomEnabled={false}
+                            rotateEnabled={false}
+                            pitchEnabled={false}
+                            toolbarEnabled={false}
+                          >
+                            <Marker
+                              coordinate={{
+                                latitude: lat || van.lat,
+                                longitude: lng || van.lng,
+                              }}
+                              title={van.name}
+                              pinColor={NAVY}
+                            />
+
+                            {heatmapPoints.map((point, index) => (
+                              <Marker
+                                key={`heatmap-${index}`}
+                                coordinate={{
+                                  latitude: point.lat,
+                                  longitude: point.lng,
+                                }}
+                                anchor={{ x: 0.5, y: 0.5 }}
+                              >
+                                <View
+                                  style={[
+                                    styles.heatmapVisualDot,
+                                    point.weight >= 8
+                                      ? styles.heatmapVisualDotHot
+                                      : point.weight >= 4
+                                        ? styles.heatmapVisualDotWarm
+                                        : styles.heatmapVisualDotCool,
+                                  ]}
+                                >
+                                  <Text style={styles.heatmapVisualDotText}>
+                                    {point.weight}
+                                  </Text>
+                                </View>
+                              </Marker>
+                            ))}
+                          </MapView>
+                        )}
+                      </View>
+                    </>
+                  )
+                ) : (
+                  <View style={styles.inlineLockedCard}>
+                    <Text style={styles.inlineLockedTitle}>Pro feature</Text>
+                    <Text style={styles.inlineLockedText}>
+                      Upgrade to Pro to unlock interpreted insights from your
+                      views, directions, timing patterns, and location
+                      interaction data.
+                    </Text>
                   </View>
-                </>
-              )
-            ) : (
-              <View style={styles.inlineLockedCard}>
-                <Text style={styles.inlineLockedTitle}>Pro feature</Text>
-                <Text style={styles.inlineLockedText}>
-                  Upgrade to Pro to unlock interpreted insights from your views,
-                  directions, timing patterns, and location interaction data.
-                </Text>
-              </View>
-            )}
-          </DashboardAccordionSection>
-  
-          ) : null}
+                )}
+              </DashboardAccordionSection>
+            ) : null}
 
-        <DashboardAccordionSection
-          title="Brand & Media"
-          subtitle={van.subscriptionTier === "free" ? "Your main photo — Growth adds the full branding toolkit." : "Logo, gallery and menu media for your customer-facing listing."}
-          isOpen={openSections.branding}
-          onToggle={() => toggleSection("branding")}
-        >
-          <View style={styles.cardBox}>
-            <View style={styles.managementGroupHeader}>
-              <MaterialCommunityIcons name="camera-outline" size={18} color="#4FA7FF" />
-              <View style={styles.managementGroupCopy}>
-                <AppText variant="bodyBold" style={styles.managementGroupTitle}>Main listing photo</AppText>
-                <AppText variant="body" style={styles.managementGroupText}>
-                  {van.subscriptionTier === "free"
-                    ? "Free includes one photo so customers can recognise your van."
-                    : "Your first image is the main listing photo. Add up to 5 in your gallery."}
-                </AppText>
-              </View>
-            </View>
+            <DashboardAccordionSection
+              title="Brand & Media"
+              subtitle={
+                van.subscriptionTier === "free"
+                  ? "Your main photo — Growth adds the full branding toolkit."
+                  : "Logo, gallery and menu media for your customer-facing listing."
+              }
+              isOpen={openSections.branding}
+              onToggle={() => toggleSection("branding")}
+            >
+              <View style={styles.cardBox}>
+                <View style={styles.managementGroupHeader}>
+                  <MaterialCommunityIcons
+                    name="camera-outline"
+                    size={18}
+                    color="#4FA7FF"
+                  />
+                  <View style={styles.managementGroupCopy}>
+                    <AppText
+                      variant="bodyBold"
+                      style={styles.managementGroupTitle}
+                    >
+                      Main listing photo
+                    </AppText>
+                    <AppText variant="body" style={styles.managementGroupText}>
+                      {van.subscriptionTier === "free"
+                        ? "Free includes one photo so customers can recognise your van."
+                        : "Your first image is the main listing photo. Add up to 5 in your gallery."}
+                    </AppText>
+                  </View>
+                </View>
 
-            {photos.length === 0 ? (
-              <Pressable style={styles.softButton} onPress={pickPhotos}>
-                <Text style={styles.softButtonText}>Add Main Photo</Text>
-              </Pressable>
-            ) : (
-              <>
-                <View style={styles.galleryGrid}>
-                  {photos.map((photoUri, index) => (
-                    <View key={`photo-${index}`} style={styles.galleryItem}>
-                      <Image source={{ uri: photoUri }} style={styles.galleryImage} />
-                      <Pressable style={styles.galleryDeleteButton} onPress={() => removePhoto(index)}>
-                        <Text style={styles.galleryDeleteButtonText}>Remove</Text>
+                {photos.length === 0 ? (
+                  <Pressable style={styles.softButton} onPress={pickPhotos}>
+                    <Text style={styles.softButtonText}>Add Main Photo</Text>
+                  </Pressable>
+                ) : (
+                  <>
+                    <View style={styles.galleryGrid}>
+                      {photos.map((photoUri, index) => (
+                        <View key={`photo-${index}`} style={styles.galleryItem}>
+                          <Image
+                            source={{ uri: photoUri }}
+                            style={styles.galleryImage}
+                          />
+                          <Pressable
+                            style={styles.galleryDeleteButton}
+                            onPress={() => removePhoto(index)}
+                          >
+                            <Text style={styles.galleryDeleteButtonText}>
+                              Remove
+                            </Text>
+                          </Pressable>
+                        </View>
+                      ))}
+                    </View>
+                    <Pressable style={styles.softButton} onPress={pickPhotos}>
+                      <Text style={styles.softButtonText}>
+                        {van.subscriptionTier === "free"
+                          ? "Photo Added"
+                          : "Add Another Photo"}
+                      </Text>
+                    </Pressable>
+                  </>
+                )}
+
+                {!features.images ? (
+                  <>
+                    <View style={styles.assetDivider} />
+                    <View style={styles.inlineLockedCard}>
+                      <View style={styles.lockedFeatureRow}>
+                        <MaterialCommunityIcons
+                          name="crown-outline"
+                          size={18}
+                          color="#F4B547"
+                        />
+                        <View style={styles.lockedFeatureCopy}>
+                          <AppText
+                            variant="bodyBold"
+                            style={styles.inlineLockedTitle}
+                          >
+                            Want to make your listing stand out?
+                          </AppText>
+                          <AppText
+                            variant="body"
+                            style={styles.inlineLockedText}
+                          >
+                            Growth adds a 5-photo gallery, business logo and PDF
+                            menu. Your free main photo stays yours.
+                          </AppText>
+                        </View>
+                      </View>
+                      <Pressable
+                        style={styles.lockedFeatureButton}
+                        onPress={() => router.push("/vendor/upgrade")}
+                      >
+                        <AppText
+                          variant="button"
+                          style={styles.lockedFeatureButtonText}
+                        >
+                          See Growth Features
+                        </AppText>
                       </Pressable>
                     </View>
-                  ))}
-                </View>
-                <Pressable style={styles.softButton} onPress={pickPhotos}>
-                  <Text style={styles.softButtonText}>
-                    {van.subscriptionTier === "free" ? "Photo Added" : "Add Another Photo"}
-                  </Text>
-                </Pressable>
-              </>
-            )}
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.assetDivider} />
+                    <View style={styles.managementGroupHeader}>
+                      <MaterialCommunityIcons
+                        name="badge-account-outline"
+                        size={18}
+                        color="#F4B547"
+                      />
+                      <View style={styles.managementGroupCopy}>
+                        <AppText
+                          variant="bodyBold"
+                          style={styles.managementGroupTitle}
+                        >
+                          Business logo
+                        </AppText>
+                        <AppText
+                          variant="body"
+                          style={styles.managementGroupText}
+                        >
+                          Optional — useful for stronger recognition.
+                        </AppText>
+                      </View>
+                    </View>
+                    <Pressable style={styles.softButton} onPress={pickLogo}>
+                      <Text style={styles.softButtonText}>
+                        {logoUri ? "Replace Logo" : "Upload Logo"}
+                      </Text>
+                    </Pressable>
+                    {logoUri ? (
+                      <View style={styles.logoPreview}>
+                        <Image
+                          source={{ uri: logoUri }}
+                          style={styles.logoLarge}
+                        />
+                        <Pressable
+                          style={styles.galleryDeleteButton}
+                          onPress={removeLogo}
+                        >
+                          <Text style={styles.galleryDeleteButtonText}>
+                            Remove
+                          </Text>
+                        </Pressable>
+                      </View>
+                    ) : null}
 
-            {!features.images ? (
-              <>
-                <View style={styles.assetDivider} />
-                <View style={styles.inlineLockedCard}>
-                  <View style={styles.lockedFeatureRow}>
-                    <MaterialCommunityIcons name="crown-outline" size={18} color="#F4B547" />
-                    <View style={styles.lockedFeatureCopy}>
-                      <AppText variant="bodyBold" style={styles.inlineLockedTitle}>Want to make your listing stand out?</AppText>
-                      <AppText variant="body" style={styles.inlineLockedText}>
-                        Growth adds a 5-photo gallery, business logo and PDF menu. Your free main photo stays yours.
+                    <View style={styles.assetDivider} />
+                    <View style={styles.managementGroupHeader}>
+                      <MaterialCommunityIcons
+                        name="file-pdf-box"
+                        size={18}
+                        color="#F4B547"
+                      />
+                      <View style={styles.managementGroupCopy}>
+                        <AppText
+                          variant="bodyBold"
+                          style={styles.managementGroupTitle}
+                        >
+                          Menu PDF
+                        </AppText>
+                        <AppText
+                          variant="body"
+                          style={styles.managementGroupText}
+                        >
+                          Optional — give customers the full menu before they
+                          arrive.
+                        </AppText>
+                      </View>
+                    </View>
+                    <Pressable style={styles.softButton} onPress={pickMenuPdf}>
+                      <Text style={styles.softButtonText}>
+                        {menuPdfName ? "Replace Menu PDF" : "Upload Menu PDF"}
+                      </Text>
+                    </Pressable>
+                    {menuPdfName ? (
+                      <View style={styles.pdfCard}>
+                        <Text style={styles.pdfName}>{menuPdfName}</Text>
+                        <View style={styles.pdfActionsRow}>
+                          <Pressable
+                            style={styles.pdfActionButton}
+                            onPress={openMenuPdfFromDashboard}
+                          >
+                            <Text style={styles.pdfActionButtonText}>View</Text>
+                          </Pressable>
+                          <Pressable
+                            style={styles.pdfDeleteButton}
+                            onPress={removeMenuPdf}
+                          >
+                            <Text style={styles.pdfDeleteButtonText}>
+                              Remove
+                            </Text>
+                          </Pressable>
+                        </View>
+                      </View>
+                    ) : null}
+                  </>
+                )}
+              </View>
+            </DashboardAccordionSection>
+
+            <DashboardAccordionSection
+              title="Plan Guide"
+              subtitle="See exactly what Free, Growth and Pro include."
+              isOpen={openSections.guide}
+              onToggle={() => toggleSection("guide")}
+            >
+              <View style={styles.cardBox}>
+                <AppText variant="body" style={styles.planSummaryText}>
+                  Start with what you need today. Upgrade only when the extra
+                  tools become useful to your business.
+                </AppText>
+
+                <TierExplanationCard
+                  title={`Free — Get discovered${van.subscriptionTier === "free" ? " · YOUR PLAN" : ""}`}
+                  subtitle="A useful listing, not a stripped-back trial"
+                  accent="free"
+                  isExpanded={expandedTier === "free"}
+                  onToggle={() => setExpandedTier("free")}
+                >
+                  <AppText variant="body" style={styles.tierItem}>
+                    • Public BiteBeacon listing and map discovery
+                  </AppText>
+                  <AppText variant="body" style={styles.tierItem}>
+                    • 1 main photo of your van or food setup
+                  </AppText>
+                  <AppText variant="body" style={styles.tierItem}>
+                    • Menu text, cuisine and trading schedule
+                  </AppText>
+                  <AppText variant="body" style={styles.tierItem}>
+                    • Customer rating, views and directions
+                  </AppText>
+                  <AppText variant="body" style={styles.tierItem}>
+                    • LIVE status during the BiteBeacon launch period
+                  </AppText>
+                  <AppText variant="bodyBold" style={styles.tierHint}>
+                    Built to help customers find you and know what to expect.
+                  </AppText>
+                </TierExplanationCard>
+
+                <TierExplanationCard
+                  title={`Growth — Stand out${van.subscriptionTier === "growth" ? " · YOUR PLAN" : ""}`}
+                  subtitle="£9.99/month · Customer-facing growth tools"
+                  accent="growth"
+                  isExpanded={expandedTier === "growth"}
+                  onToggle={() => setExpandedTier("growth")}
+                >
+                  <AppText variant="body" style={styles.tierItem}>
+                    • Everything in Free
+                  </AppText>
+                  <AppText variant="body" style={styles.tierItem}>
+                    • Full photo gallery with up to 5 images
+                  </AppText>
+                  <AppText variant="body" style={styles.tierItem}>
+                    • Business logo and PDF menu
+                  </AppText>
+                  <AppText variant="body" style={styles.tierItem}>
+                    • Instagram, Facebook and website links
+                  </AppText>
+                  <AppText variant="body" style={styles.tierItem}>
+                    • what3words precise location
+                  </AppText>
+                  <AppText variant="body" style={styles.tierItem}>
+                    • Customer updates and offers
+                  </AppText>
+                  <AppText variant="body" style={styles.tierItem}>
+                    • Trading-location updates
+                  </AppText>
+                  <AppText variant="bodyBold" style={styles.tierHint}>
+                    Built to make your listing look stronger and convert more
+                    interest into visits.
+                  </AppText>
+                </TierExplanationCard>
+
+                <TierExplanationCard
+                  title={`Pro — Grow smarter${van.subscriptionTier === "pro" ? " · YOUR PLAN" : ""}`}
+                  subtitle="£14.99/month · Premium visibility and insight"
+                  accent="pro"
+                  isExpanded={expandedTier === "pro"}
+                  onToggle={() => setExpandedTier("pro")}
+                >
+                  <AppText variant="body" style={styles.tierItem}>
+                    • Everything in Growth
+                  </AppText>
+                  <AppText variant="body" style={styles.tierItem}>
+                    • Advanced performance analytics
+                  </AppText>
+                  <AppText variant="body" style={styles.tierItem}>
+                    • Conversion and customer-intent guidance
+                  </AppText>
+                  <AppText variant="body" style={styles.tierItem}>
+                    • Best-hour recommendations and timing patterns
+                  </AppText>
+                  <AppText variant="body" style={styles.tierItem}>
+                    • Area activity hotspots
+                  </AppText>
+                  <AppText variant="body" style={styles.tierItem}>
+                    • Priority and featured discovery support
+                  </AppText>
+                  <AppText variant="bodyBold" style={styles.tierHint}>
+                    Built for vendors ready to make decisions from real
+                    BiteBeacon activity.
+                  </AppText>
+                </TierExplanationCard>
+
+                {van.subscriptionTier === "free" ? (
+                  <Pressable
+                    style={styles.upgradeButton}
+                    onPress={() => router.push("/vendor/upgrade")}
+                  >
+                    <Text style={styles.upgradeButtonText}>
+                      Compare Upgrade Options
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    style={styles.softButton}
+                    onPress={manageSubscriptionFromDashboard}
+                  >
+                    <Text style={styles.softButtonText}>
+                      {van.subscriptionTier === "growth"
+                        ? "Manage or Upgrade Plan"
+                        : "Manage Subscription"}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+            </DashboardAccordionSection>
+
+            <View
+              ref={editSectionRef}
+              onLayout={(event) => {
+                editSectionY.current = event.nativeEvent.layout.y;
+              }}
+            >
+              <DashboardAccordionSection
+                title="Business Details"
+                subtitle="The details customers use to decide, find and visit you."
+                isOpen={openSections.edit}
+                onToggle={() => toggleSection("edit")}
+              >
+                <View style={styles.cardBox}>
+                  <View style={styles.managementGroupHeader}>
+                    <MaterialCommunityIcons
+                      name="storefront-outline"
+                      size={18}
+                      color="#F4B547"
+                    />
+                    <View style={styles.managementGroupCopy}>
+                      <AppText
+                        variant="bodyBold"
+                        style={styles.managementGroupTitle}
+                      >
+                        Your listing
+                      </AppText>
+                      <AppText
+                        variant="body"
+                        style={styles.managementGroupText}
+                      >
+                        The essentials customers see when they open your
+                        business.
                       </AppText>
                     </View>
                   </View>
-                  <Pressable style={styles.lockedFeatureButton} onPress={() => router.push("/vendor/upgrade")}>
-                    <AppText variant="button" style={styles.lockedFeatureButtonText}>See Growth Features</AppText>
-                  </Pressable>
-                </View>
-              </>
-            ) : (
-              <>
-                <View style={styles.assetDivider} />
-                <View style={styles.managementGroupHeader}>
-                  <MaterialCommunityIcons name="badge-account-outline" size={18} color="#F4B547" />
-                  <View style={styles.managementGroupCopy}>
-                    <AppText variant="bodyBold" style={styles.managementGroupTitle}>Business logo</AppText>
-                    <AppText variant="body" style={styles.managementGroupText}>Optional — useful for stronger recognition.</AppText>
-                  </View>
-                </View>
-                <Pressable style={styles.softButton} onPress={pickLogo}>
-                  <Text style={styles.softButtonText}>{logoUri ? "Replace Logo" : "Upload Logo"}</Text>
-                </Pressable>
-                {logoUri ? (
-                  <View style={styles.logoPreview}>
-                    <Image source={{ uri: logoUri }} style={styles.logoLarge} />
-                    <Pressable style={styles.galleryDeleteButton} onPress={removeLogo}>
-                      <Text style={styles.galleryDeleteButtonText}>Remove</Text>
-                    </Pressable>
-                  </View>
-                ) : null}
 
-                <View style={styles.assetDivider} />
-                <View style={styles.managementGroupHeader}>
-                  <MaterialCommunityIcons name="file-pdf-box" size={18} color="#F4B547" />
-                  <View style={styles.managementGroupCopy}>
-                    <AppText variant="bodyBold" style={styles.managementGroupTitle}>Menu PDF</AppText>
-                    <AppText variant="body" style={styles.managementGroupText}>Optional — give customers the full menu before they arrive.</AppText>
-                  </View>
-                </View>
-                <Pressable style={styles.softButton} onPress={pickMenuPdf}>
-                  <Text style={styles.softButtonText}>{menuPdfName ? "Replace Menu PDF" : "Upload Menu PDF"}</Text>
-                </Pressable>
-                {menuPdfName ? (
-                  <View style={styles.pdfCard}>
-                    <Text style={styles.pdfName}>{menuPdfName}</Text>
-                    <View style={styles.pdfActionsRow}>
-                      <Pressable style={styles.pdfActionButton} onPress={openMenuPdfFromDashboard}>
-                        <Text style={styles.pdfActionButtonText}>View</Text>
-                      </Pressable>
-                      <Pressable style={styles.pdfDeleteButton} onPress={removeMenuPdf}>
-                        <Text style={styles.pdfDeleteButtonText}>Remove</Text>
-                      </Pressable>
+                  <Text style={styles.label}>Business name</Text>
+                  <AppText variant="body" style={styles.fieldHelp}>
+                    Your main public name on BiteBeacon.
+                  </AppText>
+                  <TextInput
+                    style={styles.input}
+                    value={name}
+                    onChangeText={setName}
+                    placeholder="e.g. Matt's Burgers"
+                    placeholderTextColor="rgba(255,255,255,0.34)"
+                  />
+
+                  <Text style={styles.label}>Secondary display name</Text>
+                  <AppText variant="body" style={styles.fieldHelp}>
+                    Shown beneath your business name — for example an operator,
+                    trader or short brand line.
+                  </AppText>
+                  <TextInput
+                    style={styles.input}
+                    value={vendorName}
+                    onChangeText={setVendorName}
+                    placeholder="Secondary display name"
+                    placeholderTextColor="rgba(255,255,255,0.34)"
+                  />
+
+                  <Text style={styles.label}>Cuisine</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={cuisine}
+                    onChangeText={setCuisine}
+                    placeholder="e.g. Burgers & loaded fries"
+                    placeholderTextColor="rgba(255,255,255,0.34)"
+                  />
+
+                  <Text style={styles.label}>Menu</Text>
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    value={menu}
+                    onChangeText={setMenu}
+                    placeholder="Add the main items customers can order"
+                    placeholderTextColor="rgba(255,255,255,0.34)"
+                    multiline
+                  />
+
+                  <View style={styles.assetDivider} />
+
+                  <View style={styles.managementGroupHeader}>
+                    <MaterialCommunityIcons
+                      name="calendar-clock-outline"
+                      size={18}
+                      color="#F4B547"
+                    />
+                    <View style={styles.managementGroupCopy}>
+                      <AppText
+                        variant="bodyBold"
+                        style={styles.managementGroupTitle}
+                      >
+                        When & what you trade
+                      </AppText>
+                      <AppText
+                        variant="body"
+                        style={styles.managementGroupText}
+                      >
+                        Keep your schedule and food categories accurate so
+                        customers know what to expect.
+                      </AppText>
                     </View>
                   </View>
-                ) : null}
-              </>
-            )}
-          </View>
-        </DashboardAccordionSection>
 
-        <DashboardAccordionSection
-          title="Plan Guide"
-          subtitle="See exactly what Free, Growth and Pro include."
-          isOpen={openSections.guide}
-          onToggle={() => toggleSection("guide")}
-        >
-          <View style={styles.cardBox}>
-            <AppText variant="body" style={styles.planSummaryText}>
-              Start with what you need today. Upgrade only when the extra tools become useful to your business.
-            </AppText>
+                  <Text style={styles.label}>Trading schedule</Text>
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    value={schedule}
+                    onChangeText={setSchedule}
+                    placeholder="e.g. Mon–Fri 7am–2pm"
+                    placeholderTextColor="rgba(255,255,255,0.34)"
+                    multiline
+                  />
 
-            <TierExplanationCard
-              title={`Free — Get discovered${van.subscriptionTier === "free" ? " · YOUR PLAN" : ""}`}
-              subtitle="A useful listing, not a stripped-back trial"
-              accent="free"
-              isExpanded={expandedTier === "free"}
-              onToggle={() => setExpandedTier("free")}
-            >
-              <AppText variant="body" style={styles.tierItem}>• Public BiteBeacon listing and map discovery</AppText>
-              <AppText variant="body" style={styles.tierItem}>• 1 main photo of your van or food setup</AppText>
-              <AppText variant="body" style={styles.tierItem}>• Menu text, cuisine and trading schedule</AppText>
-              <AppText variant="body" style={styles.tierItem}>• Customer rating, views and directions</AppText>
-              <AppText variant="body" style={styles.tierItem}>• LIVE status during the BiteBeacon launch period</AppText>
-              <AppText variant="bodyBold" style={styles.tierHint}>Built to help customers find you and know what to expect.</AppText>
-            </TierExplanationCard>
+                  <Text style={styles.label}>Food categories</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={foodCategorySearch}
+                    onChangeText={setFoodCategorySearch}
+                    placeholder="Search or add food categories"
+                    placeholderTextColor="rgba(255,255,255,0.34)"
+                  />
 
-            <TierExplanationCard
-              title={`Growth — Stand out${van.subscriptionTier === "growth" ? " · YOUR PLAN" : ""}`}
-              subtitle="£9.99/month · Customer-facing growth tools"
-              accent="growth"
-              isExpanded={expandedTier === "growth"}
-              onToggle={() => setExpandedTier("growth")}
-            >
-              <AppText variant="body" style={styles.tierItem}>• Everything in Free</AppText>
-              <AppText variant="body" style={styles.tierItem}>• Full photo gallery with up to 5 images</AppText>
-              <AppText variant="body" style={styles.tierItem}>• Business logo and PDF menu</AppText>
-              <AppText variant="body" style={styles.tierItem}>• Instagram, Facebook and website links</AppText>
-              <AppText variant="body" style={styles.tierItem}>• what3words precise location</AppText>
-              <AppText variant="body" style={styles.tierItem}>• Customer updates and offers</AppText>
-              <AppText variant="body" style={styles.tierItem}>• Trading-location updates</AppText>
-              <AppText variant="bodyBold" style={styles.tierHint}>Built to make your listing look stronger and convert more interest into visits.</AppText>
-            </TierExplanationCard>
+                  <View style={styles.checkboxGroup}>
+                    {filteredFoodCategoryOptions.map((category) => {
+                      const isSelected = foodCategories.includes(category);
 
-            <TierExplanationCard
-              title={`Pro — Grow smarter${van.subscriptionTier === "pro" ? " · YOUR PLAN" : ""}`}
-              subtitle="£14.99/month · Premium visibility and insight"
-              accent="pro"
-              isExpanded={expandedTier === "pro"}
-              onToggle={() => setExpandedTier("pro")}
-            >
-              <AppText variant="body" style={styles.tierItem}>• Everything in Growth</AppText>
-              <AppText variant="body" style={styles.tierItem}>• Advanced performance analytics</AppText>
-              <AppText variant="body" style={styles.tierItem}>• Conversion and customer-intent guidance</AppText>
-              <AppText variant="body" style={styles.tierItem}>• Best-hour recommendations and timing patterns</AppText>
-              <AppText variant="body" style={styles.tierItem}>• Area activity hotspots</AppText>
-              <AppText variant="body" style={styles.tierItem}>• Priority and featured discovery support</AppText>
-              <AppText variant="bodyBold" style={styles.tierHint}>Built for vendors ready to make decisions from real BiteBeacon activity.</AppText>
-            </TierExplanationCard>
+                      return (
+                        <Pressable
+                          key={category}
+                          style={[
+                            styles.checkboxChip,
+                            isSelected && styles.checkboxChipSelected,
+                          ]}
+                          onPress={() => toggleFoodCategory(category)}
+                        >
+                          <Text
+                            style={[
+                              styles.checkboxChipText,
+                              isSelected && styles.checkboxChipTextSelected,
+                            ]}
+                          >
+                            {isSelected ? "✓ " : ""}
+                            {category}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
 
-            {van.subscriptionTier === "free" ? (
-              <Pressable style={styles.upgradeButton} onPress={() => router.push("/vendor/upgrade")}>
-                <Text style={styles.upgradeButtonText}>Compare Upgrade Options</Text>
-              </Pressable>
-            ) : (
-              <Pressable style={styles.softButton} onPress={manageSubscriptionFromDashboard}>
-                <Text style={styles.softButtonText}>
-                  {van.subscriptionTier === "growth" ? "Manage or Upgrade Plan" : "Manage Subscription"}
-                </Text>
-              </Pressable>
-            )}
-          </View>
-        </DashboardAccordionSection>
-
-        <View
-          ref={editSectionRef}
-          onLayout={(event) => {
-            editSectionY.current = event.nativeEvent.layout.y;
-          }}
-        >
-          <DashboardAccordionSection
-            title="Business Details"
-            subtitle="The details customers use to decide, find and visit you."
-            isOpen={openSections.edit}
-            onToggle={() => toggleSection("edit")}
-          >
-            <View style={styles.cardBox}>
-              <View style={styles.managementGroupHeader}>
-                <MaterialCommunityIcons name="storefront-outline" size={18} color="#F4B547" />
-                <View style={styles.managementGroupCopy}>
-                  <AppText variant="bodyBold" style={styles.managementGroupTitle}>Your listing</AppText>
-                  <AppText variant="body" style={styles.managementGroupText}>The essentials customers see when they open your business.</AppText>
-                </View>
-              </View>
-
-              <Text style={styles.label}>Business name</Text>
-              <AppText variant="body" style={styles.fieldHelp}>Your main public name on BiteBeacon.</AppText>
-              <TextInput
-                style={styles.input}
-                value={name}
-                onChangeText={setName}
-                placeholder="e.g. Matt's Burgers"
-                placeholderTextColor="rgba(255,255,255,0.34)"
-              />
-
-              <Text style={styles.label}>Secondary display name</Text>
-              <AppText variant="body" style={styles.fieldHelp}>Shown beneath your business name — for example an operator, trader or short brand line.</AppText>
-              <TextInput
-                style={styles.input}
-                value={vendorName}
-                onChangeText={setVendorName}
-                placeholder="Secondary display name"
-                placeholderTextColor="rgba(255,255,255,0.34)"
-              />
-
-              <Text style={styles.label}>Cuisine</Text>
-              <TextInput
-                style={styles.input}
-                value={cuisine}
-                onChangeText={setCuisine}
-                placeholder="e.g. Burgers & loaded fries"
-                placeholderTextColor="rgba(255,255,255,0.34)"
-              />
-
-              <Text style={styles.label}>Menu</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={menu}
-                onChangeText={setMenu}
-                placeholder="Add the main items customers can order"
-                placeholderTextColor="rgba(255,255,255,0.34)"
-                multiline
-              />
-
-              <View style={styles.assetDivider} />
-
-              <View style={styles.managementGroupHeader}>
-                <MaterialCommunityIcons name="calendar-clock-outline" size={18} color="#F4B547" />
-                <View style={styles.managementGroupCopy}>
-                  <AppText variant="bodyBold" style={styles.managementGroupTitle}>When & what you trade</AppText>
-                  <AppText variant="body" style={styles.managementGroupText}>Keep your schedule and food categories accurate so customers know what to expect.</AppText>
-                </View>
-              </View>
-
-              <Text style={styles.label}>Trading schedule</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={schedule}
-                onChangeText={setSchedule}
-                placeholder="e.g. Mon–Fri 7am–2pm"
-                placeholderTextColor="rgba(255,255,255,0.34)"
-                multiline
-              />
-
-              <Text style={styles.label}>Food categories</Text>
-              <TextInput
-                style={styles.input}
-                value={foodCategorySearch}
-                onChangeText={setFoodCategorySearch}
-                placeholder="Search or add food categories"
-                placeholderTextColor="rgba(255,255,255,0.34)"
-              />
-
-              <View style={styles.checkboxGroup}>
-                {filteredFoodCategoryOptions.map((category) => {
-                  const isSelected = foodCategories.includes(category);
-
-                  return (
+                  {canAddCustomCategory ? (
                     <Pressable
-                      key={category}
-                      style={[styles.checkboxChip, isSelected && styles.checkboxChipSelected]}
-                      onPress={() => toggleFoodCategory(category)}
+                      style={styles.addCustomCategoryButton}
+                      onPress={() => {
+                        const trimmedCategory = foodCategorySearch.trim();
+                        if (!trimmedCategory) return;
+
+                        setFoodCategories((current) => {
+                          const alreadyExists = current.some(
+                            (item) =>
+                              item.toLowerCase() ===
+                              trimmedCategory.toLowerCase(),
+                          );
+                          if (alreadyExists) return current;
+                          return [...current, trimmedCategory];
+                        });
+                        setFoodCategorySearch("");
+                      }}
                     >
-                      <Text style={[styles.checkboxChipText, isSelected && styles.checkboxChipTextSelected]}>
-                        {isSelected ? "✓ " : ""}{category}
+                      <Text style={styles.addCustomCategoryButtonText}>
+                        Add "{foodCategorySearch.trim()}" as a cuisine
                       </Text>
                     </Pressable>
-                  );
-                })}
-              </View>
+                  ) : null}
 
-              {canAddCustomCategory ? (
-                <Pressable
-                  style={styles.addCustomCategoryButton}
-                  onPress={() => {
-                    const trimmedCategory = foodCategorySearch.trim();
-                    if (!trimmedCategory) return;
+                  {foodCategorySearch.trim().length === 0 ? (
+                    <Text style={styles.categorySearchEmptyText}>
+                      Start typing to add your cuisine
+                    </Text>
+                  ) : filteredFoodCategoryOptions.length === 0 &&
+                    !canAddCustomCategory ? (
+                    <Text style={styles.categorySearchEmptyText}>
+                      No matching categories found.
+                    </Text>
+                  ) : null}
 
-                    setFoodCategories((current) => {
-                      const alreadyExists = current.some(
-                        (item) => item.toLowerCase() === trimmedCategory.toLowerCase()
-                      );
-                      if (alreadyExists) return current;
-                      return [...current, trimmedCategory];
-                    });
-                    setFoodCategorySearch("");
-                  }}
-                >
-                  <Text style={styles.addCustomCategoryButtonText}>
-                    Add "{foodCategorySearch.trim()}" as a cuisine
-                  </Text>
-                </Pressable>
-              ) : null}
-
-              {foodCategorySearch.trim().length === 0 ? (
-                <Text style={styles.categorySearchEmptyText}>Start typing to add your cuisine</Text>
-              ) : filteredFoodCategoryOptions.length === 0 && !canAddCustomCategory ? (
-                <Text style={styles.categorySearchEmptyText}>No matching categories found.</Text>
-              ) : null}
-
-              <View style={styles.liveRow}>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={styles.liveLabel}>Show as live now</Text>
-                  <AppText variant="body" style={styles.fieldHelp}>Lets customers know you are currently open and trading.</AppText>
-                </View>
-                <Switch value={isLive} onValueChange={(value) => handleLiveToggle(value)} />
-              </View>
-
-              {isLive ? (
-                <View
-                  ref={liveDurationRef}
-                  style={styles.liveDurationWrap}
-                  onLayout={(event) => {
-                    liveDurationY.current = event.nativeEvent.layout.y;
-                  }}
-                >
-                  <Text style={styles.liveDurationTitle}>Stay live for</Text>
-                  <View style={styles.liveDurationOptions}>
-                    {[1, 2, 4, 8].map((hours) => (
-                      <Pressable
-                        key={hours}
-                        style={[styles.liveDurationChip, liveDurationHours === hours && styles.liveDurationChipActive]}
-                        onPress={() => setLiveDurationHours(hours as 1 | 2 | 4 | 8)}
-                      >
-                        <Text style={[styles.liveDurationChipText, liveDurationHours === hours && styles.liveDurationChipTextActive]}>
-                          {hours}h
-                        </Text>
-                      </Pressable>
-                    ))}
+                  <View style={styles.liveRow}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.liveLabel}>Show as live now</Text>
+                      <AppText variant="body" style={styles.fieldHelp}>
+                        Lets customers know you are currently open and trading.
+                      </AppText>
+                    </View>
+                    <Switch
+                      value={isLive}
+                      onValueChange={(value) => handleLiveToggle(value)}
+                    />
                   </View>
+
+                  {isLive ? (
+                    <View
+                      ref={liveDurationRef}
+                      style={styles.liveDurationWrap}
+                      onLayout={(event) => {
+                        liveDurationY.current = event.nativeEvent.layout.y;
+                      }}
+                    >
+                      <Text style={styles.liveDurationTitle}>
+                        Stay live for
+                      </Text>
+                      <View style={styles.liveDurationOptions}>
+                        {[1, 2, 4, 8].map((hours) => (
+                          <Pressable
+                            key={hours}
+                            style={[
+                              styles.liveDurationChip,
+                              liveDurationHours === hours &&
+                                styles.liveDurationChipActive,
+                            ]}
+                            onPress={() =>
+                              setLiveDurationHours(hours as 1 | 2 | 4 | 8)
+                            }
+                          >
+                            <Text
+                              style={[
+                                styles.liveDurationChipText,
+                                liveDurationHours === hours &&
+                                  styles.liveDurationChipTextActive,
+                              ]}
+                            >
+                              {hours}h
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    </View>
+                  ) : null}
+
+                  <Text style={styles.liveFutureNotice}>
+                    LIVE status is currently included free during launch. After
+                    launch, LIVE visibility will require Growth.
+                  </Text>
+
+                  <View style={styles.assetDivider} />
+
+                  <View style={styles.managementGroupHeader}>
+                    <MaterialCommunityIcons
+                      name="link-variant"
+                      size={18}
+                      color="#4FA7FF"
+                    />
+                    <View style={styles.managementGroupCopy}>
+                      <AppText
+                        variant="bodyBold"
+                        style={styles.managementGroupTitle}
+                      >
+                        Online presence & precise location
+                      </AppText>
+                      <AppText
+                        variant="body"
+                        style={styles.managementGroupText}
+                      >
+                        Optional tools for vendors who want customers to find
+                        and follow them beyond the core listing.
+                      </AppText>
+                    </View>
+                  </View>
+
+                  {!features.socialLinks ? (
+                    <View style={styles.inlineLockedCard}>
+                      <AppText
+                        variant="bodyBold"
+                        style={styles.inlineLockedTitle}
+                      >
+                        Growth feature
+                      </AppText>
+                      <AppText variant="body" style={styles.inlineLockedText}>
+                        Growth unlocks Instagram, Facebook, your website and
+                        what3words precise location.
+                      </AppText>
+                    </View>
+                  ) : (
+                    <>
+                      <Text style={styles.label}>Instagram</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={instagram}
+                        onChangeText={setInstagram}
+                        placeholder="https://instagram.com/yourpage"
+                        placeholderTextColor="rgba(255,255,255,0.34)"
+                      />
+
+                      <Text style={styles.label}>Facebook</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={facebook}
+                        onChangeText={setFacebook}
+                        placeholder="https://facebook.com/yourpage"
+                        placeholderTextColor="rgba(255,255,255,0.34)"
+                      />
+
+                      <Text style={styles.label}>Website</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={website}
+                        onChangeText={setWebsite}
+                        placeholder="https://yourwebsite.com"
+                        placeholderTextColor="rgba(255,255,255,0.34)"
+                      />
+
+                      <Text style={styles.label}>what3words location</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={what3words}
+                        onChangeText={setWhat3words}
+                        placeholder="e.g. filled.count.soap"
+                        placeholderTextColor="rgba(255,255,255,0.34)"
+                      />
+                    </>
+                  )}
+
+                  <Pressable
+                    style={[styles.primaryButton, isSaving && { opacity: 0.7 }]}
+                    onPress={() => {
+                      if (!isSaving) saveChanges();
+                    }}
+                    disabled={isSaving}
+                  >
+                    <Text style={styles.primaryButtonText}>
+                      {isSaving ? "Saving Changes..." : "Save Changes"}
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.softButton}
+                    onPress={() =>
+                      router.replace({
+                        pathname: "/vendor/[id]",
+                        params: { id: van.id },
+                      })
+                    }
+                  >
+                    <Text style={styles.softButtonText}>
+                      Back to Vendor Page
+                    </Text>
+                  </Pressable>
                 </View>
-              ) : null}
+              </DashboardAccordionSection>
+            </View>
 
-              <Text style={styles.liveFutureNotice}>
-                LIVE status is currently included free during launch. After launch, LIVE visibility will require Growth.
-              </Text>
+            <DashboardAccordionSection
+              title="Account Actions"
+              subtitle="Settings, sign out and listing removal."
+              isOpen={openSections.account}
+              onToggle={() => toggleSection("account")}
+            >
+              <View style={styles.cardBox}>
+                <Pressable
+                  style={styles.softButton}
+                  onPress={() => router.replace("/(tabs)/account")}
+                >
+                  <Text style={styles.softButtonText}>Account & Settings</Text>
+                </Pressable>
 
-              <View style={styles.assetDivider} />
+                <Pressable style={styles.softButton} onPress={handleLogout}>
+                  <Text style={styles.softButtonText}>Log Out</Text>
+                </Pressable>
 
-              <View style={styles.managementGroupHeader}>
-                <MaterialCommunityIcons name="link-variant" size={18} color="#4FA7FF" />
-                <View style={styles.managementGroupCopy}>
-                  <AppText variant="bodyBold" style={styles.managementGroupTitle}>Online presence & precise location</AppText>
-                  <AppText variant="body" style={styles.managementGroupText}>Optional tools for vendors who want customers to find and follow them beyond the core listing.</AppText>
+                <View style={styles.dangerZone}>
+                  <AppText variant="bodyBold" style={styles.dangerZoneTitle}>
+                    Listing removal
+                  </AppText>
+                  <AppText variant="body" style={styles.dangerZoneText}>
+                    Only use this if you want BiteBeacon to remove this vendor
+                    listing.
+                  </AppText>
+                  <Pressable
+                    style={styles.deleteButton}
+                    onPress={deleteListing}
+                  >
+                    <Text style={styles.deleteButtonText}>
+                      Request Listing Removal
+                    </Text>
+                  </Pressable>
                 </View>
               </View>
-
-              {!features.socialLinks ? (
-                <View style={styles.inlineLockedCard}>
-                  <AppText variant="bodyBold" style={styles.inlineLockedTitle}>Growth feature</AppText>
-                  <AppText variant="body" style={styles.inlineLockedText}>
-                    Growth unlocks Instagram, Facebook, your website and what3words precise location.
-                  </AppText>
-                </View>
-              ) : (
-                <>
-                  <Text style={styles.label}>Instagram</Text>
-                  <TextInput style={styles.input} value={instagram} onChangeText={setInstagram} placeholder="https://instagram.com/yourpage" placeholderTextColor="rgba(255,255,255,0.34)" />
-
-                  <Text style={styles.label}>Facebook</Text>
-                  <TextInput style={styles.input} value={facebook} onChangeText={setFacebook} placeholder="https://facebook.com/yourpage" placeholderTextColor="rgba(255,255,255,0.34)" />
-
-                  <Text style={styles.label}>Website</Text>
-                  <TextInput style={styles.input} value={website} onChangeText={setWebsite} placeholder="https://yourwebsite.com" placeholderTextColor="rgba(255,255,255,0.34)" />
-
-                  <Text style={styles.label}>what3words location</Text>
-                  <TextInput style={styles.input} value={what3words} onChangeText={setWhat3words} placeholder="e.g. filled.count.soap" placeholderTextColor="rgba(255,255,255,0.34)" />
-                </>
-              )}
-
-              <Pressable
-                style={[styles.primaryButton, isSaving && { opacity: 0.7 }]}
-                onPress={() => {
-                  if (!isSaving) saveChanges();
-                }}
-                disabled={isSaving}
-              >
-                <Text style={styles.primaryButtonText}>
-                  {isSaving ? "Saving Changes..." : "Save Changes"}
-                </Text>
-              </Pressable>
-
-              <Pressable
-                style={styles.softButton}
-                onPress={() =>
-                  router.replace({
-                    pathname: "/vendor/[id]",
-                    params: { id: van.id },
-                  })
-                }
-              >
-                <Text style={styles.softButtonText}>Back to Vendor Page</Text>
-              </Pressable>
-            </View>
-          </DashboardAccordionSection>
-        </View>
-
-        <DashboardAccordionSection
-          title="Account Actions"
-          subtitle="Settings, sign out and listing removal."
-          isOpen={openSections.account}
-          onToggle={() => toggleSection("account")}
-        >
-          <View style={styles.cardBox}>
-            <Pressable style={styles.softButton} onPress={() => router.replace("/(tabs)/account")}>
-              <Text style={styles.softButtonText}>Account & Settings</Text>
-            </Pressable>
-
-            <Pressable style={styles.softButton} onPress={handleLogout}>
-              <Text style={styles.softButtonText}>Log Out</Text>
-            </Pressable>
-
-            <View style={styles.dangerZone}>
-              <AppText variant="bodyBold" style={styles.dangerZoneTitle}>Listing removal</AppText>
-              <AppText variant="body" style={styles.dangerZoneText}>
-                Only use this if you want BiteBeacon to remove this vendor listing.
-              </AppText>
-              <Pressable style={styles.deleteButton} onPress={deleteListing}>
-                <Text style={styles.deleteButtonText}>Request Listing Removal</Text>
-              </Pressable>
-            </View>
-          </View>
-        </DashboardAccordionSection>
+            </DashboardAccordionSection>
           </LinearGradient>
         </View>
       </ScrollView>
@@ -4164,7 +4718,6 @@ const styles = StyleSheet.create({
     marginBottom: 7,
   },
 
-
   fieldHelp: {
     color: "rgba(255,255,255,0.47)",
     fontSize: 10.5,
@@ -4859,7 +5412,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
   },
 
-
   performanceExplainText: {
     color: "rgba(255,255,255,0.62)",
     fontSize: 11.5,
@@ -4963,7 +5515,7 @@ const styles = StyleSheet.create({
   },
 
   quickTile: {
-    width: "48.8%",
+    width: "48%",
     minHeight: 62,
     borderRadius: 14,
     paddingHorizontal: 11,
@@ -5077,5 +5629,4 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     marginBottom: 7,
   },
-
 });

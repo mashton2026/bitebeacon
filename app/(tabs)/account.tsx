@@ -35,7 +35,7 @@ export default function AccountScreen() {
   useFocusEffect(
     useCallback(() => {
       loadUser();
-    }, [])
+    }, []),
   );
 
   async function loadUser() {
@@ -115,46 +115,56 @@ export default function AccountScreen() {
     } catch (error) {
       Alert.alert(
         "Logout failed",
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
     }
   }
 
   if (isSuspended) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.title}>Account Suspended</Text>
+      <MapTextureBackground>
+        <View style={styles.loadingContainer}>
+          <AppText variant="heading" style={styles.title}>
+            Account Suspended
+          </AppText>
 
-        <Text style={styles.subtitle}>
-          Your vendor account has been suspended.
-        </Text>
+          <AppText variant="body" style={styles.subtitle}>
+            Your vendor account has been suspended.
+          </AppText>
 
-        <View style={styles.loadingCard}>
-          <Text style={styles.loadingCardTitle}>Access Restricted</Text>
-          <Text style={styles.loadingCardText}>
-            This account has been temporarily disabled. Please contact BiteBeacon
-            support if you believe this is a mistake.
-          </Text>
+          <View style={styles.loadingCard}>
+            <Text style={styles.loadingCardTitle}>Access Restricted</Text>
+            <Text style={styles.loadingCardText}>
+              This account has been temporarily disabled. Please contact
+              BiteBeacon support if you believe this is a mistake.
+            </Text>
+          </View>
+
+          <LogoutButton onPress={handleLogout} />
         </View>
-
-        <LogoutButton onPress={handleLogout} />
-      </View>
+      </MapTextureBackground>
     );
   }
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.title}>Account</Text>
-        <Text style={styles.subtitle}>Loading your account...</Text>
+      <MapTextureBackground>
+        <View style={styles.loadingContainer}>
+          <AppText variant="heading" style={styles.title}>
+            Account
+          </AppText>
+          <AppText variant="body" style={styles.subtitle}>
+            Loading your account...
+          </AppText>
 
-        <View style={styles.loadingCard}>
-          <Text style={styles.loadingCardTitle}>Please wait</Text>
-          <Text style={styles.loadingCardText}>
-            We are checking your account, vendor access, and scout progress.
-          </Text>
+          <View style={styles.loadingCard}>
+            <Text style={styles.loadingCardTitle}>Please wait</Text>
+            <Text style={styles.loadingCardText}>
+              We are checking your account, vendor access, and scout progress.
+            </Text>
+          </View>
         </View>
-      </View>
+      </MapTextureBackground>
     );
   }
 
@@ -462,24 +472,14 @@ function Section({ title }: { title: string }) {
   return <Text style={styles.section}>{title}</Text>;
 }
 
-function Row({
-  label,
-  onPress,
-}: {
-  label: string;
-  onPress: () => void;
-}) {
+function Row({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <Pressable style={styles.row} onPress={onPress}>
       <AppText variant="bodyBold" style={styles.rowText}>
         {label}
       </AppText>
 
-      <MaterialCommunityIcons
-        name="chevron-right"
-        size={22}
-        color="#FFB000"
-      />
+      <MaterialCommunityIcons name="chevron-right" size={22} color="#FFB000" />
     </Pressable>
   );
 }
@@ -488,11 +488,7 @@ function LogoutButton({ onPress }: { onPress: () => void }) {
   return (
     <Pressable style={styles.logoutButton} onPress={onPress}>
       <View style={styles.logoutIcon}>
-        <MaterialCommunityIcons
-          name="logout"
-          size={22}
-          color="#FF5252"
-        />
+        <MaterialCommunityIcons name="logout" size={22} color="#FF5252" />
       </View>
 
       <View style={styles.logoutTextWrap}>
@@ -505,11 +501,7 @@ function LogoutButton({ onPress }: { onPress: () => void }) {
         </AppText>
       </View>
 
-      <MaterialCommunityIcons
-        name="chevron-right"
-        size={22}
-        color="#FF5252"
-      />
+      <MaterialCommunityIcons name="chevron-right" size={22} color="#FF5252" />
     </Pressable>
   );
 }
@@ -522,7 +514,7 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: "transparent",
     padding: 24,
   },
   title: {

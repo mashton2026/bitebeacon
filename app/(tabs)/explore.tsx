@@ -53,7 +53,10 @@ const BITEBEACON_MAP_STYLE = [
   { elementType: "geometry", stylers: [{ color: "#1b3348" }] },
   { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
   { elementType: "labels.text.fill", stylers: [{ color: "#dce9f3" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#102536" }, { weight: 3 }] },
+  {
+    elementType: "labels.text.stroke",
+    stylers: [{ color: "#102536" }, { weight: 3 }],
+  },
 
   {
     featureType: "administrative",
@@ -189,7 +192,10 @@ function isVendorLiveNow(van: Van) {
 }
 
 function getStatusLabel(van: Van) {
-  if (van.listingSource === "user_spotted") return "SPOTTED";
+  if (van.listingSource === "user_spotted" && !van.owner_id) {
+    return "SPOTTED";
+  }
+
   if (getSubscriptionFeatures(van.subscriptionTier).liveStatus) {
     return isVendorLiveNow(van) ? "LIVE" : "LISTED";
   }
@@ -229,7 +235,7 @@ function matchesSearchQuery(van: Van, query: string) {
     (van.vendorName ?? "").toLowerCase().includes(search) ||
     van.cuisine.toLowerCase().includes(search) ||
     (van.foodCategories ?? []).some((category) =>
-      category.toLowerCase().includes(search)
+      category.toLowerCase().includes(search),
     )
   );
 }
@@ -287,7 +293,8 @@ export default function MapScreen() {
   const [mapReady, setMapReady] = useState(false);
   const [showMapLoadingOverlay, setShowMapLoadingOverlay] = useState(true);
   const [hasResolvedUserLocation, setHasResolvedUserLocation] = useState(false);
-  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
+  const [locationPermissionDenied, setLocationPermissionDenied] =
+    useState(false);
   const selectedMarkerScale = useRef(new Animated.Value(1)).current;
   const cardTranslateY = useRef(new Animated.Value(20)).current;
   const cardOpacity = useRef(new Animated.Value(0)).current;
@@ -304,7 +311,7 @@ export default function MapScreen() {
         latitudeDelta: 0.02,
         longitudeDelta: 0.02,
       },
-      600
+      600,
     );
   }
 
@@ -365,7 +372,7 @@ export default function MapScreen() {
     if (!params.highlight) return;
 
     const highlightedVendor = supabaseVans.find(
-      (van) => van.id === params.highlight
+      (van) => van.id === params.highlight,
     );
 
     if (!highlightedVendor) return;
@@ -386,7 +393,14 @@ export default function MapScreen() {
     if (mapReady) {
       mapRef.current?.animateToRegion(nextRegion, 700);
     }
-  }, [params.spotMode, params.lat, params.lng, params.highlight, supabaseVans, mapReady]);
+  }, [
+    params.spotMode,
+    params.lat,
+    params.lng,
+    params.highlight,
+    supabaseVans,
+    mapReady,
+  ]);
 
   useEffect(() => {
     if (!selectedVan) {
@@ -518,7 +532,8 @@ export default function MapScreen() {
   }
 
   const liveVendorCount = useMemo(() => {
-    return supabaseVans.filter((van) => isVendorLiveNow(van) && !van.temporary).length;
+    return supabaseVans.filter((van) => isVendorLiveNow(van) && !van.temporary)
+      .length;
   }, [supabaseVans]);
 
   const filteredVans = useMemo(() => {
@@ -530,11 +545,17 @@ export default function MapScreen() {
           : selectedFilter === "food_van"
             ? supabaseVans.filter((van) => van.vendorType === "food_van")
             : selectedFilter === "restaurant_takeaway"
-              ? supabaseVans.filter((van) => van.vendorType === "restaurant_takeaway")
+              ? supabaseVans.filter(
+                  (van) => van.vendorType === "restaurant_takeaway",
+                )
               : selectedFilter === "event_vendor"
-                ? supabaseVans.filter((van) => van.vendorType === "event_vendor")
+                ? supabaseVans.filter(
+                    (van) => van.vendorType === "event_vendor",
+                  )
                 : selectedFilter === "market_stall"
-                  ? supabaseVans.filter((van) => van.vendorType === "market_stall")
+                  ? supabaseVans.filter(
+                      (van) => van.vendorType === "market_stall",
+                    )
                   : supabaseVans;
 
     const searchedVans = searchQuery.trim()
@@ -603,7 +624,7 @@ export default function MapScreen() {
         latitudeDelta: 0.02,
         longitudeDelta: 0.02,
       },
-      400
+      400,
     );
   }
 
@@ -623,7 +644,7 @@ export default function MapScreen() {
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
         },
-        350
+        350,
       );
 
       return;
@@ -639,7 +660,7 @@ export default function MapScreen() {
     if (!user) {
       Alert.alert(
         "Login required",
-        "Please log in or create an account before spotting a van."
+        "Please log in or create an account before spotting a van.",
       );
       return;
     }
@@ -698,13 +719,13 @@ export default function MapScreen() {
     if (!user) {
       Alert.alert(
         "Login required",
-        "Please log in or create an account before spotting a van."
+        "Please log in or create an account before spotting a van.",
       );
       return;
     }
 
     const expiresAt = new Date(
-      Date.now() + 180 * 24 * 60 * 60 * 1000
+      Date.now() + 180 * 24 * 60 * 60 * 1000,
     ).toISOString();
 
     let uploadedSpotPhotoUrls: string[] = [];
@@ -772,15 +793,14 @@ export default function MapScreen() {
 
       Alert.alert(
         "Vendor submitted ðŸ”¥",
-        "Your spotted vendor has been submitted for admin approval.\n\nOnce approved, it will appear on the BiteBeacon map for the community to discover.\n\nThanks for helping grow BiteBeacon."
+        "Your spotted vendor has been submitted for admin approval.\n\nOnce approved, it will appear on the BiteBeacon map for the community to discover.\n\nThanks for helping grow BiteBeacon.",
       );
-
     } catch (error) {
       setSubmittingSpot(false);
 
       Alert.alert(
         "Error",
-        error instanceof Error ? error.message : "Could not save spotted van."
+        error instanceof Error ? error.message : "Could not save spotted van.",
       );
     }
   }
@@ -818,9 +838,7 @@ export default function MapScreen() {
         mapType={mapType}
         showsUserLocation
         showsMyLocationButton={false}
-        customMapStyle={
-          mapType === "standard" ? BITEBEACON_MAP_STYLE : []
-        }
+        customMapStyle={mapType === "standard" ? BITEBEACON_MAP_STYLE : []}
         onPress={handleMapPress}
         onMapReady={() => {
           setMapReady(true);
@@ -942,7 +960,6 @@ export default function MapScreen() {
                 resizeMode="contain"
               />
             </Pressable>
-
           </View>
         </View>
 
@@ -1029,34 +1046,58 @@ export default function MapScreen() {
 
             <View style={styles.bbLegendList}>
               <View style={styles.bbLegendRow}>
-                <Image source={MARKER_IMAGES.blue} style={styles.bbLegendMarker} resizeMode="contain" />
+                <Image
+                  source={MARKER_IMAGES.blue}
+                  style={styles.bbLegendMarker}
+                  resizeMode="contain"
+                />
                 <View style={styles.bbLegendCopy}>
                   <Text style={styles.bbLegendTitle}>Listed Vendor</Text>
-                  <Text style={styles.bbLegendDescription}>A BiteBeacon registered vendor.</Text>
+                  <Text style={styles.bbLegendDescription}>
+                    A BiteBeacon registered vendor.
+                  </Text>
                 </View>
               </View>
 
               <View style={styles.bbLegendRow}>
-                <Image source={MARKER_IMAGES.green} style={styles.bbLegendMarker} resizeMode="contain" />
+                <Image
+                  source={MARKER_IMAGES.green}
+                  style={styles.bbLegendMarker}
+                  resizeMode="contain"
+                />
                 <View style={styles.bbLegendCopy}>
                   <Text style={styles.bbLegendTitle}>LIVE Now</Text>
-                  <Text style={styles.bbLegendDescription}>Currently trading.</Text>
+                  <Text style={styles.bbLegendDescription}>
+                    Currently trading.
+                  </Text>
                 </View>
               </View>
 
               <View style={styles.bbLegendRow}>
-                <Image source={MARKER_IMAGES.gold} style={styles.bbLegendMarker} resizeMode="contain" />
+                <Image
+                  source={MARKER_IMAGES.gold}
+                  style={styles.bbLegendMarker}
+                  resizeMode="contain"
+                />
                 <View style={styles.bbLegendCopy}>
                   <Text style={styles.bbLegendTitle}>Pro Vendor</Text>
-                  <Text style={styles.bbLegendDescription}>Premium BiteBeacon vendor.</Text>
+                  <Text style={styles.bbLegendDescription}>
+                    Premium BiteBeacon vendor.
+                  </Text>
                 </View>
               </View>
 
               <View style={styles.bbLegendRowLast}>
-                <Image source={MARKER_IMAGES.orange} style={styles.bbLegendMarker} resizeMode="contain" />
+                <Image
+                  source={MARKER_IMAGES.orange}
+                  style={styles.bbLegendMarker}
+                  resizeMode="contain"
+                />
                 <View style={styles.bbLegendCopy}>
                   <Text style={styles.bbLegendTitle}>Community Spotted</Text>
-                  <Text style={styles.bbLegendDescription}>Spotted by a user in the community.</Text>
+                  <Text style={styles.bbLegendDescription}>
+                    Spotted by a user in the community.
+                  </Text>
                 </View>
               </View>
             </View>
@@ -1074,7 +1115,8 @@ export default function MapScreen() {
                   <Text
                     style={[
                       styles.bbMapTypeButtonText,
-                      mapType === "standard" && styles.bbMapTypeButtonTextActive,
+                      mapType === "standard" &&
+                        styles.bbMapTypeButtonTextActive,
                     ]}
                   >
                     Map
@@ -1091,7 +1133,8 @@ export default function MapScreen() {
                   <Text
                     style={[
                       styles.bbMapTypeButtonText,
-                      mapType === "satellite" && styles.bbMapTypeButtonTextActive,
+                      mapType === "satellite" &&
+                        styles.bbMapTypeButtonTextActive,
                     ]}
                   >
                     Satellite
@@ -1198,7 +1241,9 @@ export default function MapScreen() {
 
                 <View style={styles.bottomCardTitleBlock}>
                   <View style={styles.bottomCardTitleRow}>
-                    <Text style={styles.bottomCardTitle}>{selectedVan.name}</Text>
+                    <Text style={styles.bottomCardTitle}>
+                      {selectedVan.name}
+                    </Text>
 
                     {selectedVan.owner_id && !selectedVan.temporary ? (
                       <View style={styles.bottomCardFeaturedBadge}>
@@ -1240,7 +1285,8 @@ export default function MapScreen() {
                   </Text>
 
                   <Text style={styles.bottomCardTrustText}>
-                    {selectedVan.listingSource === "user_spotted"
+                    {selectedVan.listingSource === "user_spotted" &&
+                    !selectedVan.owner_id
                       ? "Spotted by the community (unverified)"
                       : "Managed by vendor (verified listing)"}
                   </Text>
@@ -1263,9 +1309,9 @@ export default function MapScreen() {
                   style={[
                     styles.statusPillText,
                     selectedVan.subscriptionTier === "pro" &&
-                    !selectedVan.temporary &&
-                    !isVendorLiveNow(selectedVan) &&
-                    styles.statusPillTextFeatured,
+                      !selectedVan.temporary &&
+                      !isVendorLiveNow(selectedVan) &&
+                      styles.statusPillTextFeatured,
                   ]}
                 >
                   {getStatusLabel(selectedVan)}
@@ -1346,7 +1392,8 @@ export default function MapScreen() {
 
                   <Text style={styles.bbSpotTitle}>Spot a Vendor</Text>
                   <Text style={styles.bbSpotSubtitle}>
-                    Help the community discover a great food spot. Your submission will be reviewed before appearing on BiteBeacon.
+                    Help the community discover a great food spot. Your
+                    submission will be reviewed before appearing on BiteBeacon.
                   </Text>
                 </View>
 
@@ -1356,7 +1403,9 @@ export default function MapScreen() {
                   </View>
 
                   <View style={styles.bbLocationConfirmedCopy}>
-                    <Text style={styles.bbLocationConfirmedTitle}>Location confirmed</Text>
+                    <Text style={styles.bbLocationConfirmedTitle}>
+                      Location confirmed
+                    </Text>
                     <Text style={styles.bbLocationConfirmedText}>
                       Your map pin is set and ready to use.
                     </Text>
@@ -1369,8 +1418,12 @@ export default function MapScreen() {
                       <Text style={styles.bbStepBadgeText}>1</Text>
                     </View>
                     <View style={styles.bbSpotSectionHeadingWrap}>
-                      <Text style={styles.bbSpotSectionTitle}>Business name</Text>
-                      <Text style={styles.bbSpotSectionHint}>Enter the vendor name.</Text>
+                      <Text style={styles.bbSpotSectionTitle}>
+                        Business name
+                      </Text>
+                      <Text style={styles.bbSpotSectionHint}>
+                        Enter the vendor name.
+                      </Text>
                     </View>
                   </View>
 
@@ -1390,8 +1443,12 @@ export default function MapScreen() {
                       <Text style={styles.bbStepBadgeText}>2</Text>
                     </View>
                     <View style={styles.bbSpotSectionHeadingWrap}>
-                      <Text style={styles.bbSpotSectionTitle}>Type of vendor</Text>
-                      <Text style={styles.bbSpotSectionHint}>Choose the closest match.</Text>
+                      <Text style={styles.bbSpotSectionTitle}>
+                        Type of vendor
+                      </Text>
+                      <Text style={styles.bbSpotSectionHint}>
+                        Choose the closest match.
+                      </Text>
                     </View>
                   </View>
 
@@ -1418,7 +1475,7 @@ export default function MapScreen() {
                                 | "food_van"
                                 | "restaurant_takeaway"
                                 | "event_vendor"
-                                | "market_stall"
+                                | "market_stall",
                             )
                           }
                         >
@@ -1442,8 +1499,12 @@ export default function MapScreen() {
                       <Text style={styles.bbStepBadgeText}>3</Text>
                     </View>
                     <View style={styles.bbSpotSectionHeadingWrap}>
-                      <Text style={styles.bbSpotSectionTitle}>Food or cuisine</Text>
-                      <Text style={styles.bbSpotSectionHint}>Optional, but useful for discovery.</Text>
+                      <Text style={styles.bbSpotSectionTitle}>
+                        Food or cuisine
+                      </Text>
+                      <Text style={styles.bbSpotSectionHint}>
+                        Optional, but useful for discovery.
+                      </Text>
                     </View>
                   </View>
 
@@ -1463,8 +1524,12 @@ export default function MapScreen() {
                       <Text style={styles.bbStepBadgeText}>4</Text>
                     </View>
                     <View style={styles.bbSpotSectionHeadingWrap}>
-                      <Text style={styles.bbSpotSectionTitle}>Extra information</Text>
-                      <Text style={styles.bbSpotSectionHint}>Optional details that help others find it.</Text>
+                      <Text style={styles.bbSpotSectionTitle}>
+                        Extra information
+                      </Text>
+                      <Text style={styles.bbSpotSectionHint}>
+                        Optional details that help others find it.
+                      </Text>
                     </View>
                   </View>
 
@@ -1485,7 +1550,9 @@ export default function MapScreen() {
                     </View>
                     <View style={styles.bbSpotSectionHeadingWrap}>
                       <Text style={styles.bbSpotSectionTitle}>Add a photo</Text>
-                      <Text style={styles.bbSpotSectionHint}>Optional, but helps the community identify the vendor.</Text>
+                      <Text style={styles.bbSpotSectionHint}>
+                        Optional, but helps the community identify the vendor.
+                      </Text>
                     </View>
                   </View>
 
@@ -1507,8 +1574,12 @@ export default function MapScreen() {
                         <View style={styles.bbPhotoGlyph}>
                           <Text style={styles.bbPhotoGlyphText}>+</Text>
                         </View>
-                        <Text style={styles.bbPhotoTitle}>Tap to add a photo</Text>
-                        <Text style={styles.bbPhotoSubtitle}>Choose an image from your device</Text>
+                        <Text style={styles.bbPhotoTitle}>
+                          Tap to add a photo
+                        </Text>
+                        <Text style={styles.bbPhotoSubtitle}>
+                          Choose an image from your device
+                        </Text>
                       </View>
                     )}
                   </Pressable>
@@ -1520,7 +1591,9 @@ export default function MapScreen() {
                       <Text style={styles.bbStepBadgeText}>6</Text>
                     </View>
                     <View style={styles.bbSpotSectionHeadingWrap}>
-                      <Text style={styles.bbSpotSectionTitle}>Review & submit</Text>
+                      <Text style={styles.bbSpotSectionTitle}>
+                        Review & submit
+                      </Text>
                       <Text style={styles.bbSpotSectionHint}>
                         Approved spots help more people discover great food.
                       </Text>
@@ -1530,7 +1603,9 @@ export default function MapScreen() {
                   <Pressable
                     style={({ pressed }) => [
                       styles.bbSubmitButton,
-                      pressed && !submittingSpot && styles.bbSubmitButtonPressed,
+                      pressed &&
+                        !submittingSpot &&
+                        styles.bbSubmitButtonPressed,
                       submittingSpot && styles.primaryButtonDisabled,
                     ]}
                     onPress={() => {
@@ -1541,7 +1616,9 @@ export default function MapScreen() {
                     disabled={submittingSpot}
                   >
                     <Text style={styles.bbSubmitButtonText}>
-                      {submittingSpot ? "Submitting..." : "Submit Community Spot"}
+                      {submittingSpot
+                        ? "Submitting..."
+                        : "Submit Community Spot"}
                     </Text>
                   </Pressable>
                 </View>
@@ -1555,7 +1632,6 @@ export default function MapScreen() {
 }
 
 const styles = StyleSheet.create({
-
   // BiteBeacon Explore control system — production assets + themed panels.
   topControlsRowBB: {
     minHeight: 62,
@@ -1785,7 +1861,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginRight: 64,
   },
-
 
   // Spot-a-Vendor visual refresh. Behaviour and submission logic are unchanged.
   bbSpotModeBanner: {
@@ -2179,7 +2254,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 18,
     shadowColor: "#F4B547",
-    shadowOpacity: 0.30,
+    shadowOpacity: 0.3,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
     elevation: 8,
@@ -2196,7 +2271,6 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 0.1,
   },
-
 
   label: {
     fontSize: 14,
@@ -3336,27 +3410,27 @@ const styles = StyleSheet.create({
   },
 
   spotActionCard: {
-  backgroundColor: "rgba(14,29,45,0.96)",
+    backgroundColor: "rgba(14,29,45,0.96)",
 
-  borderRadius: 24,
+    borderRadius: 24,
 
-  padding: 18,
+    padding: 18,
 
-  marginTop: 10,
+    marginTop: 10,
 
-  borderWidth: 1,
-  borderColor: "rgba(244,181,71,0.24)",
+    borderWidth: 1,
+    borderColor: "rgba(244,181,71,0.24)",
 
-  shadowColor: "#000",
-  shadowOpacity: 0.22,
-  shadowRadius: 16,
-  shadowOffset: {
-    width: 0,
-    height: 7,
+    shadowColor: "#000",
+    shadowOpacity: 0.22,
+    shadowRadius: 16,
+    shadowOffset: {
+      width: 0,
+      height: 7,
+    },
+
+    elevation: 8,
   },
-
-  elevation: 8,
-},
 
   spotActionRow: {
     flexDirection: "row",
@@ -3370,17 +3444,16 @@ const styles = StyleSheet.create({
   },
 
   spotActionTitle: {
-  fontSize: 16,
-  fontWeight: "900",
-  color: "#FFFFFF",
-},
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#FFFFFF",
+  },
 
   spotActionSubtitle: {
-  marginTop: 4,
-  color: "rgba(255,255,255,0.62)",
-  fontSize: 13,
-  lineHeight: 18,
-  fontWeight: "600",
-},
-
+    marginTop: 4,
+    color: "rgba(255,255,255,0.62)",
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
 });

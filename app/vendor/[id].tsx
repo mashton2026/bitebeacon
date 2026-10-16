@@ -19,7 +19,7 @@ import MetallicFrame from "../../components/MetallicFrame";
 import SectionGlowLine from "../../components/SectionGlowLine";
 import {
   getSubscriptionFeatures,
-  isProTier
+  isProTier,
 } from "../../lib/subscriptionFeatures";
 import { ensureHttps } from "../../lib/url";
 import {
@@ -86,13 +86,7 @@ function getExpiryText(expiresAt?: string | null) {
   return `Expires in ${days} days`;
 }
 
-function StatCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
+function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
     <View style={styles.statCard}>
       <Text style={styles.statLabel}>{label}</Text>
@@ -153,7 +147,7 @@ export default function VendorScreen() {
   const activeVendorIdRef = useRef(id);
 
   function updateVanState(
-    updater: (previous: AssetAwareVan | null) => AssetAwareVan | null
+    updater: (previous: AssetAwareVan | null) => AssetAwareVan | null,
   ) {
     setVan((previous) => {
       const next = updater(previous);
@@ -197,7 +191,7 @@ export default function VendorScreen() {
       return () => {
         isActive = false;
       };
-    }, [id])
+    }, [id]),
   );
 
   async function loadCurrentUser(isActive: boolean) {
@@ -216,7 +210,7 @@ export default function VendorScreen() {
 
   async function loadCurrentUserVendorState(
     userId?: string | null,
-    isActive = true
+    isActive = true,
   ) {
     try {
       if (!userId) {
@@ -265,7 +259,7 @@ export default function VendorScreen() {
             vendor.id,
             userId,
             "view",
-            1440
+            1440,
           );
 
           if (!canCount) return;
@@ -276,19 +270,19 @@ export default function VendorScreen() {
           if (!isActive || activeVendorIdRef.current !== vendor.id) return;
 
           updateVanState((previous) =>
-            previous ? { ...previous, views: nextViews } : previous
+            previous ? { ...previous, views: nextViews } : previous,
           );
         } catch (error) {
           console.log(
             "Error updating views:",
-            error instanceof Error ? error.message : "Unknown error"
+            error instanceof Error ? error.message : "Unknown error",
           );
         }
       })();
     } catch (error) {
       console.log(
         "Error loading vendor:",
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
 
       if (isActive) {
@@ -349,7 +343,7 @@ export default function VendorScreen() {
     } catch (error) {
       console.log(
         "Error checking favourite:",
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
 
       if (isActive) {
@@ -372,7 +366,7 @@ export default function VendorScreen() {
           van.id,
           userId,
           "direction",
-          1440
+          1440,
         );
 
         if (canCount) {
@@ -383,7 +377,7 @@ export default function VendorScreen() {
 
       if (nextDirections !== null) {
         updateVanState((previous) =>
-          previous ? { ...previous, directions: nextDirections } : previous
+          previous ? { ...previous, directions: nextDirections } : previous,
         );
       }
 
@@ -392,7 +386,7 @@ export default function VendorScreen() {
     } catch (error) {
       console.log(
         "Error updating directions:",
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
     } finally {
       setIsOpeningDirections(false);
@@ -404,7 +398,7 @@ export default function VendorScreen() {
       if (!van?.menuPdfUrl) {
         Alert.alert(
           "Menu unavailable",
-          "This vendor has not uploaded a menu PDF."
+          "This vendor has not uploaded a menu PDF.",
         );
       }
       return;
@@ -439,7 +433,7 @@ export default function VendorScreen() {
       if (!userId) {
         Alert.alert(
           "Login required",
-          "Please log in or create an account to save favourites."
+          "Please log in or create an account to save favourites.",
         );
         return;
       }
@@ -447,7 +441,10 @@ export default function VendorScreen() {
       if (isFavourite) {
         await removeFavourite(userId, van.id);
         setIsFavourite(false);
-        Alert.alert("Removed", "This vendor has been removed from your favourites.");
+        Alert.alert(
+          "Removed",
+          "This vendor has been removed from your favourites.",
+        );
         return;
       }
 
@@ -455,7 +452,10 @@ export default function VendorScreen() {
 
       if (alreadyFavourite) {
         setIsFavourite(true);
-        Alert.alert("Already saved", "This vendor is already in your favourites.");
+        Alert.alert(
+          "Already saved",
+          "This vendor is already in your favourites.",
+        );
         return;
       }
 
@@ -465,7 +465,7 @@ export default function VendorScreen() {
     } catch (error) {
       Alert.alert(
         isFavourite ? "Remove failed" : "Save failed",
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
     } finally {
       setIsSavingFavourite(false);
@@ -495,7 +495,7 @@ export default function VendorScreen() {
 
       setRatingCount(nextCount);
       updateVanState((previous) =>
-        previous ? { ...previous, rating: nextAverage } : previous
+        previous ? { ...previous, rating: nextAverage } : previous,
       );
     } catch {
       Alert.alert("Error", "Failed to submit rating");
@@ -514,7 +514,7 @@ export default function VendorScreen() {
     ) {
       Alert.alert(
         "Listing expired",
-        "This spotted listing has expired and can no longer be claimed."
+        "This spotted listing has expired and can no longer be claimed.",
       );
       return;
     }
@@ -522,7 +522,7 @@ export default function VendorScreen() {
     if (!isCurrentUserVendorAccount) {
       Alert.alert(
         "Vendor login required",
-        "Please log in with a vendor account to claim this spotted van."
+        "Please log in with a vendor account to claim this spotted van.",
       );
       return;
     }
@@ -566,7 +566,7 @@ export default function VendorScreen() {
         : [];
 
   const statusText =
-    van.listingSource === "user_spotted"
+    van.listingSource === "user_spotted" && !van.owner_id
       ? "SPOTTED"
       : features.liveStatus
         ? van.isLive
@@ -575,12 +575,13 @@ export default function VendorScreen() {
         : "LISTED";
 
   const canShowPremiumBranding = features.images;
-  const primaryVisual = galleryPhotos[0] ?? (canShowPremiumBranding ? van.logoUrl : null) ?? null;
+  const primaryVisual =
+    galleryPhotos[0] ?? (canShowPremiumBranding ? van.logoUrl : null) ?? null;
   const showSocialLinks =
     showSocials && (van.instagramUrl || van.facebookUrl || van.websiteUrl);
   const showPreciseLocation = !!van.what3words && showSocials;
   const ratingDisplay = ratingCount >= 3 ? van.rating.toFixed(1) : "New";
-  const isSpotted = van.listingSource === "user_spotted";
+  const isSpotted = van.listingSource === "user_spotted" && !van.owner_id;
   const isExpiredSpotted =
     isSpotted && !!van.expiresAt && new Date(van.expiresAt) < new Date();
   const hasGallery = canShowPremiumBranding && galleryPhotos.length > 1;
@@ -591,8 +592,13 @@ export default function VendorScreen() {
   const hasMainPhoto = galleryPhotos.length > 0;
   const hasDistinctVendorName =
     !!van.vendorName?.trim() &&
+    !(
+      van.owner_id &&
+      van.vendorName.trim().toLowerCase() === "community spotted"
+    ) &&
     van.vendorName.trim().toLowerCase() !== van.name.trim().toLowerCase() &&
-    van.vendorName.trim().toLowerCase() !== (van.cuisine ?? "").trim().toLowerCase();
+    van.vendorName.trim().toLowerCase() !==
+      (van.cuisine ?? "").trim().toLowerCase();
 
   const ownerMissingEssentials = [
     !hasMainPhoto ? "a main photo" : null,
@@ -617,7 +623,11 @@ export default function VendorScreen() {
       >
         <View style={styles.topBar}>
           <Pressable style={styles.circleButton} onPress={() => router.back()}>
-            <MaterialCommunityIcons name="chevron-left" size={27} color={WHITE} />
+            <MaterialCommunityIcons
+              name="chevron-left"
+              size={27}
+              color={WHITE}
+            />
           </Pressable>
 
           <AppText variant="label" style={styles.topBarEyebrow}>
@@ -626,7 +636,10 @@ export default function VendorScreen() {
 
           {!isOwner ? (
             <Pressable
-              style={[styles.circleButton, isFavourite && styles.circleButtonActive]}
+              style={[
+                styles.circleButton,
+                isFavourite && styles.circleButtonActive,
+              ]}
               onPress={toggleFavourite}
               disabled={isSavingFavourite}
             >
@@ -640,18 +653,29 @@ export default function VendorScreen() {
             <Pressable
               style={styles.circleButton}
               onPress={() =>
-                router.push({ pathname: "/vendor/dashboard", params: { id: van.id } })
+                router.push({
+                  pathname: "/vendor/dashboard",
+                  params: { id: van.id },
+                })
               }
             >
-              <MaterialCommunityIcons name="cog-outline" size={22} color="#F4B547" />
+              <MaterialCommunityIcons
+                name="cog-outline"
+                size={22}
+                color="#F4B547"
+              />
             </Pressable>
           )}
         </View>
 
-        <View style={[styles.heroShell, !hasMainPhoto && styles.heroShellCompact]}>
+        <View
+          style={[styles.heroShell, !hasMainPhoto && styles.heroShellCompact]}
+        >
           <CardGlowBorder
             accentColor={van.isLive ? "#45E27B" : "#F4B547"}
-            borderColor={van.isLive ? "rgba(69,226,123,0.40)" : "rgba(244,181,71,0.42)"}
+            borderColor={
+              van.isLive ? "rgba(69,226,123,0.40)" : "rgba(244,181,71,0.42)"
+            }
             borderRadius={28}
           />
 
@@ -663,9 +687,16 @@ export default function VendorScreen() {
           >
             {hasMainPhoto ? (
               <View style={styles.heroCard}>
-                <Image source={{ uri: galleryPhotos[0] }} style={styles.heroPhoto} />
+                <Image
+                  source={{ uri: galleryPhotos[0] }}
+                  style={styles.heroPhoto}
+                />
                 <LinearGradient
-                  colors={["rgba(3,12,23,0.02)", "rgba(3,12,23,0.70)", "rgba(3,12,23,0.98)"]}
+                  colors={[
+                    "rgba(3,12,23,0.02)",
+                    "rgba(3,12,23,0.70)",
+                    "rgba(3,12,23,0.98)",
+                  ]}
                   locations={[0.15, 0.58, 1]}
                   style={styles.heroOverlay}
                 />
@@ -682,24 +713,41 @@ export default function VendorScreen() {
                     ]}
                   >
                     <View style={styles.statusDot} />
-                    <AppText variant="label" style={styles.statusPillText}>{statusText}</AppText>
+                    <AppText variant="label" style={styles.statusPillText}>
+                      {statusText}
+                    </AppText>
                   </View>
 
                   {isProTier(van.subscriptionTier) ? (
                     <View style={styles.proPill}>
-                      <MaterialCommunityIcons name="crown" size={14} color="#F4B547" />
-                      <AppText variant="label" style={styles.proPillText}>PRO</AppText>
+                      <MaterialCommunityIcons
+                        name="crown"
+                        size={14}
+                        color="#F4B547"
+                      />
+                      <AppText variant="label" style={styles.proPillText}>
+                        PRO
+                      </AppText>
                     </View>
                   ) : null}
                 </View>
 
                 <View style={styles.heroBottom}>
                   <View style={styles.heroTitleRow}>
-                    {canShowPremiumBranding && van.logoUrl ? <Image source={{ uri: van.logoUrl }} style={styles.logoBadge} /> : null}
+                    {canShowPremiumBranding && van.logoUrl ? (
+                      <Image
+                        source={{ uri: van.logoUrl }}
+                        style={styles.logoBadge}
+                      />
+                    ) : null}
                     <View style={styles.heroTitleCopy}>
-                      <AppText variant="heading" style={styles.heroTitle}>{van.name}</AppText>
+                      <AppText variant="heading" style={styles.heroTitle}>
+                        {van.name}
+                      </AppText>
                       {hasDistinctVendorName ? (
-                        <AppText variant="body" style={styles.heroVendorName}>{van.vendorName}</AppText>
+                        <AppText variant="body" style={styles.heroVendorName}>
+                          {van.vendorName}
+                        </AppText>
                       ) : null}
                       <AppText variant="body" style={styles.heroCuisine}>
                         {van.cuisine || "Street food vendor"}
@@ -709,14 +757,28 @@ export default function VendorScreen() {
 
                   <View style={styles.heroMetaRow}>
                     <View style={styles.heroMetaItem}>
-                      <MaterialCommunityIcons name="star" size={17} color="#F4B547" />
-                      <AppText variant="body" style={styles.heroMetaValue}>{ratingDisplay}</AppText>
-                      {ratingCount > 0 ? <AppText variant="body" style={styles.heroMetaMuted}>({ratingCount})</AppText> : null}
+                      <MaterialCommunityIcons
+                        name="star"
+                        size={17}
+                        color="#F4B547"
+                      />
+                      <AppText variant="body" style={styles.heroMetaValue}>
+                        {ratingDisplay}
+                      </AppText>
+                      {ratingCount > 0 ? (
+                        <AppText variant="body" style={styles.heroMetaMuted}>
+                          ({ratingCount})
+                        </AppText>
+                      ) : null}
                     </View>
                     {hasFoodCategories ? (
                       <>
                         <View style={styles.metaDivider} />
-                        <AppText variant="body" style={styles.heroMetaMuted} numberOfLines={1}>
+                        <AppText
+                          variant="body"
+                          style={styles.heroMetaMuted}
+                          numberOfLines={1}
+                        >
                           {(van.foodCategories ?? []).slice(0, 2).join(" · ")}
                         </AppText>
                       </>
@@ -726,7 +788,11 @@ export default function VendorScreen() {
               </View>
             ) : (
               <LinearGradient
-                colors={["rgba(12,37,61,0.98)", "rgba(5,20,35,0.99)", "rgba(3,13,24,1)"]}
+                colors={[
+                  "rgba(12,37,61,0.98)",
+                  "rgba(5,20,35,0.99)",
+                  "rgba(3,13,24,1)",
+                ]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.compactHeroCard}
@@ -734,30 +800,63 @@ export default function VendorScreen() {
                 <View style={styles.compactHeroTop}>
                   <View style={styles.compactIdentityVisual}>
                     {canShowPremiumBranding && van.logoUrl ? (
-                      <Image source={{ uri: van.logoUrl }} style={styles.compactIdentityLogo} />
+                      <Image
+                        source={{ uri: van.logoUrl }}
+                        style={styles.compactIdentityLogo}
+                      />
                     ) : (
-                      <AppText variant="heading" style={styles.compactIdentityInitial}>
+                      <AppText
+                        variant="heading"
+                        style={styles.compactIdentityInitial}
+                      >
                         {van.name?.charAt(0)?.toUpperCase() ?? "V"}
                       </AppText>
                     )}
                   </View>
                   <View style={styles.compactHeroCopy}>
-                    <AppText variant="heading" style={styles.heroTitle}>{van.name}</AppText>
+                    <AppText variant="heading" style={styles.heroTitle}>
+                      {van.name}
+                    </AppText>
                     {hasDistinctVendorName ? (
-                      <AppText variant="body" style={styles.heroVendorName}>{van.vendorName}</AppText>
+                      <AppText variant="body" style={styles.heroVendorName}>
+                        {van.vendorName}
+                      </AppText>
                     ) : null}
-                    <AppText variant="body" style={styles.heroCuisine}>{van.cuisine || "Street food vendor"}</AppText>
+                    <AppText variant="body" style={styles.heroCuisine}>
+                      {van.cuisine || "Street food vendor"}
+                    </AppText>
                   </View>
                 </View>
                 <View style={styles.compactHeroBottom}>
-                  <View style={[styles.statusPill, van.isLive && !isSpotted ? styles.statusPillLive : isSpotted ? styles.statusPillSpotted : styles.statusPillListed]}>
+                  <View
+                    style={[
+                      styles.statusPill,
+                      van.isLive && !isSpotted
+                        ? styles.statusPillLive
+                        : isSpotted
+                          ? styles.statusPillSpotted
+                          : styles.statusPillListed,
+                    ]}
+                  >
                     <View style={styles.statusDot} />
-                    <AppText variant="label" style={styles.statusPillText}>{statusText}</AppText>
+                    <AppText variant="label" style={styles.statusPillText}>
+                      {statusText}
+                    </AppText>
                   </View>
                   <View style={styles.heroMetaItem}>
-                    <MaterialCommunityIcons name="star" size={17} color="#F4B547" />
-                    <AppText variant="body" style={styles.heroMetaValue}>{ratingDisplay}</AppText>
-                    {ratingCount > 0 ? <AppText variant="body" style={styles.heroMetaMuted}>({ratingCount})</AppText> : null}
+                    <MaterialCommunityIcons
+                      name="star"
+                      size={17}
+                      color="#F4B547"
+                    />
+                    <AppText variant="body" style={styles.heroMetaValue}>
+                      {ratingDisplay}
+                    </AppText>
+                    {ratingCount > 0 ? (
+                      <AppText variant="body" style={styles.heroMetaMuted}>
+                        ({ratingCount})
+                      </AppText>
+                    ) : null}
                   </View>
                 </View>
               </LinearGradient>
@@ -771,12 +870,18 @@ export default function VendorScreen() {
             onPress={openDirections}
             disabled={isOpeningDirections}
           >
-            <MaterialCommunityIcons name="navigation-variant" size={20} color="#F4B547" />
+            <MaterialCommunityIcons
+              name="navigation-variant"
+              size={20}
+              color="#F4B547"
+            />
             <View style={styles.actionCopy}>
               <AppText variant="button" style={styles.primaryActionTitle}>
                 {isOpeningDirections ? "Opening..." : "Directions"}
               </AppText>
-              <AppText variant="body" style={styles.primaryActionHint}>Open in Maps</AppText>
+              <AppText variant="body" style={styles.primaryActionHint}>
+                Open in Maps
+              </AppText>
             </View>
           </Pressable>
 
@@ -784,13 +889,24 @@ export default function VendorScreen() {
             <Pressable
               style={[styles.primaryAction, styles.primaryActionBlue]}
               onPress={() =>
-                router.push({ pathname: "/vendor/dashboard", params: { id: van.id } })
+                router.push({
+                  pathname: "/vendor/dashboard",
+                  params: { id: van.id },
+                })
               }
             >
-              <MaterialCommunityIcons name="view-dashboard-outline" size={20} color="#62B5FF" />
+              <MaterialCommunityIcons
+                name="view-dashboard-outline"
+                size={20}
+                color="#62B5FF"
+              />
               <View style={styles.actionCopy}>
-                <AppText variant="button" style={styles.primaryActionTitle}>Manage</AppText>
-                <AppText variant="body" style={styles.primaryActionHint}>Vendor dashboard</AppText>
+                <AppText variant="button" style={styles.primaryActionTitle}>
+                  Manage
+                </AppText>
+                <AppText variant="body" style={styles.primaryActionHint}>
+                  Vendor dashboard
+                </AppText>
               </View>
             </Pressable>
           ) : (
@@ -806,9 +922,15 @@ export default function VendorScreen() {
               />
               <View style={styles.actionCopy}>
                 <AppText variant="button" style={styles.primaryActionTitle}>
-                  {isSavingFavourite ? "Updating..." : isFavourite ? "Saved" : "Favourite"}
+                  {isSavingFavourite
+                    ? "Updating..."
+                    : isFavourite
+                      ? "Saved"
+                      : "Favourite"}
                 </AppText>
-                <AppText variant="body" style={styles.primaryActionHint}>Keep for later</AppText>
+                <AppText variant="body" style={styles.primaryActionHint}>
+                  Keep for later
+                </AppText>
               </View>
             </Pressable>
           )}
@@ -816,7 +938,11 @@ export default function VendorScreen() {
 
         {isOwner ? (
           <View style={styles.ownerStrip}>
-            <MaterialCommunityIcons name="eye-check-outline" size={18} color="#62B5FF" />
+            <MaterialCommunityIcons
+              name="eye-check-outline"
+              size={18}
+              color="#62B5FF"
+            />
             <AppText variant="body" style={styles.ownerStripText}>
               You are viewing the customer version of your listing.
             </AppText>
@@ -826,7 +952,11 @@ export default function VendorScreen() {
         {isOwner && ownerMissingText ? (
           <View style={styles.ownerQualityCard}>
             <View style={styles.ownerQualityIcon}>
-              <MaterialCommunityIcons name="storefront-outline" size={21} color="#F4B547" />
+              <MaterialCommunityIcons
+                name="storefront-outline"
+                size={21}
+                color="#F4B547"
+              />
             </View>
             <View style={styles.ownerQualityCopy}>
               <AppText variant="button" style={styles.ownerQualityTitle}>
@@ -839,10 +969,17 @@ export default function VendorScreen() {
             <Pressable
               style={styles.ownerQualityButton}
               onPress={() =>
-                router.push({ pathname: "/vendor/dashboard", params: { id: van.id } })
+                router.push({
+                  pathname: "/vendor/dashboard",
+                  params: { id: van.id },
+                })
               }
             >
-              <MaterialCommunityIcons name="pencil-outline" size={19} color="#F4B547" />
+              <MaterialCommunityIcons
+                name="pencil-outline"
+                size={19}
+                color="#F4B547"
+              />
             </Pressable>
           </View>
         ) : null}
@@ -851,18 +988,27 @@ export default function VendorScreen() {
           <View style={styles.communityCard}>
             <View style={styles.sectionHeadingRow}>
               <View style={styles.sectionIconGold}>
-                <MaterialCommunityIcons name="map-marker-star-outline" size={20} color="#F4B547" />
+                <MaterialCommunityIcons
+                  name="map-marker-star-outline"
+                  size={20}
+                  color="#F4B547"
+                />
               </View>
               <View style={styles.sectionHeadingCopy}>
-                <AppText variant="heading" style={styles.sectionTitleSmall}>Community spotted</AppText>
+                <AppText variant="heading" style={styles.sectionTitleSmall}>
+                  Community spotted
+                </AppText>
                 <AppText variant="body" style={styles.sectionSubtitle}>
-                  This listing was added by the BiteBeacon community and has not yet been claimed.
+                  This listing was added by the BiteBeacon community and has not
+                  yet been claimed.
                 </AppText>
               </View>
             </View>
             {getExpiryText(van.expiresAt) ? (
               <View style={styles.expiryPill}>
-                <AppText variant="label" style={styles.expiryPillText}>{getExpiryText(van.expiresAt)}</AppText>
+                <AppText variant="label" style={styles.expiryPillText}>
+                  {getExpiryText(van.expiresAt)}
+                </AppText>
               </View>
             ) : null}
           </View>
@@ -880,22 +1026,36 @@ export default function VendorScreen() {
               style={styles.messageCard}
             >
               <View style={styles.messageHeader}>
-                <MaterialCommunityIcons name="bullhorn-outline" size={19} color="#F4B547" />
-                <AppText variant="label" style={styles.messageEyebrow}>FROM THE VENDOR</AppText>
+                <MaterialCommunityIcons
+                  name="bullhorn-outline"
+                  size={19}
+                  color="#F4B547"
+                />
+                <AppText variant="label" style={styles.messageEyebrow}>
+                  FROM THE VENDOR
+                </AppText>
               </View>
-              <AppText variant="heading" style={styles.messageTitle}>A note from {van.name}</AppText>
-              <AppText variant="body" style={styles.messageText}>{van.vendorMessage}</AppText>
+              <AppText variant="heading" style={styles.messageTitle}>
+                A note from {van.name}
+              </AppText>
+              <AppText variant="body" style={styles.messageText}>
+                {van.vendorMessage}
+              </AppText>
             </LinearGradient>
           </View>
         ) : null}
 
         {hasFoodCategories ? (
           <View style={styles.chipSection}>
-            <AppText variant="label" style={styles.sectionEyebrow}>FOOD & SPECIALITIES</AppText>
+            <AppText variant="label" style={styles.sectionEyebrow}>
+              FOOD & SPECIALITIES
+            </AppText>
             <View style={styles.chipWrap}>
               {(van.foodCategories ?? []).map((category) => (
                 <View key={category} style={styles.chip}>
-                  <AppText variant="body" style={styles.chipText}>{category}</AppText>
+                  <AppText variant="body" style={styles.chipText}>
+                    {category}
+                  </AppText>
                 </View>
               ))}
             </View>
@@ -906,10 +1066,16 @@ export default function VendorScreen() {
           <View style={styles.gallerySection}>
             <View style={styles.sectionHeadingRowStandalone}>
               <View>
-                <AppText variant="label" style={styles.sectionEyebrow}>GALLERY</AppText>
-                <AppText variant="heading" style={styles.sectionTitle}>A closer look</AppText>
+                <AppText variant="label" style={styles.sectionEyebrow}>
+                  GALLERY
+                </AppText>
+                <AppText variant="heading" style={styles.sectionTitle}>
+                  A closer look
+                </AppText>
               </View>
-              <AppText variant="body" style={styles.galleryCount}>{galleryPhotos.length} photos</AppText>
+              <AppText variant="body" style={styles.galleryCount}>
+                {galleryPhotos.length} photos
+              </AppText>
             </View>
 
             <ScrollView
@@ -918,8 +1084,14 @@ export default function VendorScreen() {
               contentContainerStyle={styles.galleryRow}
             >
               {galleryPhotos.map((photoUri, index) => (
-                <View key={`${photoUri}-${index}`} style={styles.galleryImageShell}>
-                  <Image source={{ uri: photoUri }} style={styles.galleryImage} />
+                <View
+                  key={`${photoUri}-${index}`}
+                  style={styles.galleryImageShell}
+                >
+                  <Image
+                    source={{ uri: photoUri }}
+                    style={styles.galleryImage}
+                  />
                 </View>
               ))}
             </ScrollView>
@@ -938,29 +1110,53 @@ export default function VendorScreen() {
           >
             <View style={styles.sectionHeadingRow}>
               <View style={styles.sectionIconBlue}>
-                <MaterialCommunityIcons name="silverware-fork-knife" size={20} color="#62B5FF" />
+                <MaterialCommunityIcons
+                  name="silverware-fork-knife"
+                  size={20}
+                  color="#62B5FF"
+                />
               </View>
               <View style={styles.sectionHeadingCopy}>
-                <AppText variant="heading" style={styles.sectionTitle}>Menu</AppText>
-                <AppText variant="body" style={styles.sectionSubtitle}>What’s on offer.</AppText>
+                <AppText variant="heading" style={styles.sectionTitle}>
+                  Menu
+                </AppText>
+                <AppText variant="body" style={styles.sectionSubtitle}>
+                  What’s on offer.
+                </AppText>
               </View>
             </View>
             <SectionGlowLine />
             <AppText variant="body" style={styles.largeBodyText}>
-              {hasMenu ? van.menu : "Menu details coming soon."}
+              {van.owner_id &&
+              van.menu?.trim().toLowerCase() === "claim this van to add menu"
+                ? "Menu details coming soon."
+                : hasMenu
+                  ? van.menu
+                  : "Menu details coming soon."}
             </AppText>
 
             {canShowPremiumBranding && van.menuPdfName ? (
               <Pressable
-                style={[styles.inlineButton, isOpeningMenuPdf && styles.disabledButton]}
+                style={[
+                  styles.inlineButton,
+                  isOpeningMenuPdf && styles.disabledButton,
+                ]}
                 onPress={openMenuPdf}
                 disabled={isOpeningMenuPdf}
               >
-                <MaterialCommunityIcons name="file-pdf-box" size={20} color="#F4B547" />
+                <MaterialCommunityIcons
+                  name="file-pdf-box"
+                  size={20}
+                  color="#F4B547"
+                />
                 <AppText variant="button" style={styles.inlineButtonText}>
                   {isOpeningMenuPdf ? "Opening menu..." : "Open full menu PDF"}
                 </AppText>
-                <MaterialCommunityIcons name="arrow-top-right" size={18} color="#F4B547" />
+                <MaterialCommunityIcons
+                  name="arrow-top-right"
+                  size={18}
+                  color="#F4B547"
+                />
               </Pressable>
             ) : null}
           </LinearGradient>
@@ -978,10 +1174,16 @@ export default function VendorScreen() {
           >
             <View style={styles.sectionHeadingRow}>
               <View style={styles.sectionIconGold}>
-                <MaterialCommunityIcons name="clock-outline" size={20} color="#F4B547" />
+                <MaterialCommunityIcons
+                  name="clock-outline"
+                  size={20}
+                  color="#F4B547"
+                />
               </View>
               <View style={styles.sectionHeadingCopy}>
-                <AppText variant="heading" style={styles.sectionTitle}>When to find us</AppText>
+                <AppText variant="heading" style={styles.sectionTitle}>
+                  When to find us
+                </AppText>
                 <AppText variant="body" style={styles.sectionSubtitle}>
                   Trading times and current availability.
                 </AppText>
@@ -991,18 +1193,29 @@ export default function VendorScreen() {
 
             <View style={styles.scheduleRow}>
               <View style={styles.scheduleCopy}>
-                <AppText variant="label" style={styles.miniLabel}>SCHEDULE</AppText>
+                <AppText variant="label" style={styles.miniLabel}>
+                  SCHEDULE
+                </AppText>
                 <AppText variant="body" style={styles.largeBodyText}>
-                  {hasSchedule ? van.schedule : "Schedule coming soon."}
+                  {van.owner_id &&
+                  van.schedule?.trim().toLowerCase() === "claim to add schedule"
+                    ? "Trading times coming soon."
+                    : hasSchedule
+                      ? van.schedule
+                      : "Schedule coming soon."}
                 </AppText>
               </View>
               <View
                 style={[
                   styles.liveStatePill,
-                  van.isLive ? styles.liveStatePillLive : styles.liveStatePillOffline,
+                  van.isLive
+                    ? styles.liveStatePillLive
+                    : styles.liveStatePillOffline,
                 ]}
               >
-                <View style={[styles.liveDot, !van.isLive && styles.liveDotOffline]} />
+                <View
+                  style={[styles.liveDot, !van.isLive && styles.liveDotOffline]}
+                />
                 <AppText variant="label" style={styles.liveStateText}>
                   {van.isLive ? "LIVE NOW" : "OFFLINE"}
                 </AppText>
@@ -1024,11 +1237,19 @@ export default function VendorScreen() {
             >
               <View style={styles.sectionHeadingRow}>
                 <View style={styles.sectionIconBlue}>
-                  <MaterialCommunityIcons name="link-variant" size={20} color="#62B5FF" />
+                  <MaterialCommunityIcons
+                    name="link-variant"
+                    size={20}
+                    color="#62B5FF"
+                  />
                 </View>
                 <View style={styles.sectionHeadingCopy}>
-                  <AppText variant="heading" style={styles.sectionTitle}>Find & follow</AppText>
-                  <AppText variant="body" style={styles.sectionSubtitle}>Follow, browse and find out more.</AppText>
+                  <AppText variant="heading" style={styles.sectionTitle}>
+                    Find & follow
+                  </AppText>
+                  <AppText variant="body" style={styles.sectionSubtitle}>
+                    Follow, browse and find out more.
+                  </AppText>
                 </View>
               </View>
               <SectionGlowLine />
@@ -1038,30 +1259,54 @@ export default function VendorScreen() {
                   {van.instagramUrl ? (
                     <Pressable
                       style={styles.linkTile}
-                      onPress={() => Linking.openURL(ensureHttps(van.instagramUrl!))}
+                      onPress={() =>
+                        Linking.openURL(ensureHttps(van.instagramUrl!))
+                      }
                     >
-                      <MaterialCommunityIcons name="instagram" size={21} color="#F4B547" />
-                      <AppText variant="button" style={styles.linkTileText}>Instagram</AppText>
+                      <MaterialCommunityIcons
+                        name="instagram"
+                        size={21}
+                        color="#F4B547"
+                      />
+                      <AppText variant="button" style={styles.linkTileText}>
+                        Instagram
+                      </AppText>
                     </Pressable>
                   ) : null}
 
                   {van.facebookUrl ? (
                     <Pressable
                       style={styles.linkTile}
-                      onPress={() => Linking.openURL(ensureHttps(van.facebookUrl!))}
+                      onPress={() =>
+                        Linking.openURL(ensureHttps(van.facebookUrl!))
+                      }
                     >
-                      <MaterialCommunityIcons name="facebook" size={21} color="#62B5FF" />
-                      <AppText variant="button" style={styles.linkTileText}>Facebook</AppText>
+                      <MaterialCommunityIcons
+                        name="facebook"
+                        size={21}
+                        color="#62B5FF"
+                      />
+                      <AppText variant="button" style={styles.linkTileText}>
+                        Facebook
+                      </AppText>
                     </Pressable>
                   ) : null}
 
                   {van.websiteUrl ? (
                     <Pressable
                       style={styles.linkTile}
-                      onPress={() => Linking.openURL(ensureHttps(van.websiteUrl!))}
+                      onPress={() =>
+                        Linking.openURL(ensureHttps(van.websiteUrl!))
+                      }
                     >
-                      <MaterialCommunityIcons name="web" size={21} color="#45E27B" />
-                      <AppText variant="button" style={styles.linkTileText}>Website</AppText>
+                      <MaterialCommunityIcons
+                        name="web"
+                        size={21}
+                        color="#45E27B"
+                      />
+                      <AppText variant="button" style={styles.linkTileText}>
+                        Website
+                      </AppText>
                     </Pressable>
                   ) : null}
                 </View>
@@ -1070,16 +1315,30 @@ export default function VendorScreen() {
               {showPreciseLocation ? (
                 <Pressable
                   style={styles.preciseLocationRow}
-                  onPress={() => Linking.openURL(`https://what3words.com/${van.what3words}`)}
+                  onPress={() =>
+                    Linking.openURL(`https://what3words.com/${van.what3words}`)
+                  }
                 >
                   <View style={styles.preciseLocationIcon}>
-                    <MaterialCommunityIcons name="map-marker-radius-outline" size={21} color="#F4B547" />
+                    <MaterialCommunityIcons
+                      name="map-marker-radius-outline"
+                      size={21}
+                      color="#F4B547"
+                    />
                   </View>
                   <View style={styles.preciseLocationCopy}>
-                    <AppText variant="label" style={styles.miniLabel}>PRECISE LOCATION</AppText>
-                    <AppText variant="body" style={styles.preciseLocationText}>///{van.what3words}</AppText>
+                    <AppText variant="label" style={styles.miniLabel}>
+                      PRECISE LOCATION
+                    </AppText>
+                    <AppText variant="body" style={styles.preciseLocationText}>
+                      ///{van.what3words}
+                    </AppText>
                   </View>
-                  <MaterialCommunityIcons name="chevron-right" size={22} color="#F4B547" />
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={22}
+                    color="#F4B547"
+                  />
                 </Pressable>
               ) : null}
             </LinearGradient>
@@ -1099,11 +1358,19 @@ export default function VendorScreen() {
             >
               <View style={styles.sectionHeadingRow}>
                 <View style={styles.sectionIconGold}>
-                  <MaterialCommunityIcons name="star-outline" size={21} color="#F4B547" />
+                  <MaterialCommunityIcons
+                    name="star-outline"
+                    size={21}
+                    color="#F4B547"
+                  />
                 </View>
                 <View style={styles.sectionHeadingCopy}>
-                  <AppText variant="heading" style={styles.sectionTitle}>Rate this vendor</AppText>
-                  <AppText variant="body" style={styles.sectionSubtitle}>Help other customers discover great traders.</AppText>
+                  <AppText variant="heading" style={styles.sectionTitle}>
+                    Rate this vendor
+                  </AppText>
+                  <AppText variant="body" style={styles.sectionSubtitle}>
+                    Help other customers discover great traders.
+                  </AppText>
                 </View>
               </View>
               <SectionGlowLine />
@@ -1117,7 +1384,11 @@ export default function VendorScreen() {
                     style={styles.ratingStarButton}
                   >
                     <MaterialCommunityIcons
-                      name={userRating && star <= userRating ? "star" : "star-outline"}
+                      name={
+                        userRating && star <= userRating
+                          ? "star"
+                          : "star-outline"
+                      }
                       size={34}
                       color="#F4B547"
                     />
@@ -1125,7 +1396,9 @@ export default function VendorScreen() {
                 ))}
               </View>
               <AppText variant="body" style={styles.ratingHelp}>
-                {userRating ? `Your rating: ${userRating}/5` : "Tap a star to leave your rating."}
+                {userRating
+                  ? `Your rating: ${userRating}/5`
+                  : "Tap a star to leave your rating."}
               </AppText>
             </LinearGradient>
           </MetallicFrame>
@@ -1133,13 +1406,21 @@ export default function VendorScreen() {
 
         {isSpotted && !isExpiredSpotted ? (
           <View style={styles.spottedActionsCard}>
-            <AppText variant="heading" style={styles.sectionTitleSmall}>Is this your van?</AppText>
+            <AppText variant="heading" style={styles.sectionTitleSmall}>
+              Is this your van?
+            </AppText>
             <AppText variant="body" style={styles.sectionSubtitle}>
               Claim this community listing to manage its details on BiteBeacon.
             </AppText>
             <Pressable style={styles.claimButton} onPress={openClaimScreen}>
-              <MaterialCommunityIcons name="shield-check-outline" size={20} color="#081521" />
-              <AppText variant="button" style={styles.claimButtonText}>Claim this van</AppText>
+              <MaterialCommunityIcons
+                name="shield-check-outline"
+                size={20}
+                color="#081521"
+              />
+              <AppText variant="button" style={styles.claimButtonText}>
+                Claim this van
+              </AppText>
             </Pressable>
           </View>
         ) : null}
@@ -1147,16 +1428,33 @@ export default function VendorScreen() {
         {!isOwner ? (
           <Pressable
             style={styles.reportLink}
-            onPress={() => router.push({ pathname: "/vendor/report", params: { id: van.id } })}
+            onPress={() =>
+              router.push({
+                pathname: "/vendor/report",
+                params: { id: van.id },
+              })
+            }
           >
-            <MaterialCommunityIcons name="flag-outline" size={17} color="rgba(255,255,255,0.56)" />
-            <AppText variant="body" style={styles.reportLinkText}>Report this listing</AppText>
+            <MaterialCommunityIcons
+              name="flag-outline"
+              size={17}
+              color="rgba(255,255,255,0.56)"
+            />
+            <AppText variant="body" style={styles.reportLinkText}>
+              Report this listing
+            </AppText>
           </Pressable>
         ) : null}
 
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <MaterialCommunityIcons name="chevron-left" size={20} color="#C7D2E0" />
-          <AppText variant="button" style={styles.backButtonText}>Back</AppText>
+          <MaterialCommunityIcons
+            name="chevron-left"
+            size={20}
+            color="#C7D2E0"
+          />
+          <AppText variant="button" style={styles.backButtonText}>
+            Back
+          </AppText>
         </Pressable>
       </ScrollView>
     </MapTextureBackground>
@@ -1939,5 +2237,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 19,
   },
-
 });
