@@ -3,18 +3,18 @@
     "name": "BiteBeacon",
     "slug": "bitebeacon",
     "scheme": "bitebeacon",
-    "version": "1.0.11",
+    "version": "1.0.12",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/images/splash.png",
+      "image": "./assets/images/bitebeacon-native-splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0D1B2A"
+      "backgroundColor": "#071421"
     },
     "android": {
       "package": "com.bitebeacon.mobileapp",
-      "versionCode": 31,
+      "versionCode": 32,
       "softwareKeyboardLayoutMode": "pan",
       "config": {
         "googleMaps": {
@@ -58,7 +58,15 @@
         }
       ],
       "./plugins/withCleanIosPermissions",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#071421",
+          "image": "./assets/images/bitebeacon-native-splash.png",
+          "imageWidth": 200
+        }
+      ]
     ],
     "extra": {
       "router": {},
@@ -67,7 +75,7 @@
       }
     },
     "androidStatusBar": {
-      "backgroundColor": "#0D1B2A"
+      "backgroundColor": "#071421"
     },
     "owner": "bitebeacon"
   }

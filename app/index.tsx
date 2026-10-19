@@ -1,11 +1,20 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import { useEffect } from "react";
-import { View } from "react-native";
+import { useEffect, useState } from "react";
+import BiteBeaconStartup from "../components/BiteBeaconStartup";
 import { supabase } from "../lib/supabase";
 import { getVendorByOwnerId } from "../services/vendorService";
 
 export default function IndexScreen() {
+  const [startupFinished, setStartupFinished] = useState(false);
+  const [destination, setDestination] = useState<
+    | { pathname: "/vendor/dashboard"; params: { id: string } }
+    | "/(tabs)"
+    | "/welcome"
+    | "/onboarding"
+    | null
+  >(null);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -23,14 +32,14 @@ export default function IndexScreen() {
           if (!isMounted) return;
 
           if (vendor) {
-            router.replace({
+            setDestination({
               pathname: "/vendor/dashboard",
               params: { id: vendor.id },
             });
             return;
           }
 
-          router.replace("/(tabs)");
+          setDestination("/(tabs)");
           return;
         }
 
@@ -38,15 +47,10 @@ export default function IndexScreen() {
 
         if (!isMounted) return;
 
-        if (seenOnboarding === "true") {
-          router.replace("/welcome");
-          return;
-        }
-
-        router.replace("/onboarding");
+        setDestination(seenOnboarding === "true" ? "/welcome" : "/onboarding");
       } catch {
         if (isMounted) {
-          router.replace("/welcome");
+          setDestination("/welcome");
         }
       }
     }
@@ -58,5 +62,15 @@ export default function IndexScreen() {
     };
   }, []);
 
-  return <View style={{ flex: 1 }} />;
+  useEffect(() => {
+    if (!startupFinished || !destination) return;
+
+    if (typeof destination === "string") {
+      router.replace(destination);
+    } else {
+      router.replace(destination);
+    }
+  }, [startupFinished, destination]);
+
+  return <BiteBeaconStartup onFinished={() => setStartupFinished(true)} />;
 }

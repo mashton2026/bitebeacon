@@ -1,11 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import {
-  Pressable,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import AppText from "./AppText";
 import CardGlowBorder from "./CardGlowBorder";
@@ -25,10 +21,10 @@ type Props = {
 type StatusStyle = {
   text: string;
   icon:
-  | "broadcast"
-  | "map-marker-plus-outline"
-  | "star-outline"
-  | "storefront-outline";
+    | "broadcast"
+    | "map-marker-plus-outline"
+    | "star-outline"
+    | "storefront-outline";
   textColor: string;
   backgroundColor: string;
   borderColor: string;
@@ -51,7 +47,7 @@ export default function BurgerVanCard({
   useFocusEffect(
     useCallback(() => {
       setIsNavigating(false);
-    }, [])
+    }, []),
   );
 
   const safeName = name?.trim() || "Unnamed vendor";
@@ -189,11 +185,7 @@ export default function BurgerVanCard({
           </View>
 
           <View style={styles.vendorDetails}>
-            <AppText
-              variant="bodyBold"
-              style={styles.name}
-              numberOfLines={1}
-            >
+            <AppText variant="bodyBold" style={styles.name} numberOfLines={1}>
               {safeName}
             </AppText>
 
@@ -204,11 +196,7 @@ export default function BurgerVanCard({
                 color="rgba(255,255,255,0.48)"
               />
 
-              <AppText
-                variant="body"
-                style={styles.cuisine}
-                numberOfLines={1}
-              >
+              <AppText variant="body" style={styles.cuisine} numberOfLines={1}>
                 {safeCuisine}
               </AppText>
             </View>
@@ -243,11 +231,7 @@ export default function BurgerVanCard({
           <View style={styles.infoGroup}>
             {safeRatingText ? (
               <View style={styles.infoPill}>
-                <MaterialCommunityIcons
-                  name="star"
-                  size={15}
-                  color="#F4B547"
-                />
+                <MaterialCommunityIcons name="star" size={15} color="#F4B547" />
 
                 <AppText variant="bodyBold" style={styles.infoPillText}>
                   {safeRatingText}
